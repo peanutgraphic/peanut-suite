@@ -35,7 +35,7 @@ import { useCurrentAccount, toast } from '../store';
 
 const columnHelper = createColumnHelper<AuditLogEntry>();
 
-const actionIcons: Record<AuditAction, React.ReactNode> = {
+const actionIcons: Record<string, React.ReactNode> = {
   create: <Plus className="w-4 h-4 text-green-500" />,
   update: <Pencil className="w-4 h-4 text-blue-500" />,
   delete: <Trash2 className="w-4 h-4 text-red-500" />,
@@ -44,10 +44,12 @@ const actionIcons: Record<AuditAction, React.ReactNode> = {
   logout: <LogOut className="w-4 h-4 text-amber-500" />,
   export: <FileDown className="w-4 h-4 text-purple-500" />,
   import: <FileUp className="w-4 h-4 text-indigo-500" />,
+  invite: <Plus className="w-4 h-4 text-blue-500" />,
+  revoke: <X className="w-4 h-4 text-red-500" />,
   api_call: <Zap className="w-4 h-4 text-amber-500" />,
 };
 
-const actionLabels: Record<AuditAction, string> = {
+const actionLabels: Record<string, string> = {
   create: 'Created',
   update: 'Updated',
   delete: 'Deleted',
@@ -56,10 +58,12 @@ const actionLabels: Record<AuditAction, string> = {
   logout: 'Logged out',
   export: 'Exported',
   import: 'Imported',
+  invite: 'Invited',
+  revoke: 'Revoked',
   api_call: 'API Call',
 };
 
-const actionBadgeVariants: Record<AuditAction, 'success' | 'info' | 'danger' | 'warning' | 'default'> = {
+const actionBadgeVariants: Record<string, 'success' | 'info' | 'danger' | 'warning' | 'default'> = {
   create: 'success',
   update: 'info',
   delete: 'danger',
@@ -68,10 +72,12 @@ const actionBadgeVariants: Record<AuditAction, 'success' | 'info' | 'danger' | '
   logout: 'warning',
   export: 'info',
   import: 'info',
+  invite: 'info',
+  revoke: 'danger',
   api_call: 'warning',
 };
 
-const resourceLabels: Record<AuditResourceType, string> = {
+const resourceLabels: Record<string, string> = {
   account: 'Account',
   member: 'Team Member',
   api_key: 'API Key',
@@ -82,6 +88,7 @@ const resourceLabels: Record<AuditResourceType, string> = {
   popup: 'Popup',
   webhook: 'Webhook',
   settings: 'Settings',
+  audit_log: 'Audit Log',
 };
 
 const actionOptions = [
@@ -89,12 +96,11 @@ const actionOptions = [
   { value: 'create', label: 'Created' },
   { value: 'update', label: 'Updated' },
   { value: 'delete', label: 'Deleted' },
-  { value: 'view', label: 'Viewed' },
+  { value: 'invite', label: 'Invited' },
+  { value: 'revoke', label: 'Revoked' },
   { value: 'login', label: 'Login' },
   { value: 'logout', label: 'Logout' },
   { value: 'export', label: 'Export' },
-  { value: 'import', label: 'Import' },
-  { value: 'api_call', label: 'API Call' },
 ];
 
 const resourceOptions = [
@@ -105,9 +111,6 @@ const resourceOptions = [
   { value: 'utm', label: 'UTM' },
   { value: 'link', label: 'Link' },
   { value: 'contact', label: 'Contact' },
-  { value: 'tag', label: 'Tag' },
-  { value: 'popup', label: 'Popup' },
-  { value: 'webhook', label: 'Webhook' },
   { value: 'settings', label: 'Settings' },
 ];
 
@@ -141,19 +144,42 @@ export default function AuditLog() {
 
   const handleExport = async (format: 'csv' | 'json') => {
     try {
-      const result = await accountsApi.exportAuditLog(
+      const entries = await accountsApi.exportAuditLog(
         accountId,
         format,
         filters.date_from,
         filters.date_to
       );
 
+      let content: string;
+      let mimeType: string;
+      const filename = `audit-log-${new Date().toISOString().split('T')[0]}.${format}`;
+
+      if (format === 'json') {
+        content = JSON.stringify(entries, null, 2);
+        mimeType = 'application/json';
+      } else {
+        // CSV format
+        const headers = ['Date', 'Action', 'Resource Type', 'Resource ID', 'User', 'IP Address', 'Details'];
+        const rows = entries.map(entry => [
+          entry.created_at,
+          entry.action,
+          entry.resource_type,
+          entry.resource_id?.toString() || '',
+          entry.user_name || entry.user_email || 'System',
+          entry.ip_address || '',
+          JSON.stringify(entry.details || {}),
+        ]);
+        content = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+        mimeType = 'text/csv';
+      }
+
       // Create download link
-      const blob = new Blob([result.content], { type: result.mime_type });
+      const blob = new Blob([content], { type: mimeType });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = result.filename;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -202,29 +228,35 @@ export default function AuditLog() {
     }),
     columnHelper.accessor('action', {
       header: 'Action',
-      cell: (info) => (
-        <div className="flex items-center gap-2">
-          {actionIcons[info.getValue()]}
-          <Badge variant={actionBadgeVariants[info.getValue()]}>
-            {actionLabels[info.getValue()]}
-          </Badge>
-        </div>
-      ),
+      cell: (info) => {
+        const action = info.getValue();
+        return (
+          <div className="flex items-center gap-2">
+            {actionIcons[action] || <Zap className="w-4 h-4 text-slate-400" />}
+            <Badge variant={actionBadgeVariants[action] || 'default'}>
+              {actionLabels[action] || action}
+            </Badge>
+          </div>
+        );
+      },
     }),
     columnHelper.accessor('resource_type', {
       header: 'Resource',
-      cell: (info) => (
-        <div>
-          <p className="text-sm text-slate-900 dark:text-slate-100">
-            {resourceLabels[info.getValue()]}
-          </p>
-          {info.row.original.resource_id && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              ID: {info.row.original.resource_id}
+      cell: (info) => {
+        const resourceType = info.getValue();
+        return (
+          <div>
+            <p className="text-sm text-slate-900 dark:text-slate-100">
+              {resourceLabels[resourceType] || resourceType}
             </p>
-          )}
-        </div>
-      ),
+            {info.row.original.resource_id && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                ID: {info.row.original.resource_id}
+              </p>
+            )}
+          </div>
+        );
+      },
     }),
     columnHelper.display({
       id: 'actor',
@@ -240,7 +272,7 @@ export default function AuditLog() {
                 <Key className="w-4 h-4 text-amber-500" />
                 <div>
                   <p className="text-sm text-slate-900 dark:text-slate-100">
-                    {entry.api_key_name || 'API Key'}
+                    API Key
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     via API
@@ -252,7 +284,7 @@ export default function AuditLog() {
                 <User className="w-4 h-4 text-slate-400" />
                 <div>
                   <p className="text-sm text-slate-900 dark:text-slate-100">
-                    {entry.user_email || 'System'}
+                    {entry.user_name || entry.user_email || 'System'}
                   </p>
                   {entry.ip_address && (
                     <p className="text-xs text-slate-500 dark:text-slate-400">

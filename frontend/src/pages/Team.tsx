@@ -68,7 +68,7 @@ export default function Team() {
   const [transferOwner, setTransferOwner] = useState<AccountMember | null>(null);
 
   const [inviteForm, setInviteForm] = useState({
-    user_id: '',
+    email: '',
     role: 'member' as MemberRole,
   });
 
@@ -81,12 +81,12 @@ export default function Team() {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: number; role: MemberRole }) =>
-      accountsApi.addMember(accountId, userId, role),
+    mutationFn: ({ email, role }: { email: string; role: MemberRole }) =>
+      accountsApi.addMember(accountId, email, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members', accountId] });
       setInviteModalOpen(false);
-      setInviteForm({ user_id: '', role: 'member' });
+      setInviteForm({ email: '', role: 'member' });
       toast.success('Team member added');
     },
     onError: (error) => {
@@ -401,12 +401,12 @@ export default function Team() {
       >
         <div className="space-y-4">
           <Input
-            label="WordPress User ID"
-            type="number"
-            value={inviteForm.user_id}
-            onChange={(e) => setInviteForm({ ...inviteForm, user_id: e.target.value })}
-            placeholder="Enter user ID"
-            helper="Enter the WordPress user ID of the person to add"
+            label="Email Address"
+            type="email"
+            value={inviteForm.email}
+            onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+            placeholder="user@example.com"
+            helper="Enter the email of an existing WordPress user"
           />
 
           <Select
@@ -423,11 +423,11 @@ export default function Team() {
             <Button
               onClick={() =>
                 addMemberMutation.mutate({
-                  userId: parseInt(inviteForm.user_id),
+                  email: inviteForm.email,
                   role: inviteForm.role,
                 })
               }
-              disabled={!inviteForm.user_id || addMemberMutation.isPending}
+              disabled={!inviteForm.email || addMemberMutation.isPending}
             >
               {addMemberMutation.isPending ? 'Adding...' : 'Add Member'}
             </Button>

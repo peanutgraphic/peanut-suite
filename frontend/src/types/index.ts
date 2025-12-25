@@ -614,7 +614,14 @@ export interface AnalyticsComparisonMetric {
 export type AccountStatus = 'active' | 'suspended' | 'cancelled';
 export type AccountTier = 'free' | 'pro' | 'agency' | 'enterprise';
 export type MemberRole = 'owner' | 'admin' | 'member' | 'viewer';
-export type ApiKeyScope = 'read' | 'write' | 'delete' | 'admin';
+export type ApiKeyScope =
+  | 'links:read'
+  | 'links:write'
+  | 'utms:read'
+  | 'utms:write'
+  | 'contacts:read'
+  | 'contacts:write'
+  | 'analytics:read';
 
 export interface Account {
   id: number;
@@ -625,14 +632,14 @@ export interface Account {
   max_users: number;
   owner_user_id: number;
   role?: MemberRole;
+  settings?: Record<string, unknown>;
   created_at: string;
+  updated_at: string;
 }
 
 export interface AccountStats {
-  members: number;
-  utms: number;
-  links: number;
-  contacts: number;
+  member_count: number;
+  active_api_keys: number;
 }
 
 export interface AccountMember {
@@ -648,19 +655,29 @@ export interface AccountMember {
 
 export interface ApiKey {
   id: number;
+  account_id: number;
   key_id: string;
+  key_preview: string;
   name: string;
   scopes: ApiKeyScope[];
+  created_by: number;
+  created_by_name?: string;
   last_used_at?: string;
   last_used_ip?: string;
   expires_at?: string;
   revoked_at?: string;
+  revoked_by?: number;
   created_at: string;
 }
 
-export interface ApiKeyWithSecret extends ApiKey {
-  secret: string;
-  full_key: string;
+export interface ApiKeyWithSecret {
+  id: number;
+  key_id: string;
+  key: string; // The full key (only shown once)
+  name: string;
+  scopes: ApiKeyScope[];
+  expires_at?: string;
+  created_at: string;
 }
 
 export interface ApiKeyFormData {
@@ -676,21 +693,22 @@ export interface ApiKeyStats {
   used_last_30_days: number;
 }
 
-export type AuditAction = 'create' | 'update' | 'delete' | 'view' | 'login' | 'logout' | 'export' | 'import' | 'api_call';
-export type AuditResourceType = 'account' | 'member' | 'api_key' | 'utm' | 'link' | 'contact' | 'tag' | 'popup' | 'webhook' | 'settings';
+export type AuditAction = 'create' | 'update' | 'delete' | 'view' | 'login' | 'logout' | 'export' | 'import' | 'invite' | 'revoke' | 'api_call';
+export type AuditResourceType = 'account' | 'member' | 'api_key' | 'utm' | 'link' | 'contact' | 'tag' | 'popup' | 'webhook' | 'settings' | 'audit_log';
 
 export interface AuditLogEntry {
   id: number;
+  account_id: number;
   action: AuditAction;
   resource_type: AuditResourceType;
   resource_id?: number;
   user_id?: number;
+  user_name?: string;
   user_email?: string;
   api_key_id?: number;
-  api_key_name?: string;
   ip_address?: string;
   user_agent?: string;
-  details: Record<string, unknown>;
+  details?: Record<string, unknown>;
   created_at: string;
 }
 

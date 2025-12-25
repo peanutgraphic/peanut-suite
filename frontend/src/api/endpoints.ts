@@ -45,7 +45,6 @@ import type {
   ApiKey,
   ApiKeyWithSecret,
   ApiKeyFormData,
-  ApiKeyStats,
   AuditLogEntry,
   AuditLogFilters,
   MemberRole,
@@ -637,52 +636,33 @@ export const analyticsApi = {
 // Accounts Endpoints (Multi-tenancy)
 // ============================================
 export const accountsApi = {
-  // Get current account context
+  // Get current account (or create if none exists)
   getCurrent: async () => {
-    const { data } = await api.get<{
-      account: Account;
-      role: MemberRole;
-      stats: AccountStats;
-    }>('/accounts/current');
+    const { data } = await api.get<Account>('/accounts/current');
     return data;
   },
 
   // Get all accounts for current user
   getAll: async () => {
-    const { data } = await api.get<{ accounts: Account[] }>('/accounts');
-    return data;
-  },
-
-  // Switch to a different account
-  switch: async (accountId: number) => {
-    const { data } = await api.post<{
-      message: string;
-      account: Account;
-    }>('/accounts/switch', { account_id: accountId });
+    const { data } = await api.get<Account[]>('/accounts');
     return data;
   },
 
   // Get account by ID
   getById: async (id: number) => {
-    const { data } = await api.get<{
-      account: Account;
-      stats: AccountStats;
-    }>(`/accounts/${id}`);
+    const { data } = await api.get<Account>(`/accounts/${id}`);
     return data;
   },
 
   // Update account
-  update: async (id: number, data: { name?: string; settings?: Record<string, unknown> }) => {
-    const { data: result } = await api.put<{
-      message: string;
-      account: Account;
-    }>(`/accounts/${id}`, data);
-    return result;
+  update: async (id: number, updateData: { name?: string; settings?: Record<string, unknown> }) => {
+    const { data } = await api.put<Account>(`/accounts/${id}`, updateData);
+    return data;
   },
 
   // Get account stats
   getStats: async (id: number) => {
-    const { data } = await api.get<{ stats: AccountStats }>(`/accounts/${id}/stats`);
+    const { data } = await api.get<AccountStats>(`/accounts/${id}/stats`);
     return data;
   },
 
@@ -690,42 +670,42 @@ export const accountsApi = {
 
   // Get all members
   getMembers: async (accountId: number) => {
-    const { data } = await api.get<{ members: AccountMember[] }>(
+    const { data } = await api.get<AccountMember[]>(
       `/accounts/${accountId}/members`
     );
-    return data;
+    return { members: data };
   },
 
-  // Add member
-  addMember: async (accountId: number, userId: number, role: MemberRole = 'member') => {
-    const { data } = await api.post<{
-      message: string;
-      member: AccountMember;
-    }>(`/accounts/${accountId}/members`, { user_id: userId, role });
-    return data;
+  // Add member by email
+  addMember: async (accountId: number, email: string, role: MemberRole = 'member') => {
+    const { data } = await api.post<AccountMember[]>(
+      `/accounts/${accountId}/members`,
+      { email, role }
+    );
+    return { members: data };
   },
 
   // Update member role
   updateMember: async (accountId: number, userId: number, role: MemberRole) => {
-    const { data } = await api.put<{
-      message: string;
-      member: AccountMember;
-    }>(`/accounts/${accountId}/members/${userId}`, { role });
-    return data;
+    const { data } = await api.put<AccountMember[]>(
+      `/accounts/${accountId}/members/${userId}`,
+      { role }
+    );
+    return { members: data };
   },
 
   // Remove member
   removeMember: async (accountId: number, userId: number) => {
-    const { data } = await api.delete<{ message: string }>(
+    const { data } = await api.delete<AccountMember[]>(
       `/accounts/${accountId}/members/${userId}`
     );
-    return data;
+    return { members: data };
   },
 
   // Transfer ownership
   transferOwnership: async (accountId: number, newOwnerId: number) => {
-    const { data } = await api.post<{ message: string }>(
-      `/accounts/${accountId}/transfer`,
+    const { data } = await api.post<Account>(
+      `/accounts/${accountId}/transfer-ownership`,
       { new_owner_id: newOwnerId }
     );
     return data;
@@ -735,40 +715,31 @@ export const accountsApi = {
 
   // Get all API keys
   getApiKeys: async (accountId: number, includeRevoked = false) => {
-    const { data } = await api.get<{
-      api_keys: ApiKey[];
-      stats: ApiKeyStats;
-    }>(`/accounts/${accountId}/api-keys`, {
-      params: { include_revoked: includeRevoked },
-    });
+    const { data } = await api.get<ApiKey[]>(
+      `/accounts/${accountId}/api-keys`,
+      { params: { include_revoked: includeRevoked } }
+    );
+    return { api_keys: data };
+  },
+
+  // Get available scopes
+  getScopes: async () => {
+    const { data } = await api.get<string[]>('/accounts/api-keys/scopes');
     return data;
   },
 
   // Create API key
   createApiKey: async (accountId: number, keyData: ApiKeyFormData) => {
-    const { data } = await api.post<{
-      message: string;
-      api_key: ApiKeyWithSecret;
-    }>(`/accounts/${accountId}/api-keys`, keyData);
-    return data;
-  },
-
-  // Update API key
-  updateApiKey: async (
-    accountId: number,
-    keyId: number,
-    updates: Partial<ApiKeyFormData>
-  ) => {
-    const { data } = await api.put<{
-      message: string;
-      api_key: ApiKey;
-    }>(`/accounts/${accountId}/api-keys/${keyId}`, updates);
-    return data;
+    const { data } = await api.post<ApiKeyWithSecret>(
+      `/accounts/${accountId}/api-keys`,
+      keyData
+    );
+    return { api_key: data };
   },
 
   // Revoke API key
   revokeApiKey: async (accountId: number, keyId: number) => {
-    const { data } = await api.delete<{ message: string }>(
+    const { data } = await api.delete<{ revoked: boolean }>(
       `/accounts/${accountId}/api-keys/${keyId}`
     );
     return data;
@@ -776,11 +747,10 @@ export const accountsApi = {
 
   // Regenerate API key
   regenerateApiKey: async (accountId: number, keyId: number) => {
-    const { data } = await api.post<{
-      message: string;
-      api_key: ApiKeyWithSecret;
-    }>(`/accounts/${accountId}/api-keys/${keyId}/regenerate`);
-    return data;
+    const { data } = await api.post<ApiKeyWithSecret>(
+      `/accounts/${accountId}/api-keys/${keyId}/regenerate`
+    );
+    return { api_key: data };
   },
 
   // ========== Audit Log ==========
@@ -801,13 +771,19 @@ export const accountsApi = {
     dateFrom?: string,
     dateTo?: string
   ) => {
+    const { data } = await api.get<AuditLogEntry[]>(
+      `/accounts/${accountId}/audit-log/export`,
+      { params: { format, date_from: dateFrom, date_to: dateTo } }
+    );
+    return data;
+  },
+
+  // Get filter options
+  getAuditLogFilters: async () => {
     const { data } = await api.get<{
-      filename: string;
-      content: string;
-      mime_type: string;
-    }>(`/accounts/${accountId}/audit-log/export`, {
-      params: { format, date_from: dateFrom, date_to: dateTo },
-    });
+      actions: string[];
+      resource_types: string[];
+    }>('/accounts/audit-log/filters');
     return data;
   },
 };

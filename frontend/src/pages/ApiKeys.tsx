@@ -32,17 +32,23 @@ import { useCurrentAccount, useCanManageApiKeys, toast } from '../store';
 const columnHelper = createColumnHelper<ApiKey>();
 
 const scopeOptions = [
-  { value: 'read', label: 'Read - View data' },
-  { value: 'write', label: 'Write - Create and update' },
-  { value: 'delete', label: 'Delete - Remove data' },
-  { value: 'admin', label: 'Admin - Full access' },
+  { value: 'links:read', label: 'Links - Read' },
+  { value: 'links:write', label: 'Links - Write' },
+  { value: 'utms:read', label: 'UTMs - Read' },
+  { value: 'utms:write', label: 'UTMs - Write' },
+  { value: 'contacts:read', label: 'Contacts - Read' },
+  { value: 'contacts:write', label: 'Contacts - Write' },
+  { value: 'analytics:read', label: 'Analytics - Read' },
 ];
 
-const scopeBadgeColors: Record<ApiKeyScope, 'default' | 'info' | 'warning' | 'success'> = {
-  read: 'default',
-  write: 'info',
-  delete: 'warning',
-  admin: 'success',
+const scopeBadgeColors: Record<string, 'default' | 'info' | 'warning' | 'success'> = {
+  'links:read': 'default',
+  'links:write': 'info',
+  'utms:read': 'default',
+  'utms:write': 'info',
+  'contacts:read': 'default',
+  'contacts:write': 'info',
+  'analytics:read': 'success',
 };
 
 export default function ApiKeys() {
@@ -59,7 +65,7 @@ export default function ApiKeys() {
 
   const [createForm, setCreateForm] = useState({
     name: '',
-    scopes: ['read'] as ApiKeyScope[],
+    scopes: ['links:read'] as ApiKeyScope[],
     expires_at: '',
   });
 
@@ -82,7 +88,7 @@ export default function ApiKeys() {
       queryClient.invalidateQueries({ queryKey: ['api-keys', accountId] });
       setCreateModalOpen(false);
       setSecretModal(data.api_key);
-      setCreateForm({ name: '', scopes: ['read'], expires_at: '' });
+      setCreateForm({ name: '', scopes: ['links:read'], expires_at: '' });
       toast.success('API key created');
     },
     onError: (error) => {
@@ -134,7 +140,19 @@ export default function ApiKeys() {
   };
 
   const apiKeys = data?.api_keys || [];
-  const stats = data?.stats || { total: 0, active: 0, revoked: 0, used_last_30_days: 0 };
+
+  // Calculate stats from API keys array
+  const stats = {
+    total: apiKeys.length,
+    active: apiKeys.filter(k => !k.revoked_at && (!k.expires_at || new Date(k.expires_at) > new Date())).length,
+    revoked: apiKeys.filter(k => !!k.revoked_at).length,
+    used_last_30_days: apiKeys.filter(k => {
+      if (!k.last_used_at) return false;
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return new Date(k.last_used_at) > thirtyDaysAgo;
+    }).length,
+  };
 
   const columns = [
     columnHelper.accessor('name', {
@@ -160,7 +178,7 @@ export default function ApiKeys() {
       cell: (info) => (
         <div className="flex flex-wrap gap-1">
           {info.getValue().map((scope) => (
-            <Badge key={scope} variant={scopeBadgeColors[scope]}>
+            <Badge key={scope} variant={scopeBadgeColors[scope] || 'default'}>
               {scope}
             </Badge>
           ))}
@@ -456,7 +474,7 @@ export default function ApiKeys() {
               </label>
               <div className="flex items-center gap-2">
                 <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 font-mono text-sm break-all">
-                  {showSecret ? secretModal.full_key : '••••••••••••••••••••••••••••••••'}
+                  {showSecret ? secretModal.key : '••••••••••••••••••••••••••••••••'}
                 </div>
                 <Button
                   variant="ghost"
@@ -469,7 +487,7 @@ export default function ApiKeys() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => copyToClipboard(secretModal.full_key)}
+                  onClick={() => copyToClipboard(secretModal.key)}
                   title="Copy"
                 >
                   <Copy className="w-4 h-4" />

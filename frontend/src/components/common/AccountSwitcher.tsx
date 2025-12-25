@@ -35,14 +35,15 @@ export default function AccountSwitcher({ compact = false, className = '' }: Acc
   useEffect(() => {
     async function loadAccounts() {
       try {
-        const { accounts: accountList } = await accountsApi.getAll();
+        const accountList = await accountsApi.getAll();
         setAccounts(accountList);
 
         // If no current account, load it
         if (!currentAccount) {
           const current = await accountsApi.getCurrent();
-          setCurrentAccount(current.account, current.role);
-          setAccountStats(current.stats);
+          setCurrentAccount(current, current.role);
+          const stats = await accountsApi.getStats(current.id);
+          setAccountStats(stats);
         }
       } catch {
         // Silent fail - will show login required or similar
@@ -59,14 +60,14 @@ export default function AccountSwitcher({ compact = false, className = '' }: Acc
 
     setIsLoading(true);
     try {
-      const result = await accountsApi.switch(account.id);
-      setCurrentAccount(result.account, account.role);
+      // Just switch to the selected account in the store
+      setCurrentAccount(account, account.role);
 
-      // Refetch stats for the new account
-      const { stats } = await accountsApi.getStats(account.id);
+      // Fetch stats for the new account
+      const stats = await accountsApi.getStats(account.id);
       setAccountStats(stats);
 
-      toast.success(`Switched to ${result.account.name}`);
+      toast.success(`Switched to ${account.name}`);
       setIsOpen(false);
 
       // Reload page to refresh all data
