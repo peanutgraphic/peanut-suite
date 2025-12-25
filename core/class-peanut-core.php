@@ -393,6 +393,10 @@ class Peanut_Core {
         $connect_controller = new Peanut_Connect_Controller();
         $connect_controller->register_routes();
 
+        // Accounts API (multi-tenancy)
+        $accounts_controller = new Peanut_Accounts_Controller();
+        $accounts_controller->register_routes();
+
         // Let modules register their routes
         do_action('peanut_register_routes');
     }

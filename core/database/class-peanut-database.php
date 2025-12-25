@@ -14,7 +14,7 @@ class Peanut_Database {
     /**
      * Database version
      */
-    private const DB_VERSION = '1.0.0';
+    private const DB_VERSION = '2.0.0';
 
     /**
      * Table names
@@ -33,6 +33,12 @@ class Peanut_Database {
     public static function tags_table(): string { return self::table('tags'); }
     public static function taggables_table(): string { return self::table('taggables'); }
     public static function analytics_cache_table(): string { return self::table('analytics_cache'); }
+
+    // Multi-tenancy tables
+    public static function accounts_table(): string { return self::table('accounts'); }
+    public static function account_members_table(): string { return self::table('account_members'); }
+    public static function api_keys_table(): string { return self::table('api_keys'); }
+    public static function audit_log_table(): string { return self::table('audit_log'); }
 
     /**
      * Create all tables
@@ -198,6 +204,92 @@ class Peanut_Database {
         ) $charset;";
         dbDelta($sql);
 
+        // ===== Multi-tenancy Tables =====
+
+        // Accounts table
+        $sql = "CREATE TABLE " . self::accounts_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            slug varchar(100) NOT NULL,
+            status varchar(20) DEFAULT 'active',
+            tier varchar(20) DEFAULT 'free',
+            max_users int DEFAULT 1,
+            owner_user_id bigint(20) UNSIGNED NOT NULL,
+            settings longtext DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY slug (slug),
+            KEY owner_user_id (owner_user_id),
+            KEY status (status),
+            KEY tier (tier)
+        ) $charset;";
+        dbDelta($sql);
+
+        // Account members table
+        $sql = "CREATE TABLE " . self::account_members_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            account_id bigint(20) UNSIGNED NOT NULL,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            role varchar(20) NOT NULL DEFAULT 'member',
+            invited_by bigint(20) UNSIGNED DEFAULT NULL,
+            invited_at datetime DEFAULT NULL,
+            accepted_at datetime DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY account_user (account_id, user_id),
+            KEY account_id (account_id),
+            KEY user_id (user_id),
+            KEY role (role)
+        ) $charset;";
+        dbDelta($sql);
+
+        // API keys table
+        $sql = "CREATE TABLE " . self::api_keys_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            account_id bigint(20) UNSIGNED NOT NULL,
+            key_id varchar(32) NOT NULL,
+            key_hash varchar(255) NOT NULL,
+            name varchar(255) NOT NULL,
+            scopes text NOT NULL,
+            created_by bigint(20) UNSIGNED NOT NULL,
+            last_used_at datetime DEFAULT NULL,
+            last_used_ip varchar(45) DEFAULT NULL,
+            expires_at datetime DEFAULT NULL,
+            revoked_at datetime DEFAULT NULL,
+            revoked_by bigint(20) UNSIGNED DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY key_id (key_id),
+            KEY account_id (account_id),
+            KEY created_by (created_by),
+            KEY revoked_at (revoked_at)
+        ) $charset;";
+        dbDelta($sql);
+
+        // Audit log table
+        $sql = "CREATE TABLE " . self::audit_log_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            account_id bigint(20) UNSIGNED NOT NULL,
+            user_id bigint(20) UNSIGNED DEFAULT NULL,
+            api_key_id bigint(20) UNSIGNED DEFAULT NULL,
+            action varchar(50) NOT NULL,
+            resource_type varchar(50) NOT NULL,
+            resource_id bigint(20) UNSIGNED DEFAULT NULL,
+            details longtext DEFAULT NULL,
+            ip_address varchar(45) DEFAULT NULL,
+            user_agent text DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY account_id (account_id),
+            KEY user_id (user_id),
+            KEY api_key_id (api_key_id),
+            KEY action (action),
+            KEY resource_type (resource_type),
+            KEY created_at (created_at)
+        ) $charset;";
+        dbDelta($sql);
+
         update_option('peanut_db_version', self::DB_VERSION);
     }
 
@@ -216,6 +308,11 @@ class Peanut_Database {
             self::tags_table(),
             self::taggables_table(),
             self::analytics_cache_table(),
+            // Multi-tenancy tables
+            self::audit_log_table(),
+            self::api_keys_table(),
+            self::account_members_table(),
+            self::accounts_table(),
         ];
 
         foreach ($tables as $table) {
