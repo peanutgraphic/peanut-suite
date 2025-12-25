@@ -43,6 +43,7 @@ class Popups_Database {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
         // Popups table
+        // Note: dbDelta() does not support inline SQL comments - keep schema clean
         $popups_table = self::popups_table();
         $sql_popups = "CREATE TABLE $popups_table (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -52,40 +53,22 @@ class Popups_Database {
             position varchar(50) DEFAULT 'center',
             status enum('draft','active','paused','archived') DEFAULT 'draft',
             priority int DEFAULT 10,
-
-            /* Content */
             title varchar(255) DEFAULT '',
             content longtext,
             image_url varchar(2048) DEFAULT '',
-
-            /* Form fields */
             form_fields longtext,
             button_text varchar(100) DEFAULT 'Subscribe',
             success_message varchar(500) DEFAULT 'Thank you for subscribing!',
-
-            /* Triggers - JSON */
             triggers longtext,
-
-            /* Display rules - JSON */
             display_rules longtext,
-
-            /* Styling - JSON */
             styles longtext,
-
-            /* Settings - JSON */
             settings longtext,
-
-            /* Stats */
             views bigint(20) UNSIGNED DEFAULT 0,
             conversions bigint(20) UNSIGNED DEFAULT 0,
-
-            /* Scheduling */
             start_date datetime DEFAULT NULL,
             end_date datetime DEFAULT NULL,
-
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
             PRIMARY KEY (id),
             KEY user_id (user_id),
             KEY status (status),
