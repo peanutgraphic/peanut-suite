@@ -1,0 +1,357 @@
+/**
+ * Peanut Suite Feature Tour Styles
+ *
+ * @package Peanut_Suite
+ * @since 2.4.0
+ */
+
+/* Overlay */
+.peanut-tour-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    backdrop-filter: blur(2px);
+}
+
+.peanut-tour-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Spotlight - highlights the target element */
+.peanut-tour-spotlight {
+    position: fixed;
+    z-index: 999999;
+    border-radius: 8px;
+    box-shadow:
+        0 0 0 9999px rgba(0, 0, 0, 0.6),
+        0 0 20px rgba(255, 193, 7, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.peanut-tour-spotlight.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Main floating card */
+.peanut-tour-card {
+    position: fixed;
+    width: 340px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+    z-index: 1000000;
+    padding: 24px;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.9) translateY(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.peanut-tour-card.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1) translateY(0);
+}
+
+/* Close button */
+.peanut-tour-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: #f3f4f6;
+    border-radius: 50%;
+    font-size: 18px;
+    line-height: 1;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.peanut-tour-close:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+/* Version badge */
+.peanut-tour-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+}
+
+/* Icon */
+.peanut-tour-icon {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+/* Title */
+.peanut-tour-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+}
+
+/* Description */
+.peanut-tour-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #6b7280;
+    margin: 0 0 20px 0;
+}
+
+/* Footer */
+.peanut-tour-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+/* Dots */
+.peanut-tour-dots {
+    display: flex;
+    gap: 8px;
+}
+
+.peanut-tour-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.peanut-tour-dot:hover {
+    background: #d1d5db;
+}
+
+.peanut-tour-dot.active {
+    background: #f59e0b;
+    width: 24px;
+    border-radius: 4px;
+}
+
+/* Buttons */
+.peanut-tour-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.peanut-tour-skip {
+    padding: 8px 16px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.peanut-tour-skip:hover {
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+.peanut-tour-next {
+    padding: 8px 20px;
+    border: none;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+.peanut-tour-next:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
+}
+
+/* Arrow pointer */
+.peanut-tour-arrow {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #ffffff;
+    transform: rotate(45deg);
+    box-shadow: -2px -2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Arrow positions */
+.peanut-tour-card.position-top .peanut-tour-arrow {
+    bottom: -8px;
+    left: 50%;
+    margin-left: -8px;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.peanut-tour-card.position-bottom .peanut-tour-arrow {
+    top: -8px;
+    left: 50%;
+    margin-left: -8px;
+}
+
+.peanut-tour-card.position-left .peanut-tour-arrow {
+    right: -8px;
+    top: 50%;
+    margin-top: -8px;
+    box-shadow: 2px -2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.peanut-tour-card.position-right .peanut-tour-arrow {
+    left: -8px;
+    top: 50%;
+    margin-top: -8px;
+    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.peanut-tour-card.position-center .peanut-tour-arrow {
+    display: none;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .peanut-tour-card {
+        background: #1f2937;
+    }
+
+    .peanut-tour-title {
+        color: #f9fafb;
+    }
+
+    .peanut-tour-description {
+        color: #9ca3af;
+    }
+
+    .peanut-tour-close {
+        background: #374151;
+        color: #9ca3af;
+    }
+
+    .peanut-tour-close:hover {
+        background: #4b5563;
+        color: #f3f4f6;
+    }
+
+    .peanut-tour-dot {
+        background: #4b5563;
+    }
+
+    .peanut-tour-dot:hover {
+        background: #6b7280;
+    }
+
+    .peanut-tour-skip {
+        background: #374151;
+        border-color: #4b5563;
+        color: #9ca3af;
+    }
+
+    .peanut-tour-skip:hover {
+        border-color: #6b7280;
+        color: #f3f4f6;
+    }
+
+    .peanut-tour-arrow {
+        background: #1f2937;
+    }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .peanut-tour-card {
+        width: calc(100vw - 32px);
+        max-width: 340px;
+        left: 16px !important;
+        right: 16px;
+    }
+
+    .peanut-tour-footer {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .peanut-tour-buttons {
+        width: 100%;
+    }
+
+    .peanut-tour-skip,
+    .peanut-tour-next {
+        flex: 1;
+        text-align: center;
+    }
+}
+
+/* Animation for card entrance */
+@keyframes peanut-tour-bounce {
+    0% {
+        transform: scale(0.9) translateY(10px);
+    }
+    50% {
+        transform: scale(1.02) translateY(-2px);
+    }
+    100% {
+        transform: scale(1) translateY(0);
+    }
+}
+
+.peanut-tour-card.visible {
+    animation: peanut-tour-bounce 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pulse animation for spotlight */
+@keyframes peanut-spotlight-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 9999px rgba(0, 0, 0, 0.6),
+            0 0 20px rgba(255, 193, 7, 0.5);
+    }
+    50% {
+        box-shadow:
+            0 0 0 9999px rgba(0, 0, 0, 0.6),
+            0 0 40px rgba(255, 193, 7, 0.8);
+    }
+}
+
+.peanut-tour-spotlight.visible {
+    animation: peanut-spotlight-pulse 2s ease-in-out infinite;
+}

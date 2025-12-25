@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+assets/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Cache
+.cache/
+.parcel-cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# Archives
+*.zip
+
+# Temporary files
+ziHZsX9X

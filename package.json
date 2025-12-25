@@ -1,0 +1,26 @@
+{
+  "name": "peanut-suite",
+  "version": "1.0.0",
+  "description": "Peanut Suite - Complete Marketing Toolkit for WordPress",
+  "private": true,
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "build:production": "cd frontend && npm run build",
+    "install:frontend": "cd frontend && npm install",
+    "clean": "rm -rf dist peanut-suite.zip",
+    "package": "npm run build:production && bash scripts/package.sh",
+    "release": "npm run clean && npm run package"
+  },
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "utm",
+    "marketing",
+    "links",
+    "crm",
+    "analytics"
+  ],
+  "author": "Peanut Graphic",
+  "license": "GPL-2.0-or-later"
+}
