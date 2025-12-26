@@ -347,4 +347,189 @@ export const pageDescriptions: Record<string, PageDescription> = {
       ],
     },
   },
+
+  security: {
+    title: 'Security',
+    subtitle: 'Protect your WordPress login and admin area',
+    description: 'Shield your site from brute force attacks with custom login URLs, attempt limiting, IP management, and two-factor authentication.',
+    howTo: {
+      title: 'How to Secure Your Login',
+      steps: [
+        'Enable "Hide Login URL" to replace wp-login.php with a custom slug',
+        'Bookmark your new login URL before enabling',
+        'Turn on "Limit Login Attempts" to block repeated failures',
+        'Add your IP to the whitelist to prevent self-lockout',
+        'Enable 2FA for administrator accounts',
+      ],
+    },
+    tips: [
+      'Use a unique login slug that bots won\'t guess',
+      'Keep your own IP address whitelisted',
+      'Enable login notifications to monitor suspicious activity',
+    ],
+    useCases: {
+      title: 'What You Can Do Here',
+      examples: [
+        'Hide wp-login.php from bot attacks',
+        'Block IPs after too many failed login attempts',
+        'Require 2FA for all admin users',
+        'Get notified when someone logs in or is locked out',
+        'Permanently block malicious IP addresses',
+      ],
+    },
+  },
+
+  backlinks: {
+    title: 'Backlinks',
+    subtitle: 'Discover and monitor sites linking to you',
+    description: 'Track who\'s linking to your content, get alerts when links are lost, and build a complete picture of your backlink profile.',
+    howTo: {
+      title: 'How to Track Backlinks',
+      steps: [
+        'Click "Discover New" to find sites linking to you',
+        'Use "Verify All" to check if existing links are still active',
+        'Monitor the Lost section for valuable links that disappeared',
+        'Export your backlink profile for SEO analysis',
+      ],
+    },
+    tips: [
+      'Focus on dofollow links for SEO value',
+      'Set up alerts to know immediately when links are lost',
+      'High Domain Authority links are most valuable',
+    ],
+    useCases: {
+      title: 'What You Can Do Here',
+      examples: [
+        'Monitor your link building progress over time',
+        'Get alerts when valuable backlinks disappear',
+        'Identify which content attracts the most links',
+        'Compare your backlink profile to competitors',
+        'Track guest post and PR campaign results',
+      ],
+    },
+  },
+
+  sequences: {
+    title: 'Email Sequences',
+    subtitle: 'Automated email drip campaigns for leads',
+    description: 'Create automated email sequences that nurture leads, onboard customers, and drive engagement without manual effort.',
+    howTo: {
+      title: 'How to Create an Email Sequence',
+      steps: [
+        'Click "New" to create a sequence',
+        'Set a trigger (manual, contact created, tag added)',
+        'Add emails with specific delays between them',
+        'Activate the sequence to start enrolling contacts',
+        'Monitor subscribers and completion rates',
+      ],
+    },
+    tips: [
+      '2-3 day delays between emails usually work best',
+      'Keep subject lines short and compelling',
+      'Test with a small group before full rollout',
+    ],
+    useCases: {
+      title: 'What You Can Do Here',
+      examples: [
+        'Welcome new subscribers with an automated series',
+        'Onboard new customers with helpful tips',
+        'Re-engage inactive contacts with a win-back sequence',
+        'Nurture leads toward a purchase decision',
+        'Follow up after webinars or events automatically',
+      ],
+    },
+  },
+
+  keywords: {
+    title: 'Keyword Rankings',
+    subtitle: 'Track your search engine positions',
+    description: 'Monitor where your pages rank for important keywords. Track position changes, spot opportunities, and measure SEO progress.',
+    howTo: {
+      title: 'How to Track Keywords',
+      steps: [
+        'Click "Add Keyword" to start tracking a term',
+        'Enter the keyword and target URL (or homepage)',
+        'Select the search engine and location',
+        'Rankings are checked daily automatically',
+        'Click any keyword to see position history',
+      ],
+    },
+    tips: [
+      'Focus on keywords you can realistically rank for',
+      'Track both branded and non-branded terms',
+      'Configure DataForSEO API for accurate data',
+    ],
+    useCases: {
+      title: 'What You Can Do Here',
+      examples: [
+        'Monitor your top 10 most important keywords',
+        'Track progress after publishing new content',
+        'Get alerts when rankings drop significantly',
+        'Measure the impact of SEO changes',
+        'Compare rankings across different locations',
+      ],
+    },
+  },
+
+  woocommerce: {
+    title: 'Revenue Attribution',
+    subtitle: 'Track WooCommerce revenue by campaign',
+    description: 'See exactly which marketing campaigns drive sales. Connect UTM data to orders and measure true marketing ROI.',
+    howTo: {
+      title: 'How Revenue Attribution Works',
+      steps: [
+        'UTM parameters are captured when visitors arrive',
+        'When they purchase, the order is attributed to that campaign',
+        'Revenue is grouped by source, medium, and campaign',
+        'View attributed orders in the table below',
+      ],
+    },
+    tips: [
+      'Use consistent UTM naming across all campaigns',
+      'Compare revenue by channel to optimize spend',
+      'Check attribution rate to ensure tracking is working',
+    ],
+    useCases: {
+      title: 'What You Can Do Here',
+      examples: [
+        'See which Facebook ads generate the most revenue',
+        'Calculate ROI on Google Ads campaigns',
+        'Compare email vs social media sales',
+        'Identify your highest-value traffic sources',
+        'Prove marketing value with revenue data',
+      ],
+    },
+  },
+
+  performance: {
+    title: 'Performance',
+    subtitle: 'Monitor Core Web Vitals and PageSpeed scores',
+    description: 'Track your site\'s performance with Google PageSpeed Insights. Monitor LCP, FID, CLS, and other Core Web Vitals to ensure a fast, smooth user experience.',
+    howTo: {
+      title: 'How to Track Performance',
+      steps: [
+        'Add URLs you want to monitor in Settings',
+        'Run a check to get PageSpeed Insights data',
+        'View scores for Performance, Accessibility, Best Practices, and SEO',
+        'Review Core Web Vitals: LCP, FID, and CLS',
+        'Check opportunities and diagnostics for improvement tips',
+      ],
+    },
+    tips: [
+      'Aim for a Performance score of 90+ for best results',
+      'LCP should be under 2.5 seconds for good UX',
+      'CLS should be under 0.1 to avoid layout shifts',
+      'Add a Google API key for higher rate limits',
+    ],
+    useCases: {
+      title: 'What You Can Do Here',
+      examples: [
+        'Monitor Core Web Vitals across your key pages',
+        'Track performance improvements over time',
+        'Identify slow-loading pages before they hurt SEO',
+        'Get actionable recommendations to speed up your site',
+        'Compare mobile vs desktop performance',
+      ],
+    },
+  },
 };

@@ -16,7 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Select, Badge, Button, InfoTooltip, HelpPanel, SampleDataBanner } from '../components/common';
+import { Card, Select, Badge, Button, InfoTooltip, SampleDataBanner } from '../components/common';
 import { LineChart, BarChart, DoughnutChart } from '../components/common';
 import { analyticsApi } from '../api/endpoints';
 import type { AnalyticsBreakdownItem } from '../types';
@@ -153,14 +153,10 @@ export default function Analytics() {
       : <TrendingDown className="w-4 h-4 text-red-500" />;
 
   const pageInfo = pageDescriptions.analytics;
+  const pageHelpContent = { howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description}>
-      {/* How-To Panel */}
-      <div className="mb-6">
-        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
-      </div>
-
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent}>
       {/* Sample Data Banner */}
       {displaySampleData && (
         <SampleDataBanner onDismiss={() => setShowSampleData(false)} />

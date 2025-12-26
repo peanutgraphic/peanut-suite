@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Copy, Check, ExternalLink, Save, RotateCcw, Library, Zap } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Select, HelpPanel, SampleDataBanner, useToast } from '../components/common';
+import { Card, Button, Input, Select, SampleDataBanner, useToast } from '../components/common';
 import { useUTMStore } from '../store';
 import { utmApi } from '../api/endpoints';
 import { helpContent, pageDescriptions } from '../constants';
@@ -135,14 +135,10 @@ export default function UTMBuilder() {
   };
 
   const pageInfo = pageDescriptions.utm;
+  const pageHelpContent = { howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description}>
-      {/* How-To Panel */}
-      <div className="mb-6">
-        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
-      </div>
-
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent}>
       {/* Sample Data Banner */}
       {displaySampleData && (
         <SampleDataBanner onDismiss={() => setShowSampleData(false)} />

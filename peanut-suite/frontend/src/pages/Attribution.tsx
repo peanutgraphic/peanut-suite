@@ -10,7 +10,7 @@ import {
   Info,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Select, Badge, InfoTooltip, HelpPanel, SampleDataBanner } from '../components/common';
+import { Card, Select, Badge, InfoTooltip, SampleDataBanner } from '../components/common';
 import { BarChart, DoughnutChart } from '../components/common';
 import { attributionApi } from '../api/endpoints';
 import type { AttributionModel, ChannelPerformance } from '../types';
@@ -129,14 +129,10 @@ export default function Attribution() {
   const comparisonData = displayComparison?.comparison || {};
 
   const pageInfo = pageDescriptions.attribution;
+  const pageHelpContent = { howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description}>
-      {/* How-To Panel */}
-      <div className="mb-6">
-        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
-      </div>
-
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent}>
       {/* Sample Data Banner */}
       {displaySampleData && (
         <SampleDataBanner onDismiss={() => setShowSampleData(false)} />

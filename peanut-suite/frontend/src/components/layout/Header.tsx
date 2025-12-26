@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Search, User, Command, Plus, Link2, Target, Users, ChevronDown } from 'lucide-react';
+import { Bell, Search, User, Command, Plus, Link2, Target, Users, ChevronDown, HelpCircle } from 'lucide-react';
+import type { HelpContent } from '../common';
 
 interface HeaderProps {
   title: string;
   description?: string;
   onSearchClick?: () => void;
+  helpContent?: HelpContent;
+  onHelpClick?: () => void;
 }
 
 const quickCreateItems = [
@@ -14,7 +17,7 @@ const quickCreateItems = [
   { label: 'New Contact', icon: Users, path: '/contacts?create=true', description: 'Add lead' },
 ];
 
-export default function Header({ title, description, onSearchClick }: HeaderProps) {
+export default function Header({ title, description, onSearchClick, helpContent, onHelpClick }: HeaderProps) {
   const navigate = useNavigate();
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -44,11 +47,12 @@ export default function Header({ title, description, onSearchClick }: HeaderProp
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setQuickCreateOpen(!quickCreateOpen)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors font-medium text-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg transition-colors font-medium text-sm"
+              style={{ backgroundColor: '#2563eb' }}
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Create</span>
-              <ChevronDown className="w-3.5 h-3.5" />
+              <ChevronDown className="w-3.5 h-3.5 hidden sm:block" />
             </button>
 
             {quickCreateOpen && (
@@ -102,10 +106,24 @@ export default function Header({ title, description, onSearchClick }: HeaderProp
 
       {/* Page title - aligns with sidebar nav items */}
       <div className="px-6 pt-3 pb-2 bg-slate-50">
-        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-        {description && (
-          <p className="text-sm text-slate-500 mt-0.5">{description}</p>
-        )}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+            {description && (
+              <p className="text-sm text-slate-500 mt-0.5">{description}</p>
+            )}
+          </div>
+          {helpContent && onHelpClick && (
+            <button
+              onClick={onHelpClick}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-primary-600 bg-white hover:bg-primary-50 border border-slate-200 hover:border-primary-200 rounded-lg transition-colors"
+              title="How to use this page"
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span>How to</span>
+            </button>
+          )}
+        </div>
       </div>
     </>
   );

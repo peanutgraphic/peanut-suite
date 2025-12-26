@@ -622,3 +622,590 @@ export const analyticsApi = {
     return data;
   },
 };
+
+// ============================================
+// Security Endpoints
+// ============================================
+export const securityApi = {
+  getSettings: async () => {
+    const { data } = await api.get<{
+      hide_login_enabled: boolean;
+      login_slug: string;
+      redirect_slug: string;
+      limit_login_enabled: boolean;
+      max_attempts: number;
+      lockout_duration: number;
+      lockout_increment: boolean;
+      ip_whitelist: string[];
+      ip_blacklist: string[];
+      notify_login_success: boolean;
+      notify_login_failed: boolean;
+      notify_lockout: boolean;
+      notify_email: string;
+      '2fa_enabled': boolean;
+      '2fa_method': 'email' | 'totp';
+      '2fa_roles': string[];
+    }>('/security/settings');
+    return data;
+  },
+
+  updateSettings: async (settings: Record<string, unknown>) => {
+    const { data } = await api.post<{ success: boolean; settings: Record<string, unknown> }>(
+      '/security/settings',
+      settings
+    );
+    return data;
+  },
+
+  getLoginAttempts: async () => {
+    const { data } = await api.get<Array<{
+      id: number;
+      ip_address: string;
+      username: string;
+      attempt_time: string;
+      status: 'success' | 'failed';
+    }>>('/security/attempts');
+    return data;
+  },
+
+  getLockouts: async () => {
+    const { data } = await api.get<Array<{
+      id: number;
+      ip_address: string;
+      lockout_until: string;
+      attempts: number;
+      created_at: string;
+    }>>('/security/lockouts');
+    return data;
+  },
+
+  unlockIp: async (ip: string) => {
+    const { data } = await api.delete<{ success: boolean }>(`/security/unlock/${encodeURIComponent(ip)}`);
+    return data;
+  },
+};
+
+// ============================================
+// Backlinks Endpoints
+// ============================================
+export const backlinksApi = {
+  getAll: async (params?: PaginationParams & {
+    status?: 'active' | 'lost' | 'broken' | 'pending';
+    domain?: string;
+  }) => {
+    const { data } = await api.get<{
+      backlinks: Array<{
+        id: number;
+        source_url: string;
+        source_domain: string;
+        target_url: string;
+        anchor_text: string;
+        link_type: 'dofollow' | 'nofollow' | 'ugc' | 'sponsored';
+        status: 'active' | 'lost' | 'broken' | 'pending';
+        first_seen: string;
+        last_checked: string;
+        domain_authority: number | null;
+      }>;
+      total: number;
+      page: number;
+      per_page: number;
+      total_pages: number;
+      stats: {
+        total: number;
+        active: number;
+        lost: number;
+        broken: number;
+        dofollow: number;
+        nofollow: number;
+        unique_domains: number;
+        new_30_days: number;
+        lost_7_days: number;
+      };
+    }>('/backlinks', { params });
+    return data;
+  },
+
+  triggerDiscovery: async () => {
+    const { data } = await api.post<{ success: boolean; discovered: number; message: string }>(
+      '/backlinks/discover'
+    );
+    return data;
+  },
+
+  triggerVerify: async () => {
+    const { data } = await api.post<{ success: boolean; verified: number; lost: number; message: string }>(
+      '/backlinks/verify'
+    );
+    return data;
+  },
+
+  delete: async (id: number) => {
+    const { data } = await api.delete<{ success: boolean }>(`/backlinks/${id}`);
+    return data;
+  },
+
+  getSettings: async () => {
+    const { data } = await api.get<{
+      alert_on_lost: boolean;
+      alert_email: string;
+      auto_verify_days: number;
+      target_domains: string[];
+    }>('/backlinks/settings');
+    return data;
+  },
+
+  updateSettings: async (settings: Record<string, unknown>) => {
+    const { data } = await api.post<{ success: boolean; settings: Record<string, unknown> }>(
+      '/backlinks/settings',
+      settings
+    );
+    return data;
+  },
+};
+
+// ============================================
+// SEO/Keywords Endpoints
+// ============================================
+export const seoApi = {
+  getKeywords: async () => {
+    const { data } = await api.get<{
+      keywords: Array<{
+        id: number;
+        keyword: string;
+        target_url: string;
+        search_engine: string;
+        location: string;
+        current_position: number | null;
+        previous_position: number | null;
+        change: number;
+        last_checked: string;
+        created_at: string;
+      }>;
+    }>('/seo/keywords');
+    return data;
+  },
+
+  addKeyword: async (data: { keyword: string; target_url?: string; search_engine?: string; location?: string }) => {
+    const { data: response } = await api.post<{ id: number; message: string }>('/seo/keywords', data);
+    return response;
+  },
+
+  deleteKeyword: async (id: number) => {
+    const { data } = await api.delete<{ message: string }>(`/seo/keywords/${id}`);
+    return data;
+  },
+
+  getKeywordHistory: async (id: number, days?: number) => {
+    const { data } = await api.get<{
+      history: Array<{
+        position: number | null;
+        ranking_url: string;
+        checked_at: string;
+      }>;
+    }>(`/seo/keywords/${id}/history`, { params: { days } });
+    return data;
+  },
+
+  checkRankings: async () => {
+    const { data } = await api.post<{ checked: number }>('/seo/keywords/check');
+    return data;
+  },
+
+  runAudit: async (url?: string) => {
+    const { data } = await api.post<{
+      success: boolean;
+      url: string;
+      score: number;
+      grade: string;
+      issues: Array<{
+        category: string;
+        severity: 'critical' | 'warning' | 'info' | 'passed';
+        title: string;
+        description: string;
+        recommendation?: string;
+      }>;
+      summary: { critical: number; warning: number; info: number; passed: number };
+    }>('/seo/audit', { url });
+    return data;
+  },
+
+  getAuditResults: async () => {
+    const { data } = await api.get<{
+      url: string;
+      results: Record<string, unknown>;
+      timestamp: number;
+    } | { error: string }>('/seo/audit/results');
+    return data;
+  },
+};
+
+// ============================================
+// Sequences Endpoints
+// ============================================
+export const sequencesApi = {
+  getAll: async () => {
+    const { data } = await api.get<{
+      sequences: Array<{
+        id: number;
+        name: string;
+        description: string;
+        trigger_type: string;
+        trigger_value: string;
+        status: 'draft' | 'active' | 'paused';
+        active_subscribers: number;
+        completed_subscribers: number;
+        created_at: string;
+      }>;
+    }>('/sequences');
+    return data;
+  },
+
+  getById: async (id: number) => {
+    const { data } = await api.get<{
+      id: number;
+      name: string;
+      description: string;
+      trigger_type: string;
+      trigger_value: string;
+      status: string;
+      emails: Array<{
+        id: number;
+        sequence_id: number;
+        subject: string;
+        body: string;
+        delay_days: number;
+        delay_hours: number;
+        status: string;
+        created_at: string;
+      }>;
+      stats: { active: number; completed: number; paused: number };
+    }>(`/sequences/${id}`);
+    return data;
+  },
+
+  create: async (data: { name: string; description?: string; trigger_type?: string; trigger_value?: string }) => {
+    const { data: response } = await api.post<{ id: number }>('/sequences', data);
+    return response;
+  },
+
+  update: async (id: number, data: Record<string, unknown>) => {
+    const { data: response } = await api.patch<{ message: string }>(`/sequences/${id}`, data);
+    return response;
+  },
+
+  delete: async (id: number) => {
+    const { data } = await api.delete<{ message: string }>(`/sequences/${id}`);
+    return data;
+  },
+
+  addEmail: async (sequenceId: number, email: { subject: string; body: string; delay_days: number; delay_hours: number }) => {
+    const { data } = await api.post<{ id: number }>(`/sequences/${sequenceId}/emails`, email);
+    return data;
+  },
+
+  updateEmail: async (emailId: number, email: Record<string, unknown>) => {
+    const { data } = await api.patch<{ message: string }>(`/sequences/emails/${emailId}`, email);
+    return data;
+  },
+
+  deleteEmail: async (emailId: number) => {
+    const { data } = await api.delete<{ message: string }>(`/sequences/emails/${emailId}`);
+    return data;
+  },
+
+  getSubscribers: async (sequenceId: number) => {
+    const { data } = await api.get<{
+      subscribers: Array<{
+        id: number;
+        sequence_id: number;
+        contact_id: number;
+        email: string;
+        current_email_id: number | null;
+        next_send_at: string | null;
+        emails_sent: number;
+        status: 'active' | 'completed' | 'paused';
+        enrolled_at: string;
+      }>;
+    }>(`/sequences/${sequenceId}/subscribers`);
+    return data;
+  },
+
+  enrollContact: async (sequenceId: number, data: { contact_id?: number; email?: string }) => {
+    const { data: response } = await api.post<{ message: string }>(`/sequences/${sequenceId}/enroll`, data);
+    return response;
+  },
+};
+
+// ============================================
+// WooCommerce Endpoints
+// ============================================
+export const woocommerceApi = {
+  getRevenueStats: async (days?: number) => {
+    const { data } = await api.get<{
+      total_revenue: number;
+      by_source: Array<{ source: string; orders: number; revenue: number }>;
+      by_campaign: Array<{ campaign: string; source: string; orders: number; revenue: number }>;
+      daily: Array<{ date: string; revenue: number; orders: number }>;
+      attribution_rate: number;
+      total_orders: number;
+      attributed_orders: number;
+    }>('/woocommerce/revenue', { params: { days } });
+    return data;
+  },
+
+  getAttributionReport: async (params?: { days?: number; group_by?: 'source' | 'medium' | 'campaign' }) => {
+    const { data } = await api.get<{
+      report: Array<{
+        channel: string;
+        orders: number;
+        customers: number;
+        revenue: number;
+        avg_order_value: number;
+        first_order: string;
+        last_order: string;
+      }>;
+      group_by: string;
+      period_days: number;
+    }>('/woocommerce/attribution', { params });
+    return data;
+  },
+
+  getAttributedOrders: async (params?: PaginationParams & { source?: string; campaign?: string }) => {
+    const { data } = await api.get<{
+      orders: Array<{
+        id: number;
+        order_id: number;
+        customer_email: string;
+        order_total: number;
+        utm_source: string;
+        utm_medium: string;
+        utm_campaign: string;
+        created_at: string;
+      }>;
+      total: number;
+      page: number;
+      per_page: number;
+      total_pages: number;
+    }>('/woocommerce/orders', { params });
+    return data;
+  },
+};
+
+// ============================================
+// White-Label Endpoints
+// ============================================
+export const whitelabelApi = {
+  getSettings: async () => {
+    const { data } = await api.get<{
+      enabled: boolean;
+      company_name: string;
+      logo_url: string;
+      logo_width: number;
+      primary_color: string;
+      secondary_color: string;
+      accent_color: string;
+      email_footer: string;
+      report_footer: string;
+      hide_peanut_branding: boolean;
+      custom_css: string;
+    }>('/whitelabel/settings');
+    return data;
+  },
+
+  updateSettings: async (settings: Record<string, unknown>) => {
+    const { data } = await api.post<{ message: string; settings: Record<string, unknown> }>(
+      '/whitelabel/settings',
+      settings
+    );
+    return data;
+  },
+
+  uploadLogo: async (file: File) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const { data } = await api.post<{ url: string; message: string }>(
+      '/whitelabel/logo',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return data;
+  },
+};
+
+// ============================================
+// Reports Endpoints
+// ============================================
+export const reportsApi = {
+  getSettings: async () => {
+    const { data } = await api.get<{
+      settings: {
+        enabled: boolean;
+        frequency: 'daily' | 'weekly' | 'monthly';
+        day_of_week: number;
+        day_of_month: number;
+        time: string;
+        recipients: string[];
+        include_sections: Record<string, boolean>;
+        attach_pdf: boolean;
+        custom_logo: string;
+        custom_footer: string;
+      };
+      next_scheduled: string | null;
+      log: Array<{
+        sent_at: string;
+        frequency: string;
+        period: string;
+        recipients: number;
+      }>;
+    }>('/reports/settings');
+    return data;
+  },
+
+  updateSettings: async (settings: Record<string, unknown>) => {
+    const { data } = await api.post<{ success: boolean; settings: Record<string, unknown> }>(
+      '/reports/settings',
+      settings
+    );
+    return data;
+  },
+
+  preview: async () => {
+    const { data } = await api.get<{ data: Record<string, unknown>; html: string }>('/reports/preview');
+    return data;
+  },
+
+  sendNow: async () => {
+    const { data } = await api.post<{ success: boolean; message: string }>('/reports/send-now');
+    return data;
+  },
+};
+
+// ============================================
+// Performance / Core Web Vitals Endpoints
+// ============================================
+export const performanceApi = {
+  getSettings: async () => {
+    const { data } = await api.get<{
+      api_key: string;
+      api_key_set: boolean;
+      strategy: 'mobile' | 'desktop';
+      auto_check_enabled: boolean;
+      check_frequency: 'daily' | 'weekly';
+      urls: string[];
+      alert_enabled: boolean;
+      alert_threshold: number;
+      alert_email: string;
+    }>('/performance/settings');
+    return data;
+  },
+
+  updateSettings: async (settings: Record<string, unknown>) => {
+    const { data } = await api.post<{ success: boolean; settings: Record<string, unknown> }>(
+      '/performance/settings',
+      settings
+    );
+    return data;
+  },
+
+  getScores: async (strategy?: 'mobile' | 'desktop') => {
+    const { data } = await api.get<{
+      scores: Array<{
+        id: number;
+        url: string;
+        strategy: 'mobile' | 'desktop';
+        overall_score: number;
+        performance_score: number;
+        accessibility_score: number;
+        best_practices_score: number;
+        seo_score: number;
+        lcp_ms: number;
+        fid_ms: number;
+        inp_ms: number;
+        cls: number;
+        fcp_ms: number;
+        ttfb_ms: number;
+        tti_ms: number;
+        tbt_ms: number;
+        speed_index: number;
+        opportunities: Array<{
+          id: string;
+          title: string;
+          description: string;
+          savings_ms: number;
+          savings_bytes: number;
+        }>;
+        diagnostics: Array<{
+          id: string;
+          title: string;
+          description: string;
+          score: number | null;
+        }>;
+        checked_at: string;
+      }>;
+      averages: {
+        overall: number;
+        performance: number;
+        accessibility: number;
+        best_practices: number;
+        seo: number;
+        lcp: number;
+        cls: number;
+        fid: number;
+      };
+      strategy: 'mobile' | 'desktop';
+    }>('/performance/scores', { params: { strategy } });
+    return data;
+  },
+
+  getHistory: async (params?: { url?: string; days?: number; strategy?: 'mobile' | 'desktop' }) => {
+    const { data } = await api.get<{
+      history: Array<{
+        date: string;
+        overall_score: number;
+        performance_score: number;
+        lcp_ms: number;
+        cls: number;
+        fid_ms: number;
+      }>;
+      url: string;
+      days: number;
+    }>('/performance/history', { params });
+    return data;
+  },
+
+  runCheck: async (url?: string, strategy?: 'mobile' | 'desktop') => {
+    const { data } = await api.post<{
+      success: boolean;
+      score?: {
+        url: string;
+        overall_score: number;
+        performance_score: number;
+        accessibility_score: number;
+        best_practices_score: number;
+        seo_score: number;
+        lcp_ms: number;
+        cls: number;
+        fid_ms: number;
+        opportunities: Array<{ id: string; title: string; savings_ms: number }>;
+        diagnostics: Array<{ id: string; title: string; score: number | null }>;
+      };
+      error?: string;
+    }>('/performance/check', { url, strategy });
+    return data;
+  },
+
+  getUrls: async () => {
+    const { data } = await api.get<{ urls: string[] }>('/performance/urls');
+    return data;
+  },
+
+  addUrl: async (url: string) => {
+    const { data } = await api.post<{ success: boolean; urls: string[] }>('/performance/urls', { url });
+    return data;
+  },
+
+  deleteUrl: async (id: number) => {
+    const { data } = await api.delete<{ success: boolean; urls: string[] }>(`/performance/urls/${id}`);
+    return data;
+  },
+};

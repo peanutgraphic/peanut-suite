@@ -303,6 +303,17 @@ class Peanut_Core {
             'pro' => true,
         ]);
 
+        // Performance / Core Web Vitals (Pro)
+        $this->module_manager->register('performance', [
+            'name' => __('Performance', 'peanut-suite'),
+            'description' => __('Track Core Web Vitals and PageSpeed Insights scores.', 'peanut-suite'),
+            'icon' => 'performance',
+            'file' => PEANUT_PLUGIN_DIR . 'modules/performance/class-performance-module.php',
+            'class' => 'PeanutSuite\\Performance\\Performance_Module',
+            'default' => false,
+            'pro' => true,
+        ]);
+
         // Notifications Module (Pro)
         $this->module_manager->register('notifications', [
             'name' => __('Notifications', 'peanut-suite'),

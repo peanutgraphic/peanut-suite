@@ -10,7 +10,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, StatCard, Skeleton, LineChart, BarChart, DoughnutChart, HelpPanel, SampleDataBanner } from '../components/common';
+import { Card, StatCard, Skeleton, LineChart, BarChart, DoughnutChart, SampleDataBanner } from '../components/common';
 import { utmApi, linksApi, contactsApi, popupsApi, dashboardApi } from '../api/endpoints';
 import { helpContent, pageDescriptions, sampleUTMs, sampleLinks, sampleContacts, sampleDashboardStats } from '../constants';
 
@@ -99,14 +99,10 @@ export default function Dashboard() {
   }, [utmStats]);
 
   const pageInfo = pageDescriptions.dashboard;
+  const pageHelpContent = { howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description}>
-      {/* How-To Panel */}
-      <div className="mb-6">
-        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
-      </div>
-
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent}>
       {/* Sample Data Banner */}
       {displaySampleData && (
         <SampleDataBanner onDismiss={() => setShowSampleData(false)} />

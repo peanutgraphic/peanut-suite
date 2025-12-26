@@ -50,7 +50,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </label>
         )}
 
-        <div className="relative">
+        <div className="relative overflow-hidden rounded-lg">
           <select
             ref={ref}
             id={selectId}

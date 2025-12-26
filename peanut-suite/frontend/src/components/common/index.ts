@@ -14,6 +14,8 @@ export { default as QRCodeDisplay, QRCodeModal } from './QRCode';
 export { default as Tooltip, InfoTooltip } from './Tooltip';
 export { default as FeatureTour, WelcomeModal } from './FeatureTour';
 export { default as HelpPanel } from './HelpPanel';
+export { default as HelpModal, HelpButton } from './HelpModal';
+export type { HelpContent } from './HelpModal';
 export { default as SampleDataBanner } from './SampleDataBanner';
 export { default as CommandPalette } from './CommandPalette';
 export { default as ToastProvider, useToast } from './Toast';

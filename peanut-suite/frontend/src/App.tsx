@@ -14,6 +14,12 @@ import PopupBuilder from './pages/PopupBuilder';
 import Monitor from './pages/Monitor';
 import SiteDetail from './pages/SiteDetail';
 import Settings from './pages/Settings';
+import Security from './pages/Security';
+import Backlinks from './pages/Backlinks';
+import Sequences from './pages/Sequences';
+import Keywords from './pages/Keywords';
+import WooCommerce from './pages/WooCommerce';
+import Performance from './pages/Performance';
 import { FeatureTour, WelcomeModal, ToastProvider } from './components/common';
 
 export default function App() {
@@ -35,6 +41,12 @@ export default function App() {
         <Route path="/popups/:id/edit" element={<PopupBuilder />} />
         <Route path="/monitor" element={<Monitor />} />
         <Route path="/monitor/sites/:id" element={<SiteDetail />} />
+        <Route path="/security" element={<Security />} />
+        <Route path="/backlinks" element={<Backlinks />} />
+        <Route path="/sequences" element={<Sequences />} />
+        <Route path="/keywords" element={<Keywords />} />
+        <Route path="/woocommerce" element={<WooCommerce />} />
+        <Route path="/performance" element={<Performance />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
 

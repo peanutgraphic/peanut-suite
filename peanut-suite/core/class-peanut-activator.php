@@ -167,6 +167,13 @@ class Peanut_Activator {
             \PeanutSuite\Sequences\Sequences_Module::create_tables();
         }
 
+        // Performance module tables
+        $performance_module = PEANUT_PLUGIN_DIR . 'modules/performance/class-performance-module.php';
+        if (file_exists($performance_module)) {
+            require_once $performance_module;
+            \PeanutSuite\Performance\Performance_Module::create_tables();
+        }
+
         // Calendar module tables
         $calendar_module = PEANUT_PLUGIN_DIR . 'modules/calendar/class-calendar-module.php';
         if (file_exists($calendar_module)) {

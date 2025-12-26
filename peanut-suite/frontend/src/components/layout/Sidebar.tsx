@@ -15,6 +15,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Crown,
+  Shield,
+  Search,
+  Mail,
+  ShoppingCart,
+  Gauge,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -55,11 +60,17 @@ const navigation: NavItem[] = [
   { name: 'UTM Builder', href: '/utm', icon: Tag, tourId: 'nav-utm' },
   { name: 'Links', href: '/links', icon: Link2, tourId: 'nav-links' },
   { name: 'Contacts', href: '/contacts', icon: Users, tourId: 'nav-contacts' },
+  { name: 'Sequences', href: '/sequences', icon: Mail, tier: 'pro', tourId: 'nav-sequences' },
   { name: 'Webhooks', href: '/webhooks', icon: Webhook, tourId: 'nav-webhooks' },
   { name: 'Visitors', href: '/visitors', icon: Eye, tier: 'pro', tourId: 'nav-visitors' },
   { name: 'Attribution', href: '/attribution', icon: GitBranch, tier: 'pro', tourId: 'nav-attribution' },
   { name: 'Analytics', href: '/analytics', icon: BarChart2, tier: 'pro', tourId: 'nav-analytics' },
   { name: 'Popups', href: '/popups', icon: MessageSquare, tier: 'pro', tourId: 'nav-popups' },
+  { name: 'Keywords', href: '/keywords', icon: Search, tier: 'pro', tourId: 'nav-keywords' },
+  { name: 'Backlinks', href: '/backlinks', icon: Link2, tier: 'pro', tourId: 'nav-backlinks' },
+  { name: 'WooCommerce', href: '/woocommerce', icon: ShoppingCart, tier: 'pro', tourId: 'nav-woocommerce' },
+  { name: 'Performance', href: '/performance', icon: Gauge, tier: 'pro', tourId: 'nav-performance' },
+  { name: 'Security', href: '/security', icon: Shield, tier: 'pro', tourId: 'nav-security' },
   { name: 'Monitor', href: '/monitor', icon: Activity, tier: 'agency', tourId: 'nav-monitor' },
   { name: 'Settings', href: '/settings', icon: Settings, tourId: 'nav-settings' },
 ];

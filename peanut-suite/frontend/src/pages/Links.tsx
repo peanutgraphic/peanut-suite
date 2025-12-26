@@ -25,7 +25,6 @@ import {
   QRCodeModal,
   createCheckboxColumn,
   InfoTooltip,
-  HelpPanel,
   SampleDataBanner,
   useToast,
   BulkActionsBar,
@@ -209,14 +208,10 @@ export default function Links() {
   ];
 
   const pageInfo = pageDescriptions.links;
+  const pageHelpContent = { howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description}>
-      {/* How-To Panel */}
-      <div className="mb-6">
-        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
-      </div>
-
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent}>
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
