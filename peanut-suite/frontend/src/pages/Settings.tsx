@@ -9,9 +9,12 @@ import {
   ExternalLink,
   Check,
   AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Badge } from '../components/common';
+import { Card, Button, Input, Badge, InfoTooltip } from '../components/common';
+import { useTourStore } from '../store';
+import { helpContent } from '../constants';
 
 type Tab = 'general' | 'license' | 'integrations' | 'notifications' | 'advanced';
 
@@ -85,10 +88,12 @@ function GeneralSettings() {
           onChange={(e) => setSettings({ ...settings, default_domain: e.target.value })}
           placeholder="example.com"
           helper="Domain used for short links (requires DNS configuration)"
+          tooltip={helpContent.settings.domain}
         />
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
             Timezone
+            <InfoTooltip content={helpContent.settings.timezone} />
           </label>
           <select
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
@@ -160,6 +165,7 @@ function LicenseSettings() {
             value={licenseKey}
             onChange={(e) => setLicenseKey(e.target.value)}
             placeholder="XXXX-XXXX-XXXX-XXXX"
+            tooltip={helpContent.settings.license}
           />
           <Button disabled={!licenseKey}>Activate License</Button>
         </div>
@@ -347,8 +353,38 @@ function NotificationToggle({
 }
 
 function AdvancedSettings() {
+  const { resetTour, startTour, hasCompletedTour } = useTourStore();
+
+  const handleRestartTour = () => {
+    resetTour();
+    startTour();
+  };
+
   return (
     <div className="space-y-6">
+      {/* Onboarding */}
+      <Card>
+        <h3 className="text-lg font-semibold text-slate-900 mb-6">Onboarding</h3>
+        <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+          <div>
+            <p className="font-medium text-slate-900">Feature Tour</p>
+            <p className="text-sm text-slate-500">
+              {hasCompletedTour
+                ? 'You\'ve completed the tour. Restart anytime to refresh your memory.'
+                : 'Take a guided tour of all Peanut Suite features.'}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<RotateCcw className="w-4 h-4" />}
+            onClick={handleRestartTour}
+          >
+            {hasCompletedTour ? 'Restart Tour' : 'Start Tour'}
+          </Button>
+        </div>
+      </Card>
+
       <Card>
         <h3 className="text-lg font-semibold text-slate-900 mb-6">Data Management</h3>
         <div className="space-y-4">

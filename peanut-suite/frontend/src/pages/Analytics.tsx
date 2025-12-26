@@ -16,10 +16,20 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Select, Badge, Button } from '../components/common';
+import { Card, Select, Badge, Button, InfoTooltip, HelpPanel, SampleDataBanner } from '../components/common';
 import { LineChart, BarChart, DoughnutChart } from '../components/common';
 import { analyticsApi } from '../api/endpoints';
 import type { AnalyticsBreakdownItem } from '../types';
+import {
+  helpContent,
+  pageDescriptions,
+  sampleAnalyticsOverview,
+  sampleAnalyticsRealtime,
+  sampleAnalyticsTimeline,
+  sampleAnalyticsSources,
+  sampleAnalyticsDevices,
+  sampleAnalyticsFunnel,
+} from '../constants';
 
 const sourceColors: Record<string, string> = {
   'direct': '#6366f1',
@@ -41,6 +51,7 @@ const deviceColors: Record<string, string> = {
 
 export default function Analytics() {
   const [period, setPeriod] = useState<'7d' | '30d' | '90d' | 'year'>('30d');
+  const [showSampleData, setShowSampleData] = useState(true);
 
   // Fetch overview
   const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = useQuery({
@@ -87,15 +98,29 @@ export default function Analytics() {
     { value: 'year', label: 'Last year' },
   ];
 
+  // Determine if we should show sample data
+  const hasNoRealData = !overviewLoading && !timelineLoading && !sourcesLoading && !devicesLoading && !funnelLoading &&
+    (!overview?.summary?.visitors?.total || overview.summary.visitors.total === 0) &&
+    (!timeline?.timeline || timeline.timeline.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
+
+  // Use sample data or real data
+  const displayOverview = displaySampleData ? sampleAnalyticsOverview : overview;
+  const displayRealtime = displaySampleData ? sampleAnalyticsRealtime : realtime;
+  const displayTimeline = displaySampleData ? sampleAnalyticsTimeline : (timeline?.timeline || []);
+  const displaySources = displaySampleData ? sampleAnalyticsSources : (sources?.sources || []);
+  const displayDevices = displaySampleData ? sampleAnalyticsDevices : (devices?.devices || []);
+  const displayFunnel = displaySampleData ? sampleAnalyticsFunnel : (funnel?.funnel || []);
+
   // Format timeline data for chart
-  const timelineData = timeline?.timeline || [];
+  const timelineData = displayTimeline;
   const timelineLabels = timelineData.map((d) => {
     const date = new Date(d.date);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   });
 
   // Prepare source chart data
-  const sourceData = sources?.sources || [];
+  const sourceData = displaySources;
   const sourceLabels = sourceData.map((s: AnalyticsBreakdownItem) => s.dimension_value || 'Unknown');
   const sourceCounts = sourceData.map((s: AnalyticsBreakdownItem) => s.total_count);
   const sourceChartColors = sourceLabels.map((label: string) =>
@@ -103,7 +128,7 @@ export default function Analytics() {
   );
 
   // Prepare device chart data
-  const deviceData = devices?.devices || [];
+  const deviceData = displayDevices;
   const deviceLabels = deviceData.map((d: AnalyticsBreakdownItem) =>
     (d.dimension_value || 'Unknown').charAt(0).toUpperCase() + (d.dimension_value || 'unknown').slice(1)
   );
@@ -113,7 +138,7 @@ export default function Analytics() {
   );
 
   // Funnel data
-  const funnelData = funnel?.funnel || [];
+  const funnelData = displayFunnel;
 
   const formatNumber = (num: number | undefined) => {
     if (num === undefined) return '0';
@@ -127,11 +152,20 @@ export default function Analytics() {
       ? <TrendingUp className="w-4 h-4 text-green-500" />
       : <TrendingDown className="w-4 h-4 text-red-500" />;
 
+  const pageInfo = pageDescriptions.analytics;
+
   return (
-    <Layout
-      title="Analytics Dashboard"
-      description="Unified analytics with aggregated stats and visualizations"
-    >
+    <Layout title={pageInfo.title} description={pageInfo.description}>
+      {/* How-To Panel */}
+      <div className="mb-6">
+        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
+      </div>
+
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       {/* Realtime Stats */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-4 mb-6">
         <div className="flex items-center justify-between mb-3">
@@ -155,23 +189,23 @@ export default function Analytics() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div>
             <div className="text-white/60 text-sm">Active Visitors</div>
-            <div className="text-white text-2xl font-bold">{realtime?.active_visitors ?? 0}</div>
+            <div className="text-white text-2xl font-bold">{displayRealtime?.active_visitors ?? 0}</div>
           </div>
           <div>
             <div className="text-white/60 text-sm">Recent Events</div>
-            <div className="text-white text-2xl font-bold">{realtime?.recent_events ?? 0}</div>
+            <div className="text-white text-2xl font-bold">{displayRealtime?.recent_events ?? 0}</div>
           </div>
           <div>
             <div className="text-white/60 text-sm">Today's Pageviews</div>
-            <div className="text-white text-2xl font-bold">{formatNumber(realtime?.today_pageviews)}</div>
+            <div className="text-white text-2xl font-bold">{formatNumber(displayRealtime?.today_pageviews)}</div>
           </div>
           <div>
             <div className="text-white/60 text-sm">Today's Conversions</div>
-            <div className="text-white text-2xl font-bold">{realtime?.today_conversions ?? 0}</div>
+            <div className="text-white text-2xl font-bold">{displayRealtime?.today_conversions ?? 0}</div>
           </div>
           <div>
             <div className="text-white/60 text-sm">Today's Revenue</div>
-            <div className="text-white text-2xl font-bold">${(realtime?.today_revenue ?? 0).toLocaleString()}</div>
+            <div className="text-white text-2xl font-bold">${(displayRealtime?.today_revenue ?? 0).toLocaleString()}</div>
           </div>
         </div>
       </div>
@@ -188,9 +222,9 @@ export default function Analytics() {
             className="w-36"
           />
         </div>
-        {overview && (
+        {displayOverview && (
           <span className="text-sm text-slate-500">
-            {overview.period.from} - {overview.period.to}
+            {displayOverview.period.from} - {displayOverview.period.to}
           </span>
         )}
       </div>
@@ -202,15 +236,16 @@ export default function Analytics() {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-blue-500" />
               <span className="text-sm text-slate-500">Visitors</span>
+              <InfoTooltip content={helpContent.visitors.overview} />
             </div>
-            {overview?.summary.visitors.change !== undefined && overview.summary.visitors.change !== 0 && (
-              <TrendIcon trend={overview.summary.visitors.trend} />
+            {displayOverview?.summary.visitors.change !== undefined && displayOverview.summary.visitors.change !== 0 && (
+              <TrendIcon trend={displayOverview.summary.visitors.trend} />
             )}
           </div>
-          <div className="text-2xl font-bold">{formatNumber(overview?.summary.visitors.total)}</div>
-          {overview?.summary.visitors.change !== undefined && overview.summary.visitors.change !== 0 && (
-            <div className={`text-sm ${overview.summary.visitors.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-              {overview.summary.visitors.change > 0 ? '+' : ''}{overview.summary.visitors.change}% vs prev period
+          <div className="text-2xl font-bold">{formatNumber(displayOverview?.summary.visitors.total)}</div>
+          {displayOverview?.summary.visitors.change !== undefined && displayOverview.summary.visitors.change !== 0 && (
+            <div className={`text-sm ${displayOverview.summary.visitors.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+              {displayOverview.summary.visitors.change > 0 ? '+' : ''}{displayOverview.summary.visitors.change}% vs prev period
             </div>
           )}
         </Card>
@@ -219,8 +254,9 @@ export default function Analytics() {
           <div className="flex items-center gap-2 mb-2">
             <Eye className="w-4 h-4 text-purple-500" />
             <span className="text-sm text-slate-500">Pageviews</span>
+            <InfoTooltip content={helpContent.visitors.pageviews} />
           </div>
-          <div className="text-2xl font-bold">{formatNumber(overview?.summary.pageviews.total)}</div>
+          <div className="text-2xl font-bold">{formatNumber(displayOverview?.summary.pageviews.total)}</div>
         </Card>
 
         <Card className="p-4">
@@ -228,15 +264,16 @@ export default function Analytics() {
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-green-500" />
               <span className="text-sm text-slate-500">Conversions</span>
+              <InfoTooltip content={helpContent.analytics.conversions} />
             </div>
-            {overview?.summary.conversions.change !== undefined && overview.summary.conversions.change !== 0 && (
-              <TrendIcon trend={overview.summary.conversions.trend} />
+            {displayOverview?.summary.conversions.change !== undefined && displayOverview.summary.conversions.change !== 0 && (
+              <TrendIcon trend={displayOverview.summary.conversions.trend} />
             )}
           </div>
-          <div className="text-2xl font-bold">{formatNumber(overview?.summary.conversions.total)}</div>
-          {overview?.summary.conversions.change !== undefined && overview.summary.conversions.change !== 0 && (
-            <div className={`text-sm ${overview.summary.conversions.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-              {overview.summary.conversions.change > 0 ? '+' : ''}{overview.summary.conversions.change}% vs prev period
+          <div className="text-2xl font-bold">{formatNumber(displayOverview?.summary.conversions.total)}</div>
+          {displayOverview?.summary.conversions.change !== undefined && displayOverview.summary.conversions.change !== 0 && (
+            <div className={`text-sm ${displayOverview.summary.conversions.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+              {displayOverview.summary.conversions.change > 0 ? '+' : ''}{displayOverview.summary.conversions.change}% vs prev period
             </div>
           )}
         </Card>
@@ -245,9 +282,10 @@ export default function Analytics() {
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="w-4 h-4 text-amber-500" />
             <span className="text-sm text-slate-500">Conversion Value</span>
+            <InfoTooltip content="Total monetary value of all conversions during this period." />
           </div>
           <div className="text-2xl font-bold text-green-600">
-            ${(overview?.summary.conversions.value ?? 0).toLocaleString()}
+            ${(displayOverview?.summary.conversions.value ?? 0).toLocaleString()}
           </div>
         </Card>
       </div>
@@ -301,6 +339,7 @@ export default function Analytics() {
           <div className="flex items-center gap-2 mb-4">
             <Globe className="w-5 h-5 text-slate-400" />
             <h3 className="text-lg font-semibold">Traffic Sources</h3>
+            <InfoTooltip content={helpContent.analytics.topSources} />
           </div>
           {sourcesLoading ? (
             <div className="h-64 flex items-center justify-center text-slate-400">
@@ -390,6 +429,7 @@ export default function Analytics() {
         <div className="flex items-center gap-2 mb-4">
           <Target className="w-5 h-5 text-slate-400" />
           <h3 className="text-lg font-semibold">Conversion Funnel</h3>
+          <InfoTooltip content="Visual representation of user journey from visit to conversion, showing drop-off rates at each stage." />
         </div>
         {funnelLoading ? (
           <div className="h-32 flex items-center justify-center text-slate-400">

@@ -1,6 +1,7 @@
 import { forwardRef, type SelectHTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 import { ChevronDown } from 'lucide-react';
+import { InfoTooltip } from './Tooltip';
 
 export interface SelectOption {
   value: string;
@@ -12,6 +13,7 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
   label?: string;
   error?: string;
   hint?: string;
+  tooltip?: string; // help tooltip content
   options: SelectOption[];
   placeholder?: string;
   fullWidth?: boolean;
@@ -24,6 +26,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
       label,
       error,
       hint,
+      tooltip,
       options,
       placeholder,
       fullWidth = true,
@@ -39,10 +42,11 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="block text-sm font-medium text-slate-700 mb-1"
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1"
           >
             {label}
-            {props.required && <span className="text-red-500 ml-1">*</span>}
+            {props.required && <span className="text-red-500">*</span>}
+            {tooltip && <InfoTooltip content={tooltip} />}
           </label>
         )}
 

@@ -15,27 +15,33 @@ import { Layout } from '../components/layout';
 import {
   Card,
   Button,
+  Input,
   Table,
   Pagination,
   Badge,
   ConfirmModal,
   createCheckboxColumn,
+  SampleDataBanner,
+  useToast,
 } from '../components/common';
 import { utmApi } from '../api/endpoints';
 import type { UTM } from '../types';
 import { useFilterStore } from '../store';
 import { exportToCSV, utmExportColumns } from '../utils';
+import { sampleUTMs } from '../constants';
 
 const columnHelper = createColumnHelper<UTM>();
 
 export default function UTMLibrary() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const { utmFilters, setUTMFilter, resetUTMFilters } = useFilterStore();
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ['utms', page, utmFilters],
@@ -56,12 +62,22 @@ export default function UTMLibrary() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['utms'] });
       setDeleteId(null);
+      toast.success('UTM deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete UTM');
     },
   });
+
+  // Determine if we should show sample data
+  const hasNoRealData = !isLoading && (!data?.data || data.data.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
+  const displayData = displaySampleData ? sampleUTMs : (data?.data || []);
 
   const handleCopy = async (utm: UTM) => {
     await navigator.clipboard.writeText(utm.full_url);
     setCopiedId(utm.id);
+    toast.success('URL copied to clipboard');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -102,17 +118,19 @@ export default function UTMLibrary() {
       id: 'actions',
       header: '',
       cell: (info) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {/* Prominent copy button */}
           <button
             onClick={() => handleCopy(info.row.original)}
-            className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+              copiedId === info.row.original.id
+                ? 'bg-green-100 text-green-700 border border-green-200'
+                : 'bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200'
+            }`}
             title="Copy URL"
           >
-            {copiedId === info.row.original.id ? (
-              <span className="text-xs text-green-600">Copied!</span>
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
+            <Copy className="w-3.5 h-3.5" />
+            {copiedId === info.row.original.id ? 'Copied!' : 'Copy'}
           </button>
           <a
             href={info.row.original.full_url}
@@ -142,16 +160,15 @@ export default function UTMLibrary() {
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search campaigns..."
-              className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              value={utmFilters.search}
-              onChange={(e) => setUTMFilter('search', e.target.value)}
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder="Search campaigns..."
+            leftIcon={<Search className="w-4 h-4" />}
+            value={utmFilters.search}
+            onChange={(e) => setUTMFilter('search', e.target.value)}
+            fullWidth={false}
+            className="w-64"
+          />
           <Button
             variant="outline"
             size="sm"
@@ -182,6 +199,11 @@ export default function UTMLibrary() {
           </Link>
         </div>
       </div>
+
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
 
       {/* Filters */}
       <Card className="mb-6">
@@ -230,7 +252,7 @@ export default function UTMLibrary() {
       {/* Table */}
       <Card>
         <Table
-          data={data?.data || []}
+          data={displayData}
           columns={columns}
           loading={isLoading}
           rowSelection={selectedRows}

@@ -28,9 +28,13 @@ import {
   Badge,
   Modal,
   ConfirmModal,
+  InfoTooltip,
+  HelpPanel,
+  SampleDataBanner,
 } from '../components/common';
 import { visitorsApi } from '../api/endpoints';
 import type { Visitor } from '../types';
+import { helpContent, pageDescriptions, sampleVisitors, sampleStats } from '../constants';
 
 const columnHelper = createColumnHelper<Visitor>();
 
@@ -48,6 +52,7 @@ export default function Visitors() {
   const [identifiedOnly, setIdentifiedOnly] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showSnippet, setShowSnippet] = useState(false);
+  const [showSampleData, setShowSampleData] = useState(true);
 
   // Fetch visitors
   const { data, isLoading } = useQuery({
@@ -83,6 +88,12 @@ export default function Visitors() {
       setDeleteId(null);
     },
   });
+
+  // Determine if we should show sample data
+  const hasNoRealData = !isLoading && (!data?.data || data.data.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
+  const displayData = displaySampleData ? sampleVisitors : (data?.data || []);
+  const displayStats = displaySampleData ? sampleStats.visitors : stats;
 
   const columns = [
     columnHelper.accessor('visitor_id', {
@@ -182,61 +193,73 @@ export default function Visitors() {
     }
   };
 
+  const pageInfo = pageDescriptions.visitors;
+
   return (
-    <Layout
-      title="Visitors"
-      description="Track and analyze website visitors"
-    >
+    <Layout title={pageInfo.title} description={pageInfo.description}>
+      {/* How-To Panel */}
+      <div className="mb-6">
+        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
+      </div>
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-4 h-4 text-slate-400" />
             <span className="text-sm text-slate-500">Total</span>
+            <InfoTooltip content={helpContent.visitors.overview} />
           </div>
-          <div className="text-2xl font-bold">{stats?.total ?? 0}</div>
+          <div className="text-2xl font-bold">{displayStats?.total ?? 0}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <UserCheck className="w-4 h-4 text-green-500" />
             <span className="text-sm text-slate-500">Identified</span>
+            <InfoTooltip content={helpContent.visitors.identified} />
           </div>
-          <div className="text-2xl font-bold text-green-600">{stats?.identified ?? 0}</div>
+          <div className="text-2xl font-bold text-green-600">{displayStats?.identified ?? 0}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <UserX className="w-4 h-4 text-slate-400" />
             <span className="text-sm text-slate-500">Anonymous</span>
+            <InfoTooltip content={helpContent.visitors.anonymous} />
           </div>
-          <div className="text-2xl font-bold text-slate-500">{stats?.anonymous ?? 0}</div>
+          <div className="text-2xl font-bold text-slate-500">{displayStats?.anonymous ?? 0}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <Calendar className="w-4 h-4 text-blue-500" />
             <span className="text-sm text-slate-500">Today</span>
           </div>
-          <div className="text-2xl font-bold text-blue-600">{stats?.today ?? 0}</div>
+          <div className="text-2xl font-bold text-blue-600">{displayStats?.today ?? 0}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <Calendar className="w-4 h-4 text-purple-500" />
             <span className="text-sm text-slate-500">This Week</span>
           </div>
-          <div className="text-2xl font-bold text-purple-600">{stats?.this_week ?? 0}</div>
+          <div className="text-2xl font-bold text-purple-600">{displayStats?.this_week ?? 0}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <MousePointer className="w-4 h-4 text-amber-500" />
             <span className="text-sm text-slate-500">Pageviews</span>
+            <InfoTooltip content={helpContent.visitors.pageviews} />
           </div>
-          <div className="text-2xl font-bold text-amber-600">{stats?.total_pageviews ?? 0}</div>
+          <div className="text-2xl font-bold text-amber-600">{displayStats?.total_pageviews ?? 0}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <MousePointer className="w-4 h-4 text-cyan-500" />
             <span className="text-sm text-slate-500">Events Today</span>
           </div>
-          <div className="text-2xl font-bold text-cyan-600">{stats?.events_today ?? 0}</div>
+          <div className="text-2xl font-bold text-cyan-600">{displayStats?.events_today ?? 0}</div>
         </Card>
       </div>
 
@@ -244,13 +267,12 @@ export default function Visitors() {
       <Card>
         <div className="p-4 border-b border-slate-100">
           <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div className="flex-1">
               <Input
                 placeholder="Search by email or visitor ID..."
+                leftIcon={<Search className="w-4 h-4" />}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
               />
             </div>
             <Button
@@ -269,26 +291,9 @@ export default function Visitors() {
 
         {/* Table */}
         <Table
-          data={data?.data ?? []}
+          data={displayData}
           columns={columns}
           loading={isLoading}
-          emptyState={
-            <div className="text-center py-12">
-              <Users className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500">No visitors tracked yet</p>
-              <p className="text-sm text-slate-400 mt-1">
-                Add the tracking code to your site to start collecting visitor data
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => setShowSnippet(true)}
-              >
-                <Code className="w-4 h-4 mr-2" />
-                Get Tracking Code
-              </Button>
-            </div>
-          }
         />
 
         {/* Pagination */}

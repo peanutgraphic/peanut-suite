@@ -26,9 +26,13 @@ import {
   Modal,
   ConfirmModal,
   createCheckboxColumn,
+  InfoTooltip,
+  HelpPanel,
+  SampleDataBanner,
 } from '../components/common';
 import { monitorApi } from '../api/endpoints';
 import type { MonitorSite } from '../types';
+import { helpContent, pageDescriptions, sampleMonitorSites, sampleStats } from '../constants';
 
 const columnHelper = createColumnHelper<MonitorSite>();
 
@@ -52,6 +56,7 @@ export default function Monitor() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newSite, setNewSite] = useState({ url: '', name: '' });
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ['monitor-sites', page, search],
@@ -86,6 +91,17 @@ export default function Monitor() {
       queryClient.invalidateQueries({ queryKey: ['monitor-sites'] });
     },
   });
+
+  // Determine if we should show sample data
+  const hasNoRealData = !isLoading && (!data?.data || data.data.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
+  const sites = displaySampleData ? sampleMonitorSites : (data?.data || []);
+
+  // Calculate summary stats
+  const healthyCount = sites.filter((s) => (s.health_score || 0) >= 80).length;
+  const warningCount = sites.filter((s) => (s.health_score || 0) >= 50 && (s.health_score || 0) < 80).length;
+  const criticalCount = sites.filter((s) => (s.health_score || 0) < 50).length;
+  const totalUpdates = sites.reduce((acc, s) => acc + (s.updates_available || 0), 0);
 
   const columns = [
     createCheckboxColumn<MonitorSite>(),
@@ -193,37 +209,55 @@ export default function Monitor() {
     }),
   ];
 
-  // Calculate summary stats
-  const sites = data?.data || [];
-  const healthyCount = sites.filter((s) => (s.health_score || 0) >= 80).length;
-  const warningCount = sites.filter((s) => (s.health_score || 0) >= 50 && (s.health_score || 0) < 80).length;
-  const criticalCount = sites.filter((s) => (s.health_score || 0) < 50).length;
-  const totalUpdates = sites.reduce((acc, s) => acc + (s.updates_available || 0), 0);
+  const pageInfo = pageDescriptions.monitor;
 
   return (
-    <Layout title="Site Monitor" description="Manage and monitor your WordPress sites">
+    <Layout title={pageInfo.title} description={pageInfo.description}>
+      {/* How-To Panel */}
+      <div className="mb-6">
+        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
+      </div>
+
       {/* Header Actions */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
+      <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="max-w-64 flex-1">
+            <Input
               type="text"
               placeholder="Search sites..."
-              className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              leftIcon={<Search className="w-4 h-4" />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <InfoTooltip content="Search by site name or URL" />
         </div>
-
-        <Button
-          icon={<Plus className="w-4 h-4" />}
+        <button
           onClick={() => setAddModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '10px 20px',
+            backgroundColor: '#16a34a',
+            color: 'white',
+            fontWeight: 500,
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
         >
+          <Plus className="w-5 h-5" />
           Add Site
-        </Button>
+        </button>
       </div>
+
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -233,8 +267,11 @@ export default function Monitor() {
               <Server className="w-5 h-5 text-primary-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{data?.total || 0}</p>
-              <p className="text-sm text-slate-500">Total Sites</p>
+              <p className="text-2xl font-bold text-slate-900">{displaySampleData ? sampleStats.monitor.total : (data?.total || 0)}</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Total Sites
+                <InfoTooltip content={helpContent.monitor.overview} />
+              </p>
             </div>
           </div>
         </Card>
@@ -245,7 +282,10 @@ export default function Monitor() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{healthyCount}</p>
-              <p className="text-sm text-slate-500">Healthy</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Healthy
+                <InfoTooltip content={helpContent.monitor.health} />
+              </p>
             </div>
           </div>
         </Card>
@@ -256,7 +296,10 @@ export default function Monitor() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{warningCount + criticalCount}</p>
-              <p className="text-sm text-slate-500">Need Attention</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Need Attention
+                <InfoTooltip content="Sites with health scores below 80% that may need updates, security patches, or performance optimization." />
+              </p>
             </div>
           </div>
         </Card>
@@ -267,7 +310,10 @@ export default function Monitor() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{totalUpdates}</p>
-              <p className="text-sm text-slate-500">Updates Available</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Updates Available
+                <InfoTooltip content={helpContent.monitor.updates} />
+              </p>
             </div>
           </div>
         </Card>

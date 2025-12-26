@@ -1,13 +1,14 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, type HTMLAttributes } from 'react';
 import { clsx } from 'clsx';
+import { InfoTooltip } from './Tooltip';
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
   padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 
-export default function Card({ children, className, padding = 'md' }: CardProps) {
+export default function Card({ children, className, padding = 'md', ...props }: CardProps) {
   const paddingStyles = {
     none: '',
     sm: 'p-4',
@@ -22,6 +23,7 @@ export default function Card({ children, className, padding = 'md' }: CardProps)
         paddingStyles[padding],
         className
       )}
+      {...props}
     >
       {children}
     </div>
@@ -57,15 +59,19 @@ interface StatCardProps {
     type: 'increase' | 'decrease' | 'neutral';
   };
   icon?: ReactNode;
+  tooltip?: string;
   className?: string;
 }
 
-export function StatCard({ title, value, change, icon, className }: StatCardProps) {
+export function StatCard({ title, value, change, icon, tooltip, className }: StatCardProps) {
   return (
     <Card className={className}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <p className="text-sm font-medium text-slate-500 flex items-center gap-1">
+            {title}
+            {tooltip && <InfoTooltip content={tooltip} />}
+          </p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
           {change && (
             <p

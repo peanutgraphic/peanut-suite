@@ -10,10 +10,18 @@ import {
   Info,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Select, Badge } from '../components/common';
+import { Card, Select, Badge, InfoTooltip, HelpPanel, SampleDataBanner } from '../components/common';
 import { BarChart, DoughnutChart } from '../components/common';
 import { attributionApi } from '../api/endpoints';
 import type { AttributionModel, ChannelPerformance } from '../types';
+import {
+  helpContent,
+  pageDescriptions,
+  sampleAttributionStats,
+  sampleAttributionModels,
+  sampleAttributionChannels,
+  sampleAttributionComparison,
+} from '../constants';
 
 const modelColors: Record<string, string> = {
   first_touch: '#3b82f6',
@@ -38,6 +46,7 @@ const channelColors: Record<string, string> = {
 export default function Attribution() {
   const [selectedModel, setSelectedModel] = useState('last_touch');
   const [dateRange, setDateRange] = useState('30d');
+  const [showSampleData, setShowSampleData] = useState(true);
 
   // Calculate date range
   const getDateParams = () => {
@@ -85,7 +94,19 @@ export default function Attribution() {
     queryFn: () => attributionApi.compareModels(getDateParams()),
   });
 
-  const modelOptions = (models || []).map((m: AttributionModel) => ({
+  // Determine if we should show sample data
+  const hasNoRealData = !reportLoading && !comparisonLoading &&
+    (!stats?.total_conversions || stats.total_conversions === 0) &&
+    (!report?.channels || report.channels.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
+
+  // Use sample data or real data
+  const displayStats = displaySampleData ? sampleAttributionStats : stats;
+  const displayModels = displaySampleData ? sampleAttributionModels : models;
+  const displayReport = displaySampleData ? { channels: sampleAttributionChannels } : report;
+  const displayComparison = displaySampleData ? sampleAttributionComparison : comparison;
+
+  const modelOptions = (displayModels || []).map((m: AttributionModel) => ({
     value: m.id,
     label: m.name,
   }));
@@ -96,30 +117,40 @@ export default function Attribution() {
     { value: '90d', label: 'Last 90 days' },
   ];
 
-  const currentModel = models?.find((m: AttributionModel) => m.id === selectedModel);
+  const currentModel = displayModels?.find((m: AttributionModel) => m.id === selectedModel);
 
   // Format channel data for charts
-  const channelData = report?.channels || [];
+  const channelData = displayReport?.channels || [];
   const chartLabels = channelData.map((c: ChannelPerformance) => c.channel);
   const chartCredits = channelData.map((c: ChannelPerformance) => Math.round(c.attributed_credit * 100) / 100);
   const chartColors = chartLabels.map((label: string) => channelColors[label] || '#94a3b8');
 
   // Calculate comparison data
-  const comparisonData = comparison?.comparison || {};
+  const comparisonData = displayComparison?.comparison || {};
+
+  const pageInfo = pageDescriptions.attribution;
 
   return (
-    <Layout
-      title="Attribution"
-      description="Multi-touch attribution modeling for marketing analytics"
-    >
+    <Layout title={pageInfo.title} description={pageInfo.description}>
+      {/* How-To Panel */}
+      <div className="mb-6">
+        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
+      </div>
+
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <Target className="w-4 h-4 text-slate-400" />
             <span className="text-sm text-slate-500">Conversions</span>
+            <InfoTooltip content={helpContent.analytics.conversions} />
           </div>
-          <div className="text-2xl font-bold">{stats?.total_conversions ?? 0}</div>
+          <div className="text-2xl font-bold">{displayStats?.total_conversions ?? 0}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -127,7 +158,7 @@ export default function Attribution() {
             <span className="text-sm text-slate-500">Total Value</span>
           </div>
           <div className="text-2xl font-bold text-green-600">
-            ${(stats?.total_value ?? 0).toLocaleString()}
+            ${(displayStats?.total_value ?? 0).toLocaleString()}
           </div>
         </Card>
         <Card className="p-4">
@@ -135,21 +166,22 @@ export default function Attribution() {
             <Calendar className="w-4 h-4 text-blue-500" />
             <span className="text-sm text-slate-500">Today</span>
           </div>
-          <div className="text-2xl font-bold text-blue-600">{stats?.today_conversions ?? 0}</div>
+          <div className="text-2xl font-bold text-blue-600">{displayStats?.today_conversions ?? 0}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-purple-500" />
             <span className="text-sm text-slate-500">This Month</span>
           </div>
-          <div className="text-2xl font-bold text-purple-600">{stats?.month_conversions ?? 0}</div>
+          <div className="text-2xl font-bold text-purple-600">{displayStats?.month_conversions ?? 0}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <MousePointer className="w-4 h-4 text-amber-500" />
             <span className="text-sm text-slate-500">Total Touches</span>
+            <InfoTooltip content={helpContent.attribution.touchpoints} />
           </div>
-          <div className="text-2xl font-bold text-amber-600">{stats?.total_touches ?? 0}</div>
+          <div className="text-2xl font-bold text-amber-600">{displayStats?.total_touches ?? 0}</div>
         </Card>
       </div>
 
@@ -310,7 +342,7 @@ export default function Attribution() {
                         className="px-3 py-2 text-center font-medium"
                         style={{ color: modelColors[model] }}
                       >
-                        {comparison?.models[model] || model}
+                        {displayComparison?.models[model] || model}
                       </th>
                     ))}
                   </tr>

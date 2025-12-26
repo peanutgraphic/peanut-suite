@@ -1,11 +1,25 @@
 import { useState, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Copy, Check, ExternalLink, Save, RotateCcw, Library } from 'lucide-react';
+import { Copy, Check, ExternalLink, Save, RotateCcw, Library, Zap } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Select } from '../components/common';
+import { Card, Button, Input, Select, HelpPanel, SampleDataBanner, useToast } from '../components/common';
 import { useUTMStore } from '../store';
 import { utmApi } from '../api/endpoints';
+import { helpContent, pageDescriptions } from '../constants';
+
+// Sample UTM form data for preview
+const sampleUTMForm = {
+  base_url: 'https://example.com/landing-page',
+  utm_source: 'google',
+  utm_medium: 'cpc',
+  utm_campaign: 'summer_sale_2024',
+  utm_term: 'marketing software',
+  utm_content: 'ad_variation_a',
+  program: 'q4_initiative',
+  tags: [] as string[],
+  notes: '',
+};
 
 const sourceOptions = [
   { value: 'google', label: 'Google' },
@@ -31,39 +45,75 @@ const mediumOptions = [
 
 export default function UTMBuilder() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [copied, setCopied] = useState(false);
-  const { formData, setFormField, resetForm } = useUTMStore();
+  const [showSampleData, setShowSampleData] = useState(true);
+  const {
+    formData,
+    setFormField,
+    resetForm,
+    saveDefaults,
+    lastSource,
+    lastMedium,
+    lastProgram,
+    applyDefaults,
+  } = useUTMStore();
+
+  // Check if form is empty to show sample data
+  const isFormEmpty = !formData.base_url && !formData.utm_source && !formData.utm_medium && !formData.utm_campaign;
+  const displaySampleData = isFormEmpty && showSampleData;
+
+  // Use sample or real form data for display
+  const displayFormData = displaySampleData ? sampleUTMForm : formData;
 
   const createMutation = useMutation({
     mutationFn: utmApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['utms'] });
+      saveDefaults(); // Remember these values for next time
       resetForm();
+      toast.success('UTM saved to library');
+    },
+    onError: () => {
+      toast.error('Failed to save UTM');
     },
   });
 
+  // Check if we have smart defaults available
+  const hasSmartDefaults = !!(lastSource || lastMedium || lastProgram);
+  const canApplyDefaults = hasSmartDefaults && isFormEmpty;
+
+  // Generate preview URL based on display form data (sample or real)
   const fullUrl = useMemo(() => {
-    if (!formData.base_url) return '';
+    if (!displayFormData.base_url) return '';
 
     try {
-      const url = new URL(formData.base_url);
-      if (formData.utm_source) url.searchParams.set('utm_source', formData.utm_source);
-      if (formData.utm_medium) url.searchParams.set('utm_medium', formData.utm_medium);
-      if (formData.utm_campaign) url.searchParams.set('utm_campaign', formData.utm_campaign);
-      if (formData.utm_term) url.searchParams.set('utm_term', formData.utm_term);
-      if (formData.utm_content) url.searchParams.set('utm_content', formData.utm_content);
+      const url = new URL(displayFormData.base_url);
+      if (displayFormData.utm_source) url.searchParams.set('utm_source', displayFormData.utm_source);
+      if (displayFormData.utm_medium) url.searchParams.set('utm_medium', displayFormData.utm_medium);
+      if (displayFormData.utm_campaign) url.searchParams.set('utm_campaign', displayFormData.utm_campaign);
+      if (displayFormData.utm_term) url.searchParams.set('utm_term', displayFormData.utm_term);
+      if (displayFormData.utm_content) url.searchParams.set('utm_content', displayFormData.utm_content);
       return url.toString();
     } catch {
       return '';
     }
-  }, [formData]);
+  }, [displayFormData]);
 
   const isValid = formData.base_url && formData.utm_source && formData.utm_medium && formData.utm_campaign;
+
+  // Calculate form progress
+  const requiredFields = ['base_url', 'utm_source', 'utm_medium', 'utm_campaign'] as const;
+  const optionalFields = ['utm_term', 'utm_content', 'program'] as const;
+  const filledRequired = requiredFields.filter(f => formData[f]).length;
+  const filledOptional = optionalFields.filter(f => formData[f]).length;
+  const totalProgress = Math.round(((filledRequired / requiredFields.length) * 80) + ((filledOptional / optionalFields.length) * 20));
 
   const handleCopy = async () => {
     if (fullUrl) {
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
+      toast.success('URL copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -84,8 +134,41 @@ export default function UTMBuilder() {
     });
   };
 
+  const pageInfo = pageDescriptions.utm;
+
   return (
-    <Layout title="UTM Builder" description="Create tracked URLs for your campaigns">
+    <Layout title={pageInfo.title} description={pageInfo.description}>
+      {/* How-To Panel */}
+      <div className="mb-6">
+        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
+      </div>
+
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
+      {/* Smart Defaults Banner */}
+      {canApplyDefaults && !displaySampleData && (
+        <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-indigo-600" />
+            <span className="text-sm text-indigo-800">
+              <span className="font-medium">Smart defaults available:</span>{' '}
+              {lastSource && <span className="bg-indigo-100 px-1.5 py-0.5 rounded text-xs">{lastSource}</span>}
+              {lastMedium && <span className="bg-indigo-100 px-1.5 py-0.5 rounded text-xs ml-1">{lastMedium}</span>}
+              {lastProgram && <span className="bg-indigo-100 px-1.5 py-0.5 rounded text-xs ml-1">{lastProgram}</span>}
+            </span>
+          </div>
+          <button
+            onClick={applyDefaults}
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+          >
+            Apply <Zap className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-end mb-4">
         <Link to="/utm/library">
           <Button variant="outline" icon={<Library className="w-4 h-4" />}>
@@ -96,8 +179,21 @@ export default function UTMBuilder() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form */}
-        <Card>
-          <h3 className="text-lg font-semibold text-slate-900 mb-6">UTM Parameters</h3>
+        <Card data-tour="utm-form">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-slate-900">UTM Parameters</h3>
+            <span className="text-sm text-slate-500">{totalProgress}% complete</span>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="h-1.5 bg-slate-100 rounded-full mb-6 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                totalProgress === 100 ? 'bg-green-500' : 'bg-primary-500'
+              }`}
+              style={{ width: `${totalProgress}%` }}
+            />
+          </div>
 
           <div className="space-y-4">
             <Input
@@ -105,6 +201,7 @@ export default function UTMBuilder() {
               placeholder="https://example.com/page"
               value={formData.base_url}
               onChange={(e) => setFormField('base_url', e.target.value)}
+              tooltip={helpContent.utm.baseUrl}
               required
             />
 
@@ -114,6 +211,7 @@ export default function UTMBuilder() {
               value={formData.utm_source}
               onChange={(e) => setFormField('utm_source', e.target.value)}
               placeholder="Select or type source"
+              tooltip={helpContent.utm.source}
               required
             />
 
@@ -123,6 +221,7 @@ export default function UTMBuilder() {
               value={formData.utm_medium}
               onChange={(e) => setFormField('utm_medium', e.target.value)}
               placeholder="Select or type medium"
+              tooltip={helpContent.utm.medium}
               required
             />
 
@@ -132,6 +231,7 @@ export default function UTMBuilder() {
               value={formData.utm_campaign}
               onChange={(e) => setFormField('utm_campaign', e.target.value)}
               helper="Use lowercase with underscores"
+              tooltip={helpContent.utm.campaign}
               required
             />
 
@@ -141,6 +241,7 @@ export default function UTMBuilder() {
               value={formData.utm_term}
               onChange={(e) => setFormField('utm_term', e.target.value)}
               helper="Optional: Identify paid keywords"
+              tooltip={helpContent.utm.term}
             />
 
             <Input
@@ -149,6 +250,7 @@ export default function UTMBuilder() {
               value={formData.utm_content}
               onChange={(e) => setFormField('utm_content', e.target.value)}
               helper="Optional: Differentiate ads/links"
+              tooltip={helpContent.utm.content}
             />
 
             <Input
@@ -157,6 +259,7 @@ export default function UTMBuilder() {
               value={formData.program}
               onChange={(e) => setFormField('program', e.target.value)}
               helper="Optional: Internal tracking"
+              tooltip={helpContent.utm.program}
             />
           </div>
 
@@ -219,14 +322,14 @@ export default function UTMBuilder() {
             <Card>
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Parameter Breakdown</h3>
               <div className="space-y-3">
-                <ParamRow label="Source" value={formData.utm_source} param="utm_source" />
-                <ParamRow label="Medium" value={formData.utm_medium} param="utm_medium" />
-                <ParamRow label="Campaign" value={formData.utm_campaign} param="utm_campaign" />
-                {formData.utm_term && (
-                  <ParamRow label="Term" value={formData.utm_term} param="utm_term" />
+                <ParamRow label="Source" value={displayFormData.utm_source} param="utm_source" />
+                <ParamRow label="Medium" value={displayFormData.utm_medium} param="utm_medium" />
+                <ParamRow label="Campaign" value={displayFormData.utm_campaign} param="utm_campaign" />
+                {displayFormData.utm_term && (
+                  <ParamRow label="Term" value={displayFormData.utm_term} param="utm_term" />
                 )}
-                {formData.utm_content && (
-                  <ParamRow label="Content" value={formData.utm_content} param="utm_content" />
+                {displayFormData.utm_content && (
+                  <ParamRow label="Content" value={displayFormData.utm_content} param="utm_content" />
                 )}
               </div>
             </Card>

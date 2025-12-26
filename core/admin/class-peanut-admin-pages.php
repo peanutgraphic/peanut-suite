@@ -329,6 +329,15 @@ class Peanut_Admin_Pages {
      * Render page header
      */
     private function render_header(array $page): void {
+        // Minimal wrapper for React mode
+        if ($this->is_react_mode()) {
+            ?>
+            <div class="wrap peanut-wrap peanut-react-mode">
+            <?php
+            return;
+        }
+
+        // Full header for PHP mode
         ?>
         <div class="wrap peanut-wrap">
             <div class="peanut-header">
@@ -419,9 +428,23 @@ class Peanut_Admin_Pages {
     }
 
     /**
+     * Check if React frontend is available
+     */
+    private function is_react_mode(): bool {
+        return file_exists(PEANUT_PLUGIN_DIR . 'assets/dist/js/main.js');
+    }
+
+    /**
      * Render page content
      */
     private function render_content(string $page_slug): void {
+        // If React app is built, render the mount point
+        if ($this->is_react_mode()) {
+            $this->render_react_app();
+            return;
+        }
+
+        // Fallback to PHP views
         $view_file = PEANUT_PLUGIN_DIR . 'core/admin/views/' . $page_slug . '.php';
 
         if (file_exists($view_file)) {
@@ -429,6 +452,67 @@ class Peanut_Admin_Pages {
         } else {
             $this->render_coming_soon($page_slug);
         }
+    }
+
+    /**
+     * Render React app mount point
+     */
+    private function render_react_app(): void {
+        ?>
+        <div id="peanut-app" class="peanut-react-container">
+            <div class="peanut-loading">
+                <div class="peanut-loading-spinner"></div>
+                <p><?php esc_html_e('Loading...', 'peanut-suite'); ?></p>
+            </div>
+        </div>
+        <style>
+            /* Full-screen React container */
+            .peanut-react-mode {
+                margin: 0;
+                padding: 0;
+                max-width: none;
+            }
+            .peanut-react-mode .peanut-react-container {
+                position: fixed;
+                top: 32px; /* WordPress admin bar */
+                left: 160px; /* WordPress admin menu */
+                right: 0;
+                bottom: 0;
+                overflow: auto;
+                background: #f9fafb;
+            }
+            @media screen and (max-width: 782px) {
+                .peanut-react-mode .peanut-react-container {
+                    top: 46px;
+                    left: 0;
+                }
+            }
+            /* Collapsed admin menu */
+            .folded .peanut-react-mode .peanut-react-container {
+                left: 36px;
+            }
+            /* Loading state */
+            .peanut-loading {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100%;
+                color: #6b7280;
+            }
+            .peanut-loading-spinner {
+                width: 40px;
+                height: 40px;
+                border: 3px solid #e5e7eb;
+                border-top-color: #3b82f6;
+                border-radius: 50%;
+                animation: peanut-spin 0.8s linear infinite;
+            }
+            @keyframes peanut-spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
+        <?php
     }
 
     /**

@@ -24,11 +24,15 @@ import {
   ConfirmModal,
   Select,
   createCheckboxColumn,
+  InfoTooltip,
+  HelpPanel,
+  SampleDataBanner,
 } from '../components/common';
 import { contactsApi } from '../api/endpoints';
 import type { Contact, ContactStatus } from '../types';
 import { useFilterStore } from '../store';
 import { exportToCSV, contactsExportColumns } from '../utils';
+import { helpContent, pageDescriptions, sampleContacts } from '../constants';
 
 const columnHelper = createColumnHelper<Contact>();
 
@@ -64,6 +68,7 @@ export default function Contacts() {
   });
 
   const { contactFilters, setContactFilter, resetContactFilters } = useFilterStore();
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ['contacts', page, contactFilters],
@@ -100,6 +105,11 @@ export default function Contacts() {
       setDeleteId(null);
     },
   });
+
+  // Determine if we should show sample data
+  const hasNoRealData = !isLoading && (!data?.data || data.data.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
+  const displayData = displaySampleData ? sampleContacts : (data?.data || []);
 
   const handleCreate = () => {
     createMutation.mutate({
@@ -204,21 +214,27 @@ export default function Contacts() {
 
   const selectedCount = Object.values(selectedRows).filter(Boolean).length;
 
+  const pageInfo = pageDescriptions.contacts;
+
   return (
-    <Layout title="Contacts" description="Manage your contacts and leads">
+    <Layout title={pageInfo.title} description={pageInfo.description}>
+      {/* How-To Panel */}
+      <div className="mb-6">
+        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
+      </div>
+
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search contacts..."
-              className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              value={contactFilters.search}
-              onChange={(e) => setContactFilter('search', e.target.value)}
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder="Search contacts..."
+            leftIcon={<Search className="w-4 h-4" />}
+            value={contactFilters.search}
+            onChange={(e) => setContactFilter('search', e.target.value)}
+            fullWidth={false}
+            className="w-64"
+          />
           <Button
             variant="outline"
             size="sm"
@@ -256,11 +272,19 @@ export default function Contacts() {
         </div>
       </div>
 
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       {/* Filters */}
       <Card className="mb-6">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Status</label>
+            <label className="flex items-center gap-1 text-xs font-medium text-slate-500 mb-1">
+              Status
+              <InfoTooltip content={helpContent.contacts.status} />
+            </label>
             <select
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
               value={contactFilters.status}
@@ -275,7 +299,10 @@ export default function Contacts() {
             </select>
           </div>
           <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Source</label>
+            <label className="flex items-center gap-1 text-xs font-medium text-slate-500 mb-1">
+              Source
+              <InfoTooltip content={helpContent.contacts.source} />
+            </label>
             <select
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
               value={contactFilters.source}
@@ -289,7 +316,10 @@ export default function Contacts() {
             </select>
           </div>
           <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Tag</label>
+            <label className="flex items-center gap-1 text-xs font-medium text-slate-500 mb-1">
+              Tag
+              <InfoTooltip content={helpContent.contacts.tags} />
+            </label>
             <select
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
               value={contactFilters.tag}
@@ -304,7 +334,7 @@ export default function Contacts() {
       {/* Table */}
       <Card>
         <Table
-          data={data?.data || []}
+          data={displayData}
           columns={columns}
           loading={isLoading}
           rowSelection={selectedRows}
@@ -369,6 +399,7 @@ export default function Contacts() {
             options={statusOptions}
             value={newContact.status}
             onChange={(e) => setNewContact({ ...newContact, status: e.target.value as ContactStatus })}
+            tooltip={helpContent.contacts.status}
           />
         </div>
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200">

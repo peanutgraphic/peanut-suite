@@ -14,26 +14,33 @@ import PopupBuilder from './pages/PopupBuilder';
 import Monitor from './pages/Monitor';
 import SiteDetail from './pages/SiteDetail';
 import Settings from './pages/Settings';
+import { FeatureTour, WelcomeModal, ToastProvider } from './components/common';
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/utm" element={<UTMBuilder />} />
-      <Route path="/utm/library" element={<UTMLibrary />} />
-      <Route path="/links" element={<Links />} />
-      <Route path="/contacts" element={<Contacts />} />
-      <Route path="/webhooks" element={<Webhooks />} />
-      <Route path="/visitors" element={<Visitors />} />
-      <Route path="/visitors/:id" element={<VisitorDetail />} />
-      <Route path="/attribution" element={<Attribution />} />
-      <Route path="/analytics" element={<Analytics />} />
-      <Route path="/popups" element={<Popups />} />
-      <Route path="/popups/new" element={<PopupBuilder />} />
-      <Route path="/popups/:id/edit" element={<PopupBuilder />} />
-      <Route path="/monitor" element={<Monitor />} />
-      <Route path="/monitor/sites/:id" element={<SiteDetail />} />
-      <Route path="/settings" element={<Settings />} />
-    </Routes>
+    <ToastProvider>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/utm" element={<UTMBuilder />} />
+        <Route path="/utm/library" element={<UTMLibrary />} />
+        <Route path="/links" element={<Links />} />
+        <Route path="/contacts" element={<Contacts />} />
+        <Route path="/webhooks" element={<Webhooks />} />
+        <Route path="/visitors" element={<Visitors />} />
+        <Route path="/visitors/:id" element={<VisitorDetail />} />
+        <Route path="/attribution" element={<Attribution />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/popups" element={<Popups />} />
+        <Route path="/popups/new" element={<PopupBuilder />} />
+        <Route path="/popups/:id/edit" element={<PopupBuilder />} />
+        <Route path="/monitor" element={<Monitor />} />
+        <Route path="/monitor/sites/:id" element={<SiteDetail />} />
+        <Route path="/settings" element={<Settings />} />
+      </Routes>
+
+      {/* Feature Tour */}
+      <WelcomeModal />
+      <FeatureTour />
+    </ToastProvider>
   );
 }

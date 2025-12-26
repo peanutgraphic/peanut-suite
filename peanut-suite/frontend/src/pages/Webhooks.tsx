@@ -25,9 +25,13 @@ import {
   ConfirmModal,
   Select,
   createCheckboxColumn,
+  InfoTooltip,
+  HelpPanel,
+  SampleDataBanner,
 } from '../components/common';
 import { webhooksApi } from '../api/endpoints';
 import type { Webhook, WebhookStatus } from '../types';
+import { helpContent, pageDescriptions, sampleWebhooks, sampleStats } from '../constants';
 
 const columnHelper = createColumnHelper<Webhook>();
 
@@ -58,6 +62,7 @@ export default function Webhooks() {
     status: '',
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [showSampleData, setShowSampleData] = useState(true);
 
   // Fetch webhooks
   const { data, isLoading } = useQuery({
@@ -111,6 +116,12 @@ export default function Webhooks() {
       setDeleteIds([]);
     },
   });
+
+  // Determine if we should show sample data
+  const hasNoRealData = !isLoading && (!data?.data || data.data.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
+  const displayData = displaySampleData ? sampleWebhooks : (data?.data || []);
+  const displayStats = displaySampleData ? sampleStats.webhooks : stats;
 
   const selectedIds = Object.keys(selectedRows)
     .filter((key) => selectedRows[key])
@@ -232,37 +243,51 @@ export default function Webhooks() {
     })) || []),
   ];
 
+  const pageInfo = pageDescriptions.webhooks;
+
   return (
-    <Layout
-      title="Webhooks"
-      description="View and manage incoming webhooks from FormFlow and other sources"
-    >
+    <Layout title={pageInfo.title} description={pageInfo.description}>
+      {/* How-To Panel */}
+      <div className="mb-6">
+        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
+      </div>
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
         <Card className="p-4">
-          <div className="text-2xl font-bold">{stats?.total ?? 0}</div>
-          <div className="text-sm text-slate-500">Total</div>
+          <div className="text-2xl font-bold">{displayStats?.total ?? 0}</div>
+          <div className="text-sm text-slate-500 flex items-center gap-1">
+            Total
+            <InfoTooltip content={helpContent.webhooks.overview} />
+          </div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-green-600">{stats?.processed ?? 0}</div>
+          <div className="text-2xl font-bold text-green-600">{displayStats?.processed ?? 0}</div>
           <div className="text-sm text-slate-500">Processed</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-yellow-600">{stats?.pending ?? 0}</div>
+          <div className="text-2xl font-bold text-yellow-600">{displayStats?.pending ?? 0}</div>
           <div className="text-sm text-slate-500">Pending</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-red-600">{stats?.failed ?? 0}</div>
-          <div className="text-sm text-slate-500">Failed</div>
+          <div className="text-2xl font-bold text-red-600">{displayStats?.failed ?? 0}</div>
+          <div className="text-sm text-slate-500 flex items-center gap-1">
+            Failed
+            <InfoTooltip content={helpContent.webhooks.status} />
+          </div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-blue-600">{stats?.today ?? 0}</div>
+          <div className="text-2xl font-bold text-blue-600">{displayStats?.today ?? 0}</div>
           <div className="text-sm text-slate-500">Today</div>
         </Card>
         <Card className="p-4">
           <div className="text-2xl font-bold text-purple-600">
-            {stats?.total && stats?.processed
-              ? Math.round((stats.processed / stats.total) * 100)
+            {displayStats?.total && displayStats?.processed
+              ? Math.round((displayStats.processed / displayStats.total) * 100)
               : 0}%
           </div>
           <div className="text-sm text-slate-500">Success Rate</div>
@@ -273,13 +298,12 @@ export default function Webhooks() {
       <Card className="mb-6">
         <div className="p-4 border-b border-slate-100">
           <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div className="flex-1">
               <Input
                 placeholder="Search webhooks..."
+                leftIcon={<Search className="w-4 h-4" />}
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="pl-10"
               />
             </div>
             <Button
@@ -326,19 +350,11 @@ export default function Webhooks() {
 
         {/* Table */}
         <Table
-          data={data?.data ?? []}
+          data={displayData}
           columns={columns}
           loading={isLoading}
           rowSelection={selectedRows}
           onRowSelectionChange={setSelectedRows}
-          emptyState={
-            <div className="text-center py-12">
-              <p className="text-slate-500">No webhooks received yet</p>
-              <p className="text-sm text-slate-400 mt-1">
-                Webhooks from FormFlow and other sources will appear here
-              </p>
-            </div>
-          }
         />
 
         {/* Pagination */}

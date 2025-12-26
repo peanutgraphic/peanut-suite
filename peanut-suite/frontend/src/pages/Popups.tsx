@@ -16,17 +16,21 @@ import {
 import { Layout } from '../components/layout';
 import {
   Card,
-  Button,
+  Input,
   Table,
   Pagination,
   Badge,
   StatusBadge,
   ConfirmModal,
   createCheckboxColumn,
+  InfoTooltip,
+  HelpPanel,
+  SampleDataBanner,
 } from '../components/common';
 import { popupsApi } from '../api/endpoints';
 import type { Popup } from '../types';
 import { useFilterStore } from '../store';
+import { helpContent, pageDescriptions, samplePopups, sampleStats } from '../constants';
 
 const columnHelper = createColumnHelper<Popup>();
 
@@ -53,6 +57,7 @@ export default function Popups() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const { popupFilters, setPopupFilter } = useFilterStore();
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ['popups', page, popupFilters],
@@ -73,6 +78,16 @@ export default function Popups() {
       setDeleteId(null);
     },
   });
+
+  // Determine if we should show sample data
+  const hasNoRealData = !isLoading && (!data?.data || data.data.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
+  const displayData = displaySampleData ? samplePopups : (data?.data || []);
+
+  // Calculate stats (using displayData for consistency)
+  const totalViews = displayData.reduce((acc, p) => acc + (p.views || 0), 0);
+  const totalConversions = displayData.reduce((acc, p) => acc + (p.conversions || 0), 0);
+  const avgRate = totalViews > 0 ? ((totalConversions / totalViews) * 100).toFixed(1) : '0.0';
 
   const columns = [
     createCheckboxColumn<Popup>(),
@@ -177,32 +192,54 @@ export default function Popups() {
     }),
   ];
 
-  // Calculate stats
-  const totalViews = data?.data?.reduce((acc, p) => acc + (p.views || 0), 0) || 0;
-  const totalConversions = data?.data?.reduce((acc, p) => acc + (p.conversions || 0), 0) || 0;
-  const avgRate = totalViews > 0 ? ((totalConversions / totalViews) * 100).toFixed(1) : '0.0';
+  const pageInfo = pageDescriptions.popups;
 
   return (
-    <Layout title="Popups" description="Create and manage conversion popups">
+    <Layout title={pageInfo.title} description={pageInfo.description}>
+      {/* How-To Panel */}
+      <div className="mb-6">
+        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
+      </div>
+
       {/* Header Actions */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
+      <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="max-w-64 flex-1">
+            <Input
               type="text"
               placeholder="Search popups..."
-              className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              leftIcon={<Search className="w-4 h-4" />}
               value={popupFilters.search}
               onChange={(e) => setPopupFilter('search', e.target.value)}
             />
           </div>
         </div>
-
-        <Link to="/popups/new">
-          <Button icon={<Plus className="w-4 h-4" />}>Create Popup</Button>
+        <Link to="/popups/new" style={{ flexShrink: 0 }}>
+          <button
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '10px 20px',
+              backgroundColor: '#16a34a',
+              color: 'white',
+              fontWeight: 500,
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <Plus className="w-5 h-5" />
+            Create Popup
+          </button>
         </Link>
       </div>
+
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -212,8 +249,11 @@ export default function Popups() {
               <MousePointer className="w-5 h-5 text-primary-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{data?.total || 0}</p>
-              <p className="text-sm text-slate-500">Total Popups</p>
+              <p className="text-2xl font-bold text-slate-900">{displaySampleData ? sampleStats.popups.total : (data?.total || 0)}</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Total Popups
+                <InfoTooltip content={helpContent.popups.overview} />
+              </p>
             </div>
           </div>
         </Card>
@@ -224,7 +264,10 @@ export default function Popups() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{totalViews}</p>
-              <p className="text-sm text-slate-500">Total Views</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Total Views
+                <InfoTooltip content={helpContent.popups.views} />
+              </p>
             </div>
           </div>
         </Card>
@@ -235,7 +278,10 @@ export default function Popups() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{totalConversions}</p>
-              <p className="text-sm text-slate-500">Conversions</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Conversions
+                <InfoTooltip content={helpContent.popups.conversions} />
+              </p>
             </div>
           </div>
         </Card>
@@ -246,7 +292,10 @@ export default function Popups() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{avgRate}%</p>
-              <p className="text-sm text-slate-500">Avg. Conv. Rate</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Avg. Conv. Rate
+                <InfoTooltip content={helpContent.popups.conversionRate} />
+              </p>
             </div>
           </div>
         </Card>
@@ -289,7 +338,7 @@ export default function Popups() {
       {/* Table */}
       <Card>
         <Table
-          data={data?.data || []}
+          data={displayData}
           columns={columns}
           loading={isLoading}
           rowSelection={selectedRows}

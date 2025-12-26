@@ -16,8 +16,6 @@ class Peanut_Admin_Assets {
      */
     public function __construct() {
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
-        add_action('admin_head', [$this, 'output_inline_styles']);
-        add_action('admin_footer', [$this, 'output_inline_scripts']);
     }
 
     /**
@@ -36,30 +34,48 @@ class Peanut_Admin_Assets {
 
     /**
      * Check if current page is a Peanut Suite page
-     * Uses multiple detection methods for robustness
      */
     private function is_peanut_page(string $hook): bool {
-        // Method 1: Check hook string
-        if (strpos($hook, 'peanut') !== false) {
-            return true;
-        }
+        return strpos($hook, 'peanut') !== false;
+    }
 
-        // Method 2: Check $_GET['page'] parameter
-        if (isset($_GET['page']) && strpos($_GET['page'], 'peanut') !== false) {
-            return true;
-        }
-
-        return false;
+    /**
+     * Check if current page is the React app page
+     */
+    private function is_react_app_page(): bool {
+        return isset($_GET['page']) && $_GET['page'] === 'peanut-app';
     }
 
     /**
      * Enqueue stylesheets
      */
     private function enqueue_styles(): void {
-        // Main admin styles
+        // React app page - only load React styles
+        if ($this->is_react_app_page()) {
+            $react_css = PEANUT_PLUGIN_DIR . 'assets/dist/css/main.css';
+            if (file_exists($react_css)) {
+                wp_enqueue_style(
+                    'peanut-react-app',
+                    PEANUT_PLUGIN_URL . 'assets/dist/css/main.css',
+                    [],
+                    PEANUT_VERSION
+                );
+            }
+            return; // Don't load other styles for React app
+        }
+
+        // Legacy PHP pages - load admin styles
         wp_enqueue_style(
             'peanut-admin',
             PEANUT_PLUGIN_URL . 'assets/css/admin.css',
+            [],
+            PEANUT_VERSION
+        );
+
+        // Feature tour styles (for v2.4.0 onboarding)
+        wp_enqueue_style(
+            'peanut-feature-tour',
+            PEANUT_PLUGIN_URL . 'assets/css/feature-tour.css',
             [],
             PEANUT_VERSION
         );
@@ -72,6 +88,53 @@ class Peanut_Admin_Assets {
      * Enqueue scripts
      */
     private function enqueue_scripts(): void {
+        // React app page - load React bundle
+        if ($this->is_react_app_page()) {
+            $react_js = PEANUT_PLUGIN_DIR . 'assets/dist/js/main.js';
+            if (file_exists($react_js)) {
+                // Load React app as ES module
+                wp_enqueue_script(
+                    'peanut-react-app',
+                    PEANUT_PLUGIN_URL . 'assets/dist/js/main.js',
+                    [],
+                    PEANUT_VERSION,
+                    true
+                );
+
+                // Add module type for ES modules
+                add_filter('script_loader_tag', function($tag, $handle) {
+                    if ($handle === 'peanut-react-app') {
+                        $tag = str_replace(' src=', ' type="module" src=', $tag);
+                    }
+                    return $tag;
+                }, 10, 2);
+
+                $license = peanut_get_license();
+                $tier = $license['tier'] ?? 'free';
+
+                // Localize for API client (client.ts expects peanutSuite)
+                wp_localize_script('peanut-react-app', 'peanutSuite', [
+                    'apiUrl' => rest_url(PEANUT_API_NAMESPACE),
+                    'nonce' => wp_create_nonce('wp_rest'),
+                    'version' => PEANUT_VERSION,
+                    'isPro' => peanut_is_pro(),
+                    'tier' => $tier,
+                ]);
+
+                // Localize for Sidebar (Sidebar.tsx expects peanutData)
+                wp_localize_script('peanut-react-app', 'peanutData', [
+                    'version' => PEANUT_VERSION,
+                    'license' => [
+                        'tier' => $tier,
+                        'isPro' => peanut_is_pro(),
+                    ],
+                ]);
+            }
+            return; // Don't load legacy scripts for React app
+        }
+
+        // --- Legacy scripts for PHP pages ---
+
         // Chart.js for charts
         wp_enqueue_script(
             'chartjs',
@@ -102,6 +165,21 @@ class Peanut_Admin_Assets {
         // WordPress Pointer for tours
         wp_enqueue_style('wp-pointer');
         wp_enqueue_script('wp-pointer');
+
+        // Feature tour script (for v2.4.0 onboarding)
+        wp_enqueue_script(
+            'peanut-feature-tour',
+            PEANUT_PLUGIN_URL . 'assets/js/feature-tour.js',
+            ['jquery', 'peanut-admin'],
+            PEANUT_VERSION,
+            true
+        );
+
+        // Localize feature tour data
+        wp_localize_script('peanut-feature-tour', 'peanutTour', [
+            'nonce' => wp_create_nonce('peanut_feature_tour'),
+            'version' => PEANUT_VERSION,
+        ]);
     }
 
     /**
@@ -199,117 +277,5 @@ class Peanut_Admin_Assets {
             'primary' => $colors[1] ?? '#0073aa',
             'primary_hover' => $colors[0] ?? '#005177',
         ];
-    }
-
-    /**
-     * Output critical inline styles as fallback
-     */
-    public function output_inline_styles(): void {
-        // Only on Peanut Suite pages
-        if (!isset($_GET['page']) || strpos($_GET['page'], 'peanut') === false) {
-            return;
-        }
-
-        echo '<style id="peanut-critical-css">
-            /* Critical Base Styles */
-            .peanut-wrap { margin: 0 !important; padding: 20px !important; }
-
-            /* Critical Tab Styles */
-            .peanut-tabs { display: flex !important; gap: 0 !important; border-bottom: 1px solid #e2e8f0 !important; margin-bottom: 24px !important; background: #fff !important; padding: 0 16px !important; }
-            .peanut-tab { display: inline-flex !important; align-items: center !important; gap: 8px !important; padding: 14px 20px !important; text-decoration: none !important; color: #64748b !important; font-weight: 500 !important; border-bottom: 2px solid transparent !important; margin-bottom: -1px !important; }
-            .peanut-tab:hover { color: #0073aa !important; }
-            .peanut-tab.active { color: #0073aa !important; border-bottom-color: #0073aa !important; }
-            .peanut-tab-panel { display: none !important; }
-            .peanut-tab-panel.active { display: block !important; }
-
-            /* Critical Dropdown Styles */
-            .peanut-dropdown { position: relative !important; display: inline-block !important; }
-            .peanut-dropdown-menu { display: none !important; position: absolute !important; top: 100% !important; right: 0 !important; z-index: 1000 !important; background: #fff !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; min-width: 160px !important; }
-            .peanut-dropdown.is-open .peanut-dropdown-menu, .peanut-dropdown.open .peanut-dropdown-menu { display: block !important; }
-
-            /* Critical Stat Icon Colors */
-            .peanut-stat-icon.blue { background: #dbeafe !important; }
-            .peanut-stat-icon.blue .dashicons { color: #2563eb !important; }
-            .peanut-stat-icon.green { background: #dcfce7 !important; }
-            .peanut-stat-icon.green .dashicons { color: #16a34a !important; }
-            .peanut-stat-icon.yellow { background: #fef3c7 !important; }
-            .peanut-stat-icon.yellow .dashicons { color: #d97706 !important; }
-            .peanut-stat-icon.red { background: #fee2e2 !important; }
-            .peanut-stat-icon.red .dashicons { color: #dc2626 !important; }
-
-            /* Critical Stat Change Colors */
-            .peanut-stat-change { display: flex !important; align-items: center !important; gap: 4px !important; margin-top: 8px !important; font-size: 12px !important; }
-            .peanut-stat-change.positive { color: #16a34a !important; }
-            .peanut-stat-change.negative { color: #dc2626 !important; }
-            .peanut-stat-change.neutral { color: #64748b !important; }
-
-            /* Critical Modal Styles */
-            .peanut-modal-backdrop { display: none !important; position: fixed !important; inset: 0 !important; background: rgba(0,0,0,0.5) !important; z-index: 99998 !important; }
-            .peanut-modal-backdrop.active { display: flex !important; align-items: center !important; justify-content: center !important; }
-            .peanut-modal { display: none !important; }
-            .peanut-modal.active { display: block !important; }
-        </style>';
-    }
-
-    /**
-     * Output critical inline scripts as fallback
-     */
-    public function output_inline_scripts(): void {
-        // Only on Peanut Suite pages
-        if (!isset($_GET['page']) || strpos($_GET['page'], 'peanut') === false) {
-            return;
-        }
-
-        ?>
-        <script id="peanut-critical-js">
-        (function($) {
-            // Fallback tab handler if main JS didn't initialize
-            if (typeof window.PeanutAdmin === 'undefined' || !window.PeanutAdmin.config) {
-                $(document).on('click', '.peanut-tab[data-tab]', function(e) {
-                    e.preventDefault();
-                    var $tab = $(this);
-                    var target = $tab.data('tab');
-
-                    $tab.closest('.peanut-tabs').find('.peanut-tab').removeClass('active');
-                    $tab.addClass('active');
-
-                    var $panels = $tab.closest('.peanut-tabs-container').find('.peanut-tab-panel');
-                    $panels.removeClass('active');
-                    $panels.filter('[data-panel="' + target + '"]').addClass('active');
-                });
-
-                // Fallback dropdown handler
-                $(document).on('click', '.peanut-dropdown-toggle', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    var $dropdown = $(this).closest('.peanut-dropdown');
-                    $('.peanut-dropdown').not($dropdown).removeClass('is-open open');
-                    $dropdown.toggleClass('is-open');
-                });
-
-                $(document).on('click', function(e) {
-                    if (!$(e.target).closest('.peanut-dropdown').length) {
-                        $('.peanut-dropdown').removeClass('is-open open');
-                    }
-                });
-
-                // Fallback modal handler
-                $(document).on('click', '[data-peanut-modal]', function(e) {
-                    e.preventDefault();
-                    var modalId = $(this).data('peanut-modal');
-                    $('#' + modalId).addClass('active');
-                    $('body').addClass('peanut-modal-open');
-                });
-
-                $(document).on('click', '.peanut-modal-close, .peanut-modal-backdrop', function(e) {
-                    if ($(e.target).hasClass('peanut-modal-backdrop') || $(e.target).hasClass('peanut-modal-close')) {
-                        $('.peanut-modal, .peanut-modal-backdrop').removeClass('active');
-                        $('body').removeClass('peanut-modal-open');
-                    }
-                });
-            }
-        })(jQuery);
-        </script>
-        <?php
     }
 }

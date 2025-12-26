@@ -24,16 +24,24 @@ import {
   ConfirmModal,
   QRCodeModal,
   createCheckboxColumn,
+  InfoTooltip,
+  HelpPanel,
+  SampleDataBanner,
+  useToast,
+  BulkActionsBar,
+  bulkActions,
 } from '../components/common';
 import { linksApi } from '../api/endpoints';
 import type { Link as LinkType } from '../types';
 import { useFilterStore } from '../store';
 import { exportToCSV, linksExportColumns } from '../utils';
+import { helpContent, pageDescriptions, sampleLinks, sampleStats } from '../constants';
 
 const columnHelper = createColumnHelper<LinkType>();
 
 export default function Links() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -49,6 +57,7 @@ export default function Links() {
   });
 
   const { linkFilters, setLinkFilter } = useFilterStore();
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ['links', page, linkFilters],
@@ -67,6 +76,10 @@ export default function Links() {
       queryClient.invalidateQueries({ queryKey: ['links'] });
       setCreateModalOpen(false);
       setNewLink({ original_url: '', slug: '', title: '' });
+      toast.success('Link created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create link');
     },
   });
 
@@ -75,12 +88,27 @@ export default function Links() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links'] });
       setDeleteId(null);
+      toast.success('Link deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete link');
     },
   });
+
+  // Determine if we should show sample data
+  const hasNoRealData = !isLoading && (!data?.data || data.data.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
+  const displayData = displaySampleData ? sampleLinks : (data?.data || []);
+  const displayStats = displaySampleData ? sampleStats.links : {
+    total: data?.total || 0,
+    total_clicks: data?.data?.reduce((acc, link) => acc + link.click_count, 0) || 0,
+    active: data?.data?.filter((l) => l.status === 'active').length || 0,
+  };
 
   const handleCopy = async (link: LinkType) => {
     await navigator.clipboard.writeText(link.short_url);
     setCopiedId(link.id);
+    toast.success('Link copied to clipboard');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -138,17 +166,19 @@ export default function Links() {
       id: 'actions',
       header: '',
       cell: (info) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {/* Prominent copy button */}
           <button
             onClick={() => handleCopy(info.row.original)}
-            className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+              copiedId === info.row.original.id
+                ? 'bg-green-100 text-green-700 border border-green-200'
+                : 'bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200'
+            }`}
             title="Copy short URL"
           >
-            {copiedId === info.row.original.id ? (
-              <span className="text-xs text-green-600">Copied!</span>
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
+            <Copy className="w-3.5 h-3.5" />
+            {copiedId === info.row.original.id ? 'Copied!' : 'Copy'}
           </button>
           <button
             onClick={() => setQrLink(info.row.original)}
@@ -178,21 +208,27 @@ export default function Links() {
     }),
   ];
 
+  const pageInfo = pageDescriptions.links;
+
   return (
-    <Layout title="Short Links" description="Create and manage branded short links">
+    <Layout title={pageInfo.title} description={pageInfo.description}>
+      {/* How-To Panel */}
+      <div className="mb-6">
+        <HelpPanel howTo={pageInfo.howTo} tips={pageInfo.tips} useCases={pageInfo.useCases} />
+      </div>
+
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search links..."
-              className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              value={linkFilters.search}
-              onChange={(e) => setLinkFilter('search', e.target.value)}
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder="Search links..."
+            leftIcon={<Search className="w-4 h-4" />}
+            value={linkFilters.search}
+            onChange={(e) => setLinkFilter('search', e.target.value)}
+            fullWidth={false}
+            className="w-64"
+          />
         </div>
 
         <div className="flex items-center gap-3">
@@ -205,6 +241,7 @@ export default function Links() {
             Export CSV
           </Button>
           <Button
+            data-tour="links-create"
             icon={<Plus className="w-4 h-4" />}
             onClick={() => setCreateModalOpen(true)}
           >
@@ -212,6 +249,11 @@ export default function Links() {
           </Button>
         </div>
       </div>
+
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -221,8 +263,11 @@ export default function Links() {
               <Link2 className="w-5 h-5 text-primary-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{data?.total || 0}</p>
-              <p className="text-sm text-slate-500">Total Links</p>
+              <p className="text-2xl font-bold text-slate-900">{displayStats.total}</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Total Links
+                <InfoTooltip content={helpContent.links.shortUrl} />
+              </p>
             </div>
           </div>
         </Card>
@@ -233,9 +278,12 @@ export default function Links() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
-                {data?.data?.reduce((acc, link) => acc + link.click_count, 0) || 0}
+                {displayStats.total_clicks}
               </p>
-              <p className="text-sm text-slate-500">Total Clicks</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Total Clicks
+                <InfoTooltip content={helpContent.links.clickCount} />
+              </p>
             </div>
           </div>
         </Card>
@@ -246,9 +294,12 @@ export default function Links() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
-                {data?.data?.filter((l) => l.status === 'active').length || 0}
+                {displayStats.active}
               </p>
-              <p className="text-sm text-slate-500">Active Links</p>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                Active Links
+                <InfoTooltip content={helpContent.links.status} />
+              </p>
             </div>
           </div>
         </Card>
@@ -257,7 +308,7 @@ export default function Links() {
       {/* Table */}
       <Card>
         <Table
-          data={data?.data || []}
+          data={displayData}
           columns={columns}
           loading={isLoading}
           rowSelection={selectedRows}
@@ -287,6 +338,7 @@ export default function Links() {
             placeholder="https://example.com/your-long-url"
             value={newLink.original_url}
             onChange={(e) => setNewLink({ ...newLink, original_url: e.target.value })}
+            tooltip={helpContent.links.shortUrl}
             required
           />
           <Input
@@ -295,6 +347,7 @@ export default function Links() {
             value={newLink.slug}
             onChange={(e) => setNewLink({ ...newLink, slug: e.target.value })}
             helper="Leave empty for auto-generated slug"
+            tooltip={helpContent.links.slug}
           />
           <Input
             label="Title"
@@ -335,6 +388,32 @@ export default function Links() {
         onClose={() => setQrLink(null)}
         value={qrLink?.short_url || ''}
         title={qrLink?.title || 'Short Link'}
+      />
+
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedCount={Object.values(selectedRows).filter(Boolean).length}
+        onClear={() => setSelectedRows({})}
+        entityName="links"
+        actions={[
+          bulkActions.export(() => {
+            const selectedIds = Object.entries(selectedRows)
+              .filter(([, selected]) => selected)
+              .map(([id]) => parseInt(id));
+            const selectedData = displayData.filter(link => selectedIds.includes(link.id));
+            if (selectedData.length > 0) {
+              exportToCSV(selectedData, linksExportColumns, 'selected-links');
+              toast.success(`Exported ${selectedData.length} links`);
+            }
+          }),
+          bulkActions.delete(() => {
+            const selectedIds = Object.entries(selectedRows)
+              .filter(([, selected]) => selected)
+              .map(([id]) => parseInt(id));
+            // For now, show a toast - bulk delete would need a separate mutation
+            toast.info(`Would delete ${selectedIds.length} links (feature coming soon)`);
+          }),
+        ]}
       />
     </Layout>
   );

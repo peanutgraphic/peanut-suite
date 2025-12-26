@@ -27,10 +27,23 @@ class Peanut_Admin {
     private ?Peanut_Help $help = null;
 
     /**
+     * Check if React app is available
+     */
+    private function is_react_mode(): bool {
+        return file_exists(PEANUT_PLUGIN_DIR . 'assets/dist/js/main.js');
+    }
+
+    /**
      * Initialize admin
      */
     public function __construct() {
         $this->load_dependencies();
+
+        // Add fullscreen mode support
+        if ($this->is_react_mode()) {
+            add_action('admin_init', [$this, 'maybe_redirect_to_app']);
+            add_action('admin_head', [$this, 'inject_fullscreen_styles']);
+        }
     }
 
     /**
@@ -47,9 +60,146 @@ class Peanut_Admin {
     }
 
     /**
+     * Redirect old page slugs to the React app
+     */
+    public function maybe_redirect_to_app(): void {
+        if (!isset($_GET['page'])) {
+            return;
+        }
+
+        $page = sanitize_text_field($_GET['page']);
+
+        // Map old page slugs to React routes
+        $route_map = [
+            'peanut-suite' => '/',
+            'peanut-utm-builder' => '/utm',
+            'peanut-utm-library' => '/utm/library',
+            'peanut-links' => '/links',
+            'peanut-contacts' => '/contacts',
+            'peanut-webhooks' => '/webhooks',
+            'peanut-visitors' => '/visitors',
+            'peanut-attribution' => '/attribution',
+            'peanut-analytics' => '/analytics',
+            'peanut-popups' => '/popups',
+            'peanut-popup-builder' => '/popups/new',
+            'peanut-monitor' => '/monitor',
+            'peanut-settings' => '/settings',
+            'peanut-security' => '/security',
+            'peanut-reports' => '/reports',
+            'peanut-backlinks' => '/backlinks',
+        ];
+
+        // Only redirect if it's a Peanut page but not the main app page
+        if (isset($route_map[$page]) && $page !== 'peanut-app') {
+            $route = $route_map[$page];
+            wp_redirect(admin_url('admin.php?page=peanut-app#' . $route));
+            exit;
+        }
+    }
+
+    /**
+     * Inject CSS to hide WordPress chrome in fullscreen mode
+     */
+    public function inject_fullscreen_styles(): void {
+        if (!isset($_GET['page']) || $_GET['page'] !== 'peanut-app') {
+            return;
+        }
+
+        ?>
+        <style>
+            /* Hide WordPress admin chrome for fullscreen React app */
+            html.wp-toolbar {
+                padding-top: 0 !important;
+            }
+            #wpadminbar {
+                display: none !important;
+            }
+            #adminmenumain,
+            #adminmenuback,
+            #adminmenuwrap {
+                display: none !important;
+            }
+            #wpcontent,
+            #wpfooter {
+                margin-left: 0 !important;
+            }
+            #wpbody-content {
+                padding-bottom: 0 !important;
+            }
+            .update-nag,
+            .updated,
+            .notice,
+            .error:not(.peanut-error) {
+                display: none !important;
+            }
+            #wpfooter {
+                display: none !important;
+            }
+            /* Fullscreen container */
+            .peanut-fullscreen-app {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 99999;
+                background: #f8fafc;
+            }
+            #peanut-app {
+                height: 100%;
+                width: 100%;
+            }
+        </style>
+        <?php
+    }
+
+    /**
      * Add admin menu
      */
     public function add_admin_menu(): void {
+        // React mode: Single entry point with fullscreen app
+        if ($this->is_react_mode()) {
+            // Main menu - launches React app
+            add_menu_page(
+                __('Peanut Suite', 'peanut-suite'),
+                __('Peanut Suite', 'peanut-suite'),
+                'manage_options',
+                'peanut-app',
+                [$this, 'render_react_app'],
+                $this->get_menu_icon(),
+                30
+            );
+
+            // Legacy menu items that redirect to React app routes
+            // These are hidden from menu but handle old bookmarks
+            $legacy_pages = [
+                'peanut-suite' => 'render_dashboard',
+                'peanut-utm-builder' => 'render_utm_builder',
+                'peanut-links' => 'render_links',
+                'peanut-contacts' => 'render_contacts',
+                'peanut-webhooks' => 'render_webhooks',
+                'peanut-visitors' => 'render_visitors',
+                'peanut-attribution' => 'render_attribution',
+                'peanut-analytics' => 'render_analytics',
+                'peanut-popups' => 'render_popups',
+                'peanut-settings' => 'render_settings',
+            ];
+
+            foreach ($legacy_pages as $slug => $callback) {
+                add_submenu_page(
+                    null, // Hidden from menu
+                    '',
+                    '',
+                    'manage_options',
+                    $slug,
+                    [$this, $callback]
+                );
+            }
+
+            return;
+        }
+
+        // Legacy PHP mode: Full menu structure
         // Main menu
         add_menu_page(
             __('Peanut Suite', 'peanut-suite'),
@@ -235,6 +385,25 @@ class Peanut_Admin {
             'peanut-site-detail',
             [$this, 'render_site_detail']
         );
+    }
+
+    /**
+     * Render fullscreen React app
+     */
+    public function render_react_app(): void {
+        ?>
+        <div class="peanut-fullscreen-app">
+            <div id="peanut-app">
+                <div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column; color: #64748b;">
+                    <div style="width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                    <p style="margin-top: 16px;">Loading Peanut Suite...</p>
+                </div>
+            </div>
+        </div>
+        <style>
+            @keyframes spin { to { transform: rotate(360deg); } }
+        </style>
+        <?php
     }
 
     // ========================================

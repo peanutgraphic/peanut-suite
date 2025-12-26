@@ -47,20 +47,21 @@ interface NavItem {
   href: string;
   icon: typeof LayoutDashboard;
   tier?: 'free' | 'pro' | 'agency';
+  tourId?: string;
 }
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'UTM Builder', href: '/utm', icon: Tag },
-  { name: 'Links', href: '/links', icon: Link2 },
-  { name: 'Contacts', href: '/contacts', icon: Users },
-  { name: 'Webhooks', href: '/webhooks', icon: Webhook },
-  { name: 'Visitors', href: '/visitors', icon: Eye, tier: 'pro' },
-  { name: 'Attribution', href: '/attribution', icon: GitBranch, tier: 'pro' },
-  { name: 'Analytics', href: '/analytics', icon: BarChart2, tier: 'pro' },
-  { name: 'Popups', href: '/popups', icon: MessageSquare, tier: 'pro' },
-  { name: 'Monitor', href: '/monitor', icon: Activity, tier: 'agency' },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard, tourId: 'nav-dashboard' },
+  { name: 'UTM Builder', href: '/utm', icon: Tag, tourId: 'nav-utm' },
+  { name: 'Links', href: '/links', icon: Link2, tourId: 'nav-links' },
+  { name: 'Contacts', href: '/contacts', icon: Users, tourId: 'nav-contacts' },
+  { name: 'Webhooks', href: '/webhooks', icon: Webhook, tourId: 'nav-webhooks' },
+  { name: 'Visitors', href: '/visitors', icon: Eye, tier: 'pro', tourId: 'nav-visitors' },
+  { name: 'Attribution', href: '/attribution', icon: GitBranch, tier: 'pro', tourId: 'nav-attribution' },
+  { name: 'Analytics', href: '/analytics', icon: BarChart2, tier: 'pro', tourId: 'nav-analytics' },
+  { name: 'Popups', href: '/popups', icon: MessageSquare, tier: 'pro', tourId: 'nav-popups' },
+  { name: 'Monitor', href: '/monitor', icon: Activity, tier: 'agency', tourId: 'nav-monitor' },
+  { name: 'Settings', href: '/settings', icon: Settings, tourId: 'nav-settings' },
 ];
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -68,6 +69,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
+      data-tour="sidebar"
       className={clsx(
         'fixed left-0 top-0 h-screen bg-white border-r border-slate-200 transition-all duration-300 z-50',
         collapsed ? 'w-16' : 'w-56'
@@ -101,6 +103,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               key={item.name}
               to={isLocked ? '#' : item.href}
               onClick={(e) => isLocked && e.preventDefault()}
+              data-tour={item.tourId}
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',

@@ -1,11 +1,13 @@
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react';
 import { clsx } from 'clsx';
+import { InfoTooltip } from './Tooltip';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
   helper?: string; // alias for hint
+  tooltip?: string; // help tooltip content
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   fullWidth?: boolean;
@@ -19,6 +21,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       error,
       hint,
       helper,
+      tooltip,
       leftIcon,
       rightIcon,
       fullWidth = true,
@@ -35,16 +38,17 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-slate-700 mb-1"
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1"
           >
             {label}
-            {props.required && <span className="text-red-500 ml-1">*</span>}
+            {props.required && <span className="text-red-500">*</span>}
+            {tooltip && <InfoTooltip content={tooltip} />}
           </label>
         )}
 
         <div className="relative">
           {leftIcon && (
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
               {leftIcon}
             </div>
           )}
@@ -52,12 +56,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
+            style={leftIcon ? { paddingLeft: '44px' } : undefined}
             className={clsx(
               'block rounded-lg border bg-white text-slate-900 placeholder-slate-400',
               'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
               'disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed',
               fullWidth && 'w-full',
-              leftIcon ? 'pl-10' : 'pl-3',
+              !leftIcon && 'pl-3',
               rightIcon ? 'pr-10' : 'pr-3',
               'py-2 text-sm',
               error

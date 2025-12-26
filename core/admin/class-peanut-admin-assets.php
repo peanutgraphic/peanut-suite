@@ -40,10 +40,31 @@ class Peanut_Admin_Assets {
     }
 
     /**
+     * Check if current page is the React app page
+     */
+    private function is_react_app_page(): bool {
+        return isset($_GET['page']) && $_GET['page'] === 'peanut-app';
+    }
+
+    /**
      * Enqueue stylesheets
      */
     private function enqueue_styles(): void {
-        // Main admin styles
+        // React app page - only load React styles
+        if ($this->is_react_app_page()) {
+            $react_css = PEANUT_PLUGIN_DIR . 'assets/dist/css/main.css';
+            if (file_exists($react_css)) {
+                wp_enqueue_style(
+                    'peanut-react-app',
+                    PEANUT_PLUGIN_URL . 'assets/dist/css/main.css',
+                    [],
+                    PEANUT_VERSION
+                );
+            }
+            return; // Don't load other styles for React app
+        }
+
+        // Legacy PHP pages - load admin styles
         wp_enqueue_style(
             'peanut-admin',
             PEANUT_PLUGIN_URL . 'assets/css/admin.css',
@@ -67,6 +88,47 @@ class Peanut_Admin_Assets {
      * Enqueue scripts
      */
     private function enqueue_scripts(): void {
+        // React app page - load React bundle
+        if ($this->is_react_app_page()) {
+            $react_js = PEANUT_PLUGIN_DIR . 'assets/dist/js/main.js';
+            if (file_exists($react_js)) {
+                // Load React app as ES module
+                wp_enqueue_script(
+                    'peanut-react-app',
+                    PEANUT_PLUGIN_URL . 'assets/dist/js/main.js',
+                    [],
+                    PEANUT_VERSION,
+                    true
+                );
+
+                // Add module type for ES modules
+                add_filter('script_loader_tag', function($tag, $handle) {
+                    if ($handle === 'peanut-react-app') {
+                        $tag = str_replace(' src=', ' type="module" src=', $tag);
+                    }
+                    return $tag;
+                }, 10, 2);
+
+                // Localize React app config
+                wp_localize_script('peanut-react-app', 'peanutConfig', [
+                    'apiUrl' => rest_url(PEANUT_API_NAMESPACE),
+                    'nonce' => wp_create_nonce('wp_rest'),
+                    'adminUrl' => admin_url(),
+                    'pluginUrl' => PEANUT_PLUGIN_URL,
+                    'version' => PEANUT_VERSION,
+                    'license' => [
+                        'status' => peanut_get_license()['status'] ?? 'inactive',
+                        'tier' => peanut_get_license()['tier'] ?? 'free',
+                        'isPro' => peanut_is_pro(),
+                        'isAgency' => peanut_is_agency(),
+                    ],
+                ]);
+            }
+            return; // Don't load legacy scripts for React app
+        }
+
+        // --- Legacy scripts for PHP pages ---
+
         // Chart.js for charts
         wp_enqueue_script(
             'chartjs',

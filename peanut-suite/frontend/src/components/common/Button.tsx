@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { Loader2 } from 'lucide-react';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: ReactNode;
@@ -39,6 +39,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-500',
       danger:
         'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+      success:
+        'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
     };
 
     const sizes = {
