@@ -110,9 +110,13 @@ register_deactivation_hook(__FILE__, 'peanut_deactivate');
 
 /**
  * Initialize the plugin
+ *
+ * Uses 'init' hook instead of 'plugins_loaded' to ensure translations
+ * are properly loaded before any translation functions are called.
+ * WordPress 6.7+ enforces strict timing on textdomain loading.
  */
 function peanut_init() {
-    // Load text domain
+    // Load text domain first
     load_plugin_textdomain(
         'peanut-suite',
         false,
@@ -127,7 +131,7 @@ function peanut_init() {
     // Fire action for add-ons to hook into
     do_action('peanut_loaded');
 }
-add_action('plugins_loaded', 'peanut_init');
+add_action('init', 'peanut_init', 0);
 
 /**
  * Helper: Get active modules
