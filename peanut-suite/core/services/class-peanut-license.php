@@ -22,6 +22,39 @@ class Peanut_License {
     private const CACHE_DURATION = 12 * HOUR_IN_SECONDS;
 
     /**
+     * Tier names
+     */
+    public const TIER_FREE   = 'free';
+    public const TIER_PRO    = 'pro';
+    public const TIER_AGENCY = 'agency';
+
+    /**
+     * Pricing configuration
+     */
+    public const PRICING = [
+        self::TIER_FREE => [
+            'name'           => 'Free',
+            'monthly_price'  => 0,
+            'annual_price'   => 0,
+            'sites'          => 1,
+        ],
+        self::TIER_PRO => [
+            'name'           => 'Pro',
+            'monthly_price'  => 19,
+            'annual_price'   => 149,
+            'sites'          => 3,
+            'savings_percent' => 35,
+        ],
+        self::TIER_AGENCY => [
+            'name'           => 'Agency',
+            'monthly_price'  => 49,
+            'annual_price'   => 399,
+            'sites'          => 25,
+            'savings_percent' => 32,
+        ],
+    ];
+
+    /**
      * Tier features
      */
     private const TIER_FEATURES = [
@@ -35,20 +68,32 @@ class Peanut_License {
             'utm_limit' => -1,
             'links_limit' => -1,
             'contacts_limit' => -1,
-            'modules' => ['utm', 'links', 'contacts', 'dashboard', 'popups'],
+            'modules' => ['utm', 'links', 'contacts', 'dashboard', 'popups', 'visitors', 'analytics'],
             'analytics' => true,
+            'visitors' => true,
+            'popups' => true,
             'export' => true,
             'api_access' => true,
+            'ga4_integration' => true,
+            'email_integrations' => true,
+            'woocommerce' => true,
         ],
         'agency' => [
             'utm_limit' => -1,
             'links_limit' => -1,
             'contacts_limit' => -1,
             'monitor_sites_limit' => 25,
-            'modules' => ['utm', 'links', 'contacts', 'dashboard', 'popups', 'monitor'],
+            'modules' => ['utm', 'links', 'contacts', 'dashboard', 'popups', 'visitors', 'analytics', 'monitor', 'invoicing'],
             'analytics' => true,
+            'visitors' => true,
+            'popups' => true,
             'export' => true,
             'api_access' => true,
+            'ga4_integration' => true,
+            'email_integrations' => true,
+            'woocommerce' => true,
+            'monitor' => true,
+            'invoicing' => true,
             'white_label' => true,
             'priority_support' => true,
         ],
