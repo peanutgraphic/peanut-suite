@@ -98,7 +98,7 @@ class Peanut_Admin {
     }
 
     /**
-     * Inject CSS to hide WordPress chrome in fullscreen mode
+     * Inject CSS for React app within WP admin
      */
     public function inject_fullscreen_styles(): void {
         if (!isset($_GET['page']) || $_GET['page'] !== 'peanut-app') {
@@ -107,47 +107,24 @@ class Peanut_Admin {
 
         ?>
         <style>
-            /* Hide WordPress admin chrome for fullscreen React app */
-            html.wp-toolbar {
-                padding-top: 0 !important;
-            }
-            #wpadminbar {
-                display: none !important;
-            }
-            #adminmenumain,
-            #adminmenuback,
-            #adminmenuwrap {
-                display: none !important;
-            }
-            #wpcontent,
-            #wpfooter {
-                margin-left: 0 !important;
+            /* Style to fit within WP admin layout */
+            .peanut-suite-wrap {
+                margin: 0 !important;
+                padding: 0 !important;
+                margin-left: -20px !important;
+                margin-right: -20px !important;
+                margin-top: -10px !important;
+                min-height: calc(100vh - 32px);
+                background: #f8fafc;
             }
             #wpbody-content {
                 padding-bottom: 0 !important;
             }
-            .update-nag,
-            .updated,
-            .notice,
-            .error:not(.peanut-error) {
+            /* Hide notices on React page */
+            .peanut-suite-wrap ~ .notice,
+            .peanut-suite-wrap ~ .updated,
+            .peanut-suite-wrap ~ .update-nag {
                 display: none !important;
-            }
-            #wpfooter {
-                display: none !important;
-            }
-            /* Fullscreen container */
-            .peanut-fullscreen-app {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                z-index: 99999;
-                background: #f8fafc;
-            }
-            #peanut-app {
-                height: 100%;
-                width: 100%;
             }
         </style>
         <?php
@@ -388,11 +365,11 @@ class Peanut_Admin {
     }
 
     /**
-     * Render fullscreen React app
+     * Render React app within WP admin
      */
     public function render_react_app(): void {
         ?>
-        <div class="peanut-fullscreen-app">
+        <div class="peanut-suite-wrap">
             <div id="peanut-app">
                 <div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column; color: #64748b;">
                     <div style="width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>

@@ -1,109 +1,135 @@
-import { type ReactNode, useState, useEffect } from 'react';
+import { type ReactNode } from 'react';
+import { NavLink } from 'react-router-dom';
 import { clsx } from 'clsx';
-import Header from './Header';
-import Sidebar from './Sidebar';
-import { useEscapeKey } from '@/hooks/useKeyboardShortcuts';
+import {
+  LayoutDashboard,
+  Link2,
+  Tag,
+  Users,
+  Webhook,
+  Eye,
+  GitBranch,
+  BarChart2,
+  MessageSquare,
+  Activity,
+  Settings,
+  Crown,
+  UsersRound,
+  Key,
+  FileText,
+} from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
   title: string;
   description?: string;
-  showSidebar?: boolean;
+  action?: ReactNode;
 }
 
-export default function Layout({ children, title, description, showSidebar = true }: LayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Close mobile menu on escape
-  useEscapeKey(() => setMobileMenuOpen(false), mobileMenuOpen);
-
-  // Close mobile menu when window is resized to desktop
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768 && mobileMenuOpen) {
-        setMobileMenuOpen(false);
-      }
+// Get license data from WordPress
+declare global {
+  interface Window {
+    peanutData?: {
+      license?: {
+        tier: 'free' | 'pro' | 'agency';
+        isPro: boolean;
+      };
+      version?: string;
     };
+  }
+}
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [mobileMenuOpen]);
+const getLicenseTier = () => window.peanutData?.license?.tier || 'free';
+const hasTier = (required: 'free' | 'pro' | 'agency') => {
+  const tierLevels = { free: 0, pro: 1, agency: 2 };
+  return tierLevels[getLicenseTier()] >= tierLevels[required];
+};
 
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+interface NavItem {
+  name: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+  tier?: 'free' | 'pro' | 'agency';
+}
 
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [mobileMenuOpen]);
+const navigation: NavItem[] = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'UTM', href: '/utm', icon: Tag },
+  { name: 'Links', href: '/links', icon: Link2 },
+  { name: 'Contacts', href: '/contacts', icon: Users },
+  { name: 'Webhooks', href: '/webhooks', icon: Webhook },
+  { name: 'Visitors', href: '/visitors', icon: Eye, tier: 'pro' },
+  { name: 'Attribution', href: '/attribution', icon: GitBranch, tier: 'pro' },
+  { name: 'Analytics', href: '/analytics', icon: BarChart2, tier: 'pro' },
+  { name: 'Popups', href: '/popups', icon: MessageSquare, tier: 'pro' },
+  { name: 'Monitor', href: '/monitor', icon: Activity, tier: 'agency' },
+  { name: 'Team', href: '/team', icon: UsersRound },
+  { name: 'API Keys', href: '/api-keys', icon: Key },
+  { name: 'Audit', href: '/audit-log', icon: FileText },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
 
+export default function Layout({ children, title, description, action }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Skip to main content link for accessibility */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary-600 focus:text-white focus:rounded-lg focus:shadow-lg"
-      >
-        Skip to main content
-      </a>
-
-      {/* Sidebar for desktop and mobile */}
-      {showSidebar && (
-        <>
-          {/* Desktop sidebar */}
-          <div className="hidden md:block">
-            <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+    <div className="min-h-screen bg-slate-50">
+      {/* Top Navigation */}
+      <header className="bg-white border-b border-slate-200">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
+              {description && (
+                <p className="text-sm text-slate-500 mt-0.5">{description}</p>
+              )}
+            </div>
+            {action && <div>{action}</div>}
           </div>
+        </div>
+        {/* Tab Navigation */}
+        <nav className="px-6 flex gap-1 overflow-x-auto">
+          {navigation.map((item) => {
+            const hasAccess = !item.tier || hasTier(item.tier);
+            const isLocked = item.tier && !hasAccess;
 
-          {/* Mobile menu overlay */}
-          {mobileMenuOpen && (
-            <div
-              className="fixed inset-0 bg-black/50 z-40 md:hidden"
-              onClick={() => setMobileMenuOpen(false)}
-              aria-hidden="true"
-            />
-          )}
+            if (isLocked) {
+              return (
+                <span
+                  key={item.name}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap border-transparent text-slate-400 cursor-not-allowed"
+                  title={`${item.tier?.charAt(0).toUpperCase()}${item.tier?.slice(1)} feature`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.name}
+                  <Crown className="w-3 h-3 text-amber-500" />
+                </span>
+              );
+            }
 
-          {/* Mobile sidebar */}
-          <div
-            className={clsx(
-              'md:hidden fixed top-0 left-0 h-screen z-50 transition-transform duration-300',
-              mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-            )}
-          >
-            <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} />
-          </div>
-        </>
-      )}
+            return (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                className={({ isActive }) =>
+                  clsx(
+                    'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors',
+                    isActive
+                      ? 'border-primary-600 text-primary-600'
+                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                  )
+                }
+              >
+                <item.icon className="w-4 h-4" />
+                {item.name}
+              </NavLink>
+            );
+          })}
+        </nav>
+      </header>
 
-      {/* Main content area */}
-      <div
-        className={clsx(
-          'transition-all duration-300',
-          showSidebar && 'md:ml-56',
-          showSidebar && sidebarCollapsed && 'md:ml-16'
-        )}
-      >
-        <Header
-          title={title}
-          description={description}
-          onMenuToggle={showSidebar ? () => setMobileMenuOpen(!mobileMenuOpen) : undefined}
-        />
-        <main
-          id="main-content"
-          className="p-4 md:p-6"
-          role="main"
-          aria-label="Main content"
-        >
-          {children}
-        </main>
-      </div>
+      {/* Main Content */}
+      <main className="p-6 overflow-x-hidden">
+        {children}
+      </main>
     </div>
   );
 }
