@@ -14,4 +14,8 @@ export {
   useCanManageTeam,
   useCanManageApiKeys,
   useHasMultipleAccounts,
+  useFeaturePermissions,
+  useAvailableFeatures,
+  useCanAccessFeature,
+  useVisibleFeatures,
 } from './useAccountStore';

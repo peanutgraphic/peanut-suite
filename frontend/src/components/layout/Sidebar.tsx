@@ -19,6 +19,8 @@ import {
   Key,
   FileText,
 } from 'lucide-react';
+import { useVisibleFeatures, useIsAccountAdmin } from '@/store';
+import type { FeatureKey } from '@/types';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -50,19 +52,20 @@ interface NavItem {
   href: string;
   icon: typeof LayoutDashboard;
   tier?: 'free' | 'pro' | 'agency';
+  feature?: FeatureKey; // Maps nav item to a feature for permission checking
 }
 
 const mainNavigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'UTM Builder', href: '/utm', icon: Tag },
-  { name: 'Links', href: '/links', icon: Link2 },
-  { name: 'Contacts', href: '/contacts', icon: Users },
-  { name: 'Webhooks', href: '/webhooks', icon: Webhook },
-  { name: 'Visitors', href: '/visitors', icon: Eye, tier: 'pro' },
-  { name: 'Attribution', href: '/attribution', icon: GitBranch, tier: 'pro' },
-  { name: 'Analytics', href: '/analytics', icon: BarChart2, tier: 'pro' },
-  { name: 'Popups', href: '/popups', icon: MessageSquare, tier: 'pro' },
-  { name: 'Monitor', href: '/monitor', icon: Activity, tier: 'agency' },
+  { name: 'UTM Builder', href: '/utm', icon: Tag, feature: 'utm' },
+  { name: 'Links', href: '/links', icon: Link2, feature: 'links' },
+  { name: 'Contacts', href: '/contacts', icon: Users, feature: 'contacts' },
+  { name: 'Webhooks', href: '/webhooks', icon: Webhook, feature: 'webhooks' },
+  { name: 'Visitors', href: '/visitors', icon: Eye, tier: 'pro', feature: 'visitors' },
+  { name: 'Attribution', href: '/attribution', icon: GitBranch, tier: 'pro', feature: 'attribution' },
+  { name: 'Analytics', href: '/analytics', icon: BarChart2, tier: 'pro', feature: 'analytics' },
+  { name: 'Popups', href: '/popups', icon: MessageSquare, tier: 'pro', feature: 'popups' },
+  { name: 'Monitor', href: '/monitor', icon: Activity, tier: 'agency', feature: 'monitor' },
 ];
 
 const accountNavigation: NavItem[] = [
@@ -74,6 +77,21 @@ const accountNavigation: NavItem[] = [
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const currentTier = getLicenseTier();
+  const visibleFeatures = useVisibleFeatures();
+  const isAdmin = useIsAccountAdmin();
+
+  // Filter main navigation based on feature permissions
+  // Dashboard always visible, other items filtered by permissions
+  const filteredMainNav = mainNavigation.filter((item) => {
+    // Dashboard is always visible
+    if (!item.feature) return true;
+
+    // Admins with tier access see all features (locked if tier not available)
+    if (isAdmin) return true;
+
+    // Non-admins only see features they have permission for
+    return visibleFeatures.includes(item.feature);
+  });
 
   return (
     <aside
@@ -106,7 +124,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <nav className="p-3 flex-1 overflow-y-auto" aria-label="Main menu">
         {/* Main Navigation */}
         <div className="space-y-1">
-          {mainNavigation.map((item) => {
+          {filteredMainNav.map((item) => {
             const hasAccess = !item.tier || hasTier(item.tier);
             const isLocked = item.tier && !hasAccess;
 

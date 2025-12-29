@@ -14,7 +14,7 @@ class Peanut_Database {
     /**
      * Database version
      */
-    private const DB_VERSION = '2.0.0';
+    private const DB_VERSION = '2.1.0';
 
     /**
      * Table names
@@ -39,6 +39,7 @@ class Peanut_Database {
     public static function account_members_table(): string { return self::table('account_members'); }
     public static function api_keys_table(): string { return self::table('api_keys'); }
     public static function audit_log_table(): string { return self::table('audit_log'); }
+    public static function utm_access_table(): string { return self::table('utm_access'); }
 
     /**
      * Create all tables
@@ -53,6 +54,7 @@ class Peanut_Database {
         $sql = "CREATE TABLE " . self::utms_table() . " (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             user_id bigint(20) UNSIGNED NOT NULL,
+            account_id bigint(20) UNSIGNED DEFAULT NULL,
             name varchar(255) NOT NULL,
             base_url varchar(2048) NOT NULL,
             utm_source varchar(255) NOT NULL,
@@ -68,6 +70,7 @@ class Peanut_Database {
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY user_id (user_id),
+            KEY account_id (account_id),
             KEY utm_source (utm_source),
             KEY utm_campaign (utm_campaign),
             KEY created_at (created_at),
@@ -232,6 +235,7 @@ class Peanut_Database {
             account_id bigint(20) UNSIGNED NOT NULL,
             user_id bigint(20) UNSIGNED NOT NULL,
             role varchar(20) NOT NULL DEFAULT 'member',
+            feature_permissions longtext DEFAULT NULL,
             invited_by bigint(20) UNSIGNED DEFAULT NULL,
             invited_at datetime DEFAULT NULL,
             accepted_at datetime DEFAULT NULL,
@@ -290,6 +294,26 @@ class Peanut_Database {
         ) $charset;";
         dbDelta($sql);
 
+        // UTM access table (for data segmentation)
+        $sql = "CREATE TABLE " . self::utm_access_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            utm_id bigint(20) UNSIGNED NOT NULL,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            account_id bigint(20) UNSIGNED NOT NULL,
+            access_level varchar(20) DEFAULT 'view',
+            assigned_by bigint(20) UNSIGNED NOT NULL,
+            assigned_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY utm_user (utm_id, user_id),
+            KEY utm_id (utm_id),
+            KEY user_id (user_id),
+            KEY account_id (account_id)
+        ) $charset;";
+        dbDelta($sql);
+
+        // Run migrations for existing data
+        self::run_migrations();
+
         update_option('peanut_db_version', self::DB_VERSION);
     }
 
@@ -309,6 +333,7 @@ class Peanut_Database {
             self::taggables_table(),
             self::analytics_cache_table(),
             // Multi-tenancy tables
+            self::utm_access_table(),
             self::audit_log_table(),
             self::api_keys_table(),
             self::account_members_table(),
@@ -320,6 +345,110 @@ class Peanut_Database {
         }
 
         delete_option('peanut_db_version');
+    }
+
+    /**
+     * Run data migrations for existing users
+     */
+    private static function run_migrations(): void {
+        global $wpdb;
+
+        $current_version = get_option('peanut_db_version', '0');
+
+        // Migration to 2.1.0: Set up feature permissions and UTM access
+        if (version_compare($current_version, '2.1.0', '<')) {
+            self::migrate_to_2_1_0();
+        }
+    }
+
+    /**
+     * Migration to 2.1.0
+     * - Set default feature permissions for existing members
+     * - Set account_id on existing UTMs
+     * - Grant UTM access to account owners
+     */
+    private static function migrate_to_2_1_0(): void {
+        global $wpdb;
+
+        $members_table = self::account_members_table();
+        $accounts_table = self::accounts_table();
+        $utms_table = self::utms_table();
+        $utm_access_table = self::utm_access_table();
+
+        // Default permissions by role
+        $default_permissions = [
+            'owner' => json_encode([
+                'utm' => ['access' => true],
+                'links' => ['access' => true],
+                'contacts' => ['access' => true],
+                'webhooks' => ['access' => true],
+                'visitors' => ['access' => true],
+                'attribution' => ['access' => true],
+                'analytics' => ['access' => true],
+                'popups' => ['access' => true],
+                'monitor' => ['access' => true],
+            ]),
+            'admin' => json_encode([
+                'utm' => ['access' => true],
+                'links' => ['access' => true],
+                'contacts' => ['access' => true],
+                'webhooks' => ['access' => true],
+                'visitors' => ['access' => true],
+                'attribution' => ['access' => true],
+                'analytics' => ['access' => true],
+                'popups' => ['access' => true],
+                'monitor' => ['access' => true],
+            ]),
+            'member' => json_encode([
+                'utm' => ['access' => true],
+                'links' => ['access' => true],
+                'contacts' => ['access' => true],
+                'webhooks' => ['access' => true],
+                'visitors' => ['access' => false],
+                'attribution' => ['access' => false],
+                'analytics' => ['access' => false],
+                'popups' => ['access' => false],
+                'monitor' => ['access' => false],
+            ]),
+            'viewer' => json_encode([
+                'utm' => ['access' => true],
+                'links' => ['access' => true],
+                'contacts' => ['access' => true],
+                'webhooks' => ['access' => true],
+                'visitors' => ['access' => false],
+                'attribution' => ['access' => false],
+                'analytics' => ['access' => false],
+                'popups' => ['access' => false],
+                'monitor' => ['access' => false],
+            ]),
+        ];
+
+        // Update existing members with default permissions (only if null)
+        foreach ($default_permissions as $role => $permissions) {
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$members_table}
+                 SET feature_permissions = %s
+                 WHERE role = %s AND feature_permissions IS NULL",
+                $permissions,
+                $role
+            ));
+        }
+
+        // Set account_id on existing UTMs based on user's account
+        $wpdb->query(
+            "UPDATE {$utms_table} u
+             INNER JOIN {$accounts_table} a ON u.user_id = a.owner_user_id
+             SET u.account_id = a.id
+             WHERE u.account_id IS NULL"
+        );
+
+        // Grant full access to existing UTMs for account owners
+        $wpdb->query(
+            "INSERT IGNORE INTO {$utm_access_table} (utm_id, user_id, account_id, access_level, assigned_by)
+             SELECT u.id, u.user_id, u.account_id, 'full', u.user_id
+             FROM {$utms_table} u
+             WHERE u.account_id IS NOT NULL"
+        );
     }
 
     /**

@@ -10,7 +10,9 @@ import {
   User,
   Eye,
   ArrowRightLeft,
+  Settings,
 } from 'lucide-react';
+import { clsx } from 'clsx';
 import { Layout } from '../components/layout';
 import {
   Card,
@@ -24,7 +26,7 @@ import {
   NoDataEmptyState,
 } from '../components/common';
 import { accountsApi } from '../api/endpoints';
-import type { AccountMember, MemberRole } from '../types';
+import type { AccountMember, MemberRole, FeatureKey, FeaturePermissions } from '../types';
 import { useCurrentAccount, useIsAccountOwner, useCanManageTeam, toast } from '../store';
 
 const columnHelper = createColumnHelper<AccountMember>();
@@ -56,6 +58,34 @@ const roleBadgeVariants: Record<MemberRole, 'warning' | 'info' | 'default' | 'su
   viewer: 'default',
 };
 
+// Feature definitions for permission UI
+const featureDefinitions: { key: FeatureKey; name: string; tier: 'free' | 'pro' | 'agency' }[] = [
+  { key: 'utm', name: 'UTM (Builder + Library)', tier: 'free' },
+  { key: 'links', name: 'Links', tier: 'free' },
+  { key: 'contacts', name: 'Contacts', tier: 'free' },
+  { key: 'webhooks', name: 'Webhooks', tier: 'free' },
+  { key: 'visitors', name: 'Visitors', tier: 'pro' },
+  { key: 'attribution', name: 'Attribution', tier: 'pro' },
+  { key: 'analytics', name: 'Analytics', tier: 'pro' },
+  { key: 'popups', name: 'Popups', tier: 'pro' },
+  { key: 'monitor', name: 'Monitor', tier: 'agency' },
+];
+
+const getLicenseTier = (): 'free' | 'pro' | 'agency' => window.peanutData?.license?.tier || 'free';
+const hasTier = (required: 'free' | 'pro' | 'agency') => {
+  const tierLevels = { free: 0, pro: 1, agency: 2 };
+  return tierLevels[getLicenseTier()] >= tierLevels[required];
+};
+
+// Helper to create default permissions
+const createDefaultPermissions = (allAccess: boolean = false): Partial<FeaturePermissions> => {
+  const permissions: Partial<FeaturePermissions> = {};
+  featureDefinitions.forEach(f => {
+    permissions[f.key] = { access: allAccess };
+  });
+  return permissions;
+};
+
 export default function Team() {
   const queryClient = useQueryClient();
   const currentAccount = useCurrentAccount();
@@ -70,7 +100,14 @@ export default function Team() {
   const [inviteForm, setInviteForm] = useState({
     email: '',
     role: 'member' as MemberRole,
+    permissions: createDefaultPermissions(false) as Partial<FeaturePermissions>,
   });
+
+  const [editPermissions, setEditPermissions] = useState<Partial<FeaturePermissions>>(
+    createDefaultPermissions(false)
+  );
+  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+  const [permissionsMember, setPermissionsMember] = useState<AccountMember | null>(null);
 
   const accountId = currentAccount?.id || 0;
 
@@ -81,12 +118,23 @@ export default function Team() {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: ({ email, role }: { email: string; role: MemberRole }) =>
-      accountsApi.addMember(accountId, email, role),
+    mutationFn: ({
+      email,
+      role,
+      permissions,
+    }: {
+      email: string;
+      role: MemberRole;
+      permissions?: Partial<FeaturePermissions>;
+    }) => accountsApi.addMember(accountId, email, role, permissions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members', accountId] });
       setInviteModalOpen(false);
-      setInviteForm({ email: '', role: 'member' });
+      setInviteForm({
+        email: '',
+        role: 'member',
+        permissions: createDefaultPermissions(false),
+      });
       toast.success('Team member added');
     },
     onError: (error) => {
@@ -95,8 +143,15 @@ export default function Team() {
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: number; role: MemberRole }) =>
-      accountsApi.updateMember(accountId, userId, role),
+    mutationFn: ({
+      userId,
+      role,
+      permissions,
+    }: {
+      userId: number;
+      role: MemberRole;
+      permissions?: Partial<FeaturePermissions>;
+    }) => accountsApi.updateMember(accountId, userId, role, permissions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members', accountId] });
       setEditMember(null);
@@ -106,6 +161,39 @@ export default function Team() {
       toast.error(error instanceof Error ? error.message : 'Failed to update role');
     },
   });
+
+  const updatePermissionsMutation = useMutation({
+    mutationFn: ({
+      userId,
+      permissions,
+    }: {
+      userId: number;
+      permissions: Partial<FeaturePermissions>;
+    }) => accountsApi.updateMemberPermissions(accountId, userId, permissions),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team-members', accountId] });
+      setPermissionsModalOpen(false);
+      setPermissionsMember(null);
+      toast.success('Permissions updated');
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to update permissions');
+    },
+  });
+
+  // Load member permissions when opening permissions modal
+  const handleOpenPermissions = async (member: AccountMember) => {
+    setPermissionsMember(member);
+    try {
+      const permissions = await accountsApi.getMemberPermissions(accountId, member.user_id);
+      setEditPermissions(permissions || createDefaultPermissions(false));
+    } catch {
+      // If no permissions set, use defaults based on role
+      const defaultAccess = member.role === 'admin' || member.role === 'owner';
+      setEditPermissions(createDefaultPermissions(defaultAccess));
+    }
+    setPermissionsModalOpen(true);
+  };
 
   const removeMemberMutation = useMutation({
     mutationFn: (userId: number) => accountsApi.removeMember(accountId, userId),
@@ -203,6 +291,17 @@ export default function Team() {
             >
               <UserCog className="w-4 h-4" />
             </Button>
+            {/* Only show permissions button for member/viewer roles */}
+            {(member.role === 'member' || member.role === 'viewer') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleOpenPermissions(member)}
+                title="Manage permissions"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+            )}
             {isOwner && (
               <Button
                 variant="ghost"
@@ -416,6 +515,60 @@ export default function Team() {
             options={roleOptions}
           />
 
+          {/* Feature Permissions - only show for member/viewer roles */}
+          {(inviteForm.role === 'member' || inviteForm.role === 'viewer') && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Feature Permissions
+              </label>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                Select which features this user can access
+              </p>
+              <div className="space-y-2 border border-slate-200 dark:border-slate-700 rounded-lg p-3 max-h-48 overflow-y-auto">
+                {featureDefinitions.map((feature) => {
+                  const hasFeatureTier = hasTier(feature.tier);
+                  const isChecked = inviteForm.permissions[feature.key]?.access || false;
+
+                  return (
+                    <label
+                      key={feature.key}
+                      className={clsx(
+                        'flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors',
+                        hasFeatureTier
+                          ? 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                          : 'opacity-50 cursor-not-allowed'
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked && hasFeatureTier}
+                        disabled={!hasFeatureTier}
+                        onChange={(e) => {
+                          setInviteForm({
+                            ...inviteForm,
+                            permissions: {
+                              ...inviteForm.permissions,
+                              [feature.key]: { access: e.target.checked },
+                            },
+                          });
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                      />
+                      <span className="flex-1 text-sm text-slate-700 dark:text-slate-300">
+                        {feature.name}
+                      </span>
+                      {!hasFeatureTier && (
+                        <span title={`Requires ${feature.tier} tier`}>
+                          <Crown className="w-4 h-4 text-amber-500" />
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="outline" onClick={() => setInviteModalOpen(false)}>
               Cancel
@@ -425,6 +578,10 @@ export default function Team() {
                 addMemberMutation.mutate({
                   email: inviteForm.email,
                   role: inviteForm.role,
+                  permissions:
+                    inviteForm.role === 'member' || inviteForm.role === 'viewer'
+                      ? inviteForm.permissions
+                      : undefined,
                 })
               }
               disabled={!inviteForm.email || addMemberMutation.isPending}
@@ -501,6 +658,106 @@ export default function Team() {
         variant="danger"
         loading={transferOwnershipMutation.isPending}
       />
+
+      {/* Manage Permissions Modal */}
+      <Modal
+        isOpen={permissionsModalOpen}
+        onClose={() => {
+          setPermissionsModalOpen(false);
+          setPermissionsMember(null);
+        }}
+        title="Manage Feature Permissions"
+      >
+        {permissionsMember && (
+          <div className="space-y-4">
+            <p className="text-slate-600 dark:text-slate-400">
+              Configure feature access for{' '}
+              <strong>{permissionsMember.display_name || permissionsMember.user_email}</strong>
+            </p>
+
+            <div className="space-y-2 border border-slate-200 dark:border-slate-700 rounded-lg p-3 max-h-64 overflow-y-auto">
+              {featureDefinitions.map((feature) => {
+                const hasFeatureTier = hasTier(feature.tier);
+                const isChecked = editPermissions[feature.key]?.access || false;
+
+                return (
+                  <label
+                    key={feature.key}
+                    className={clsx(
+                      'flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors',
+                      hasFeatureTier
+                        ? 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                        : 'opacity-50 cursor-not-allowed'
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked && hasFeatureTier}
+                      disabled={!hasFeatureTier}
+                      onChange={(e) => {
+                        setEditPermissions({
+                          ...editPermissions,
+                          [feature.key]: { access: e.target.checked },
+                        });
+                      }}
+                      className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                    />
+                    <span className="flex-1 text-sm text-slate-700 dark:text-slate-300">
+                      {feature.name}
+                    </span>
+                    {!hasFeatureTier && (
+                      <span title={`Requires ${feature.tier} tier`}>
+                        <Crown className="w-4 h-4 text-amber-500" />
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditPermissions(createDefaultPermissions(true))}
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditPermissions(createDefaultPermissions(false))}
+                >
+                  Clear All
+                </Button>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPermissionsModalOpen(false);
+                    setPermissionsMember(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() =>
+                    updatePermissionsMutation.mutate({
+                      userId: permissionsMember.user_id,
+                      permissions: editPermissions,
+                    })
+                  }
+                  disabled={updatePermissionsMutation.isPending}
+                >
+                  {updatePermissionsMutation.isPending ? 'Saving...' : 'Save Permissions'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </Layout>
   );
 }

@@ -623,6 +623,45 @@ export type ApiKeyScope =
   | 'contacts:write'
   | 'analytics:read';
 
+// Feature Permission Types
+export type FeatureKey =
+  | 'utm'
+  | 'links'
+  | 'contacts'
+  | 'webhooks'
+  | 'visitors'
+  | 'attribution'
+  | 'analytics'
+  | 'popups'
+  | 'monitor';
+
+export interface FeaturePermission {
+  access: boolean;
+}
+
+export type FeaturePermissions = Record<FeatureKey, FeaturePermission>;
+
+export interface FeatureConfig {
+  name: string;
+  tier: 'free' | 'pro' | 'agency';
+  available: boolean;
+}
+
+export type AvailableFeatures = Record<FeatureKey, FeatureConfig>;
+
+// UTM Access Types
+export type UTMAccessLevel = 'view' | 'edit' | 'full';
+
+export interface UTMAccess {
+  utm_id: number;
+  user_id: number;
+  user_email: string;
+  user_name: string;
+  access_level: UTMAccessLevel;
+  assigned_by: number;
+  assigned_at: string;
+}
+
 export interface Account {
   id: number;
   name: string;
@@ -648,6 +687,7 @@ export interface AccountMember {
   user_email: string;
   display_name: string;
   role: MemberRole;
+  feature_permissions?: FeaturePermissions;
   invited_at?: string;
   accepted_at?: string;
   created_at: string;

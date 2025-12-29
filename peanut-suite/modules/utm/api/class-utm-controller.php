@@ -61,36 +61,76 @@ class UTM_Controller extends Peanut_REST_Controller {
             'callback' => [$this, 'export'],
             'permission_callback' => [$this, 'permission_callback'],
         ]);
+
+        // UTM Access routes
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/access', [
+            [
+                'methods' => WP_REST_Server::READABLE,
+                'callback' => [$this, 'get_utm_access'],
+                'permission_callback' => [$this, 'permission_callback'],
+            ],
+        ]);
+
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/assign', [
+            [
+                'methods' => WP_REST_Server::CREATABLE,
+                'callback' => [$this, 'assign_utm_access'],
+                'permission_callback' => [$this, 'permission_callback'],
+            ],
+        ]);
+
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/assign/(?P<user_id>\d+)', [
+            [
+                'methods' => WP_REST_Server::DELETABLE,
+                'callback' => [$this, 'revoke_utm_access'],
+                'permission_callback' => [$this, 'permission_callback'],
+            ],
+        ]);
     }
 
     /**
-     * Get UTMs
+     * Get UTMs - filters by user access for non-admin members
      */
     public function get_items(WP_REST_Request $request): WP_REST_Response {
         global $wpdb;
         $table = Peanut_Database::utms_table();
+        $access_table = Peanut_Database::utm_access_table();
         $user_id = get_current_user_id();
+
+        // Get current account
+        $account = Peanut_Account_Service::get_or_create_for_user($user_id);
+        $account_id = $account ? $account['id'] : 0;
+        $is_admin = $account && Peanut_Account_Service::user_has_role($account_id, $user_id, 'admin');
 
         $pagination = $this->get_pagination($request);
         $sort = $this->get_sort($request, ['created_at', 'name', 'utm_campaign', 'click_count']);
 
-        // Build query
-        $where = ['user_id = %d'];
-        $params = [$user_id];
+        // Build query - admins see all account UTMs, others only see assigned
+        if ($is_admin) {
+            // Admins see all UTMs in account (or their own if no account_id set)
+            $where = ['(u.account_id = %d OR (u.account_id IS NULL AND u.user_id = %d))'];
+            $params = [$account_id, $user_id];
+            $from = "$table u";
+        } else {
+            // Non-admins only see UTMs they have access to
+            $where = ['ua.user_id = %d', 'ua.account_id = %d'];
+            $params = [$user_id, $account_id];
+            $from = "$table u INNER JOIN $access_table ua ON u.id = ua.utm_id";
+        }
 
         // Archived filter
         $archived = $request->get_param('archived');
         if ($archived === 'true') {
-            $where[] = 'is_archived = 1';
+            $where[] = 'u.is_archived = 1';
         } else {
-            $where[] = 'is_archived = 0';
+            $where[] = 'u.is_archived = 0';
         }
 
         // Search
         $search = $request->get_param('search');
         if (!empty($search)) {
             $like = '%' . $wpdb->esc_like($search) . '%';
-            $where[] = '(name LIKE %s OR utm_campaign LIKE %s OR base_url LIKE %s)';
+            $where[] = '(u.name LIKE %s OR u.utm_campaign LIKE %s OR u.base_url LIKE %s)';
             $params[] = $like;
             $params[] = $like;
             $params[] = $like;
@@ -100,7 +140,7 @@ class UTM_Controller extends Peanut_REST_Controller {
         foreach (['utm_source', 'utm_medium', 'utm_campaign'] as $filter) {
             $value = $request->get_param($filter);
             if (!empty($value)) {
-                $where[] = "$filter = %s";
+                $where[] = "u.$filter = %s";
                 $params[] = $value;
             }
         }
@@ -109,16 +149,17 @@ class UTM_Controller extends Peanut_REST_Controller {
 
         // Count
         $total = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $table WHERE $where_sql",
+            "SELECT COUNT(DISTINCT u.id) FROM $from WHERE $where_sql",
             ...$params
         ));
 
         // Get items
         $offset = ($pagination['page'] - 1) * $pagination['per_page'];
+        $order_col = 'u.' . $sort['orderby'];
         $items = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table
+            "SELECT DISTINCT u.* FROM $from
              WHERE $where_sql
-             ORDER BY {$sort['orderby']} {$sort['order']}
+             ORDER BY {$order_col} {$sort['order']}
              LIMIT %d OFFSET %d",
             ...array_merge($params, [$pagination['per_page'], $offset])
         ), ARRAY_A);
@@ -159,6 +200,10 @@ class UTM_Controller extends Peanut_REST_Controller {
         $table = Peanut_Database::utms_table();
         $user_id = get_current_user_id();
 
+        // Get current account
+        $account = Peanut_Account_Service::get_or_create_for_user($user_id);
+        $account_id = $account ? $account['id'] : null;
+
         // Check limit
         $count = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM $table WHERE user_id = %d AND is_archived = 0",
@@ -195,6 +240,7 @@ class UTM_Controller extends Peanut_REST_Controller {
 
         $data = [
             'user_id' => $user_id,
+            'account_id' => $account_id,
             'name' => sanitize_text_field($request->get_param('name') ?: $utm_campaign),
             'base_url' => $base_url,
             'utm_source' => $utm_source,
@@ -211,6 +257,33 @@ class UTM_Controller extends Peanut_REST_Controller {
 
         if (!$id) {
             return $this->error(__('Failed to create UTM', 'peanut-suite'), 'create_failed', 500);
+        }
+
+        // Auto-assign access to creator
+        if ($account_id) {
+            Peanut_UTM_Access_Service::grant_access(
+                $id,
+                $user_id,
+                $account_id,
+                Peanut_UTM_Access_Service::ACCESS_FULL,
+                $user_id
+            );
+
+            // Also assign to any specified users
+            $assigned_users = $request->get_param('assigned_users');
+            if (!empty($assigned_users) && is_array($assigned_users)) {
+                $assigned_users = array_map('absint', $assigned_users);
+                $assigned_users = array_diff($assigned_users, [$user_id]); // Exclude creator
+                if (!empty($assigned_users)) {
+                    Peanut_UTM_Access_Service::bulk_assign(
+                        [$id],
+                        $assigned_users,
+                        $account_id,
+                        Peanut_UTM_Access_Service::ACCESS_VIEW,
+                        $user_id
+                    );
+                }
+            }
         }
 
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id), ARRAY_A);
@@ -380,5 +453,141 @@ class UTM_Controller extends Peanut_REST_Controller {
             'sort_by' => ['type' => 'string', 'default' => 'created_at'],
             'sort_order' => ['type' => 'string', 'default' => 'DESC'],
         ];
+    }
+
+    // ===========================
+    // UTM Access Methods
+    // ===========================
+
+    /**
+     * Get users with access to a UTM
+     */
+    public function get_utm_access(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $utm_id = (int) $request->get_param('id');
+        $user_id = get_current_user_id();
+
+        // Check if user is admin
+        $account = Peanut_Account_Service::get_or_create_for_user($user_id);
+        if (!$account || !Peanut_Account_Service::user_has_role($account['id'], $user_id, 'admin')) {
+            return $this->error(__('Admin access required', 'peanut-suite'), 'forbidden', 403);
+        }
+
+        // Verify UTM belongs to account
+        global $wpdb;
+        $table = Peanut_Database::utms_table();
+        $utm = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE id = %d AND account_id = %d",
+            $utm_id,
+            $account['id']
+        ), ARRAY_A);
+
+        if (!$utm) {
+            return $this->not_found(__('UTM not found', 'peanut-suite'));
+        }
+
+        $access = Peanut_UTM_Access_Service::get_utm_access_users($utm_id);
+
+        return $this->success($access);
+    }
+
+    /**
+     * Assign users to a UTM
+     */
+    public function assign_utm_access(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $utm_id = (int) $request->get_param('id');
+        $user_id = get_current_user_id();
+
+        // Check if user is admin
+        $account = Peanut_Account_Service::get_or_create_for_user($user_id);
+        if (!$account || !Peanut_Account_Service::user_has_role($account['id'], $user_id, 'admin')) {
+            return $this->error(__('Admin access required', 'peanut-suite'), 'forbidden', 403);
+        }
+
+        // Verify UTM belongs to account
+        global $wpdb;
+        $table = Peanut_Database::utms_table();
+        $utm = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE id = %d AND (account_id = %d OR user_id = %d)",
+            $utm_id,
+            $account['id'],
+            $user_id
+        ), ARRAY_A);
+
+        if (!$utm) {
+            return $this->not_found(__('UTM not found', 'peanut-suite'));
+        }
+
+        // Update UTM account_id if not set
+        if (empty($utm['account_id'])) {
+            $wpdb->update($table, ['account_id' => $account['id']], ['id' => $utm_id]);
+        }
+
+        $user_ids = $request->get_param('user_ids');
+        $access_level = sanitize_key($request->get_param('access_level')) ?: 'view';
+
+        if (empty($user_ids) || !is_array($user_ids)) {
+            return $this->error(__('No users specified', 'peanut-suite'));
+        }
+
+        $user_ids = array_map('absint', $user_ids);
+
+        // Verify all users are members of the account
+        $members = Peanut_Account_Service::get_members($account['id']);
+        $member_ids = array_column($members, 'user_id');
+        $invalid_users = array_diff($user_ids, $member_ids);
+
+        if (!empty($invalid_users)) {
+            return $this->error(__('Some users are not members of this account', 'peanut-suite'));
+        }
+
+        $result = Peanut_UTM_Access_Service::bulk_assign(
+            [$utm_id],
+            $user_ids,
+            $account['id'],
+            $access_level,
+            $user_id
+        );
+
+        if (!$result) {
+            return $this->error(__('Failed to assign access', 'peanut-suite'), 'assign_failed', 500);
+        }
+
+        $access = Peanut_UTM_Access_Service::get_utm_access_users($utm_id);
+
+        return $this->success($access);
+    }
+
+    /**
+     * Revoke user access to a UTM
+     */
+    public function revoke_utm_access(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $utm_id = (int) $request->get_param('id');
+        $target_user_id = (int) $request->get_param('user_id');
+        $user_id = get_current_user_id();
+
+        // Check if user is admin
+        $account = Peanut_Account_Service::get_or_create_for_user($user_id);
+        if (!$account || !Peanut_Account_Service::user_has_role($account['id'], $user_id, 'admin')) {
+            return $this->error(__('Admin access required', 'peanut-suite'), 'forbidden', 403);
+        }
+
+        // Verify UTM belongs to account
+        global $wpdb;
+        $table = Peanut_Database::utms_table();
+        $utm = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE id = %d AND account_id = %d",
+            $utm_id,
+            $account['id']
+        ), ARRAY_A);
+
+        if (!$utm) {
+            return $this->not_found(__('UTM not found', 'peanut-suite'));
+        }
+
+        Peanut_UTM_Access_Service::revoke_access($utm_id, $target_user_id);
+
+        $access = Peanut_UTM_Access_Service::get_utm_access_users($utm_id);
+
+        return $this->success($access);
     }
 }

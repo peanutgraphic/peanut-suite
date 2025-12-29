@@ -48,6 +48,10 @@ import type {
   AuditLogEntry,
   AuditLogFilters,
   MemberRole,
+  FeaturePermissions,
+  AvailableFeatures,
+  UTMAccess,
+  UTMAccessLevel,
 } from '../types';
 
 // Pagination params
@@ -676,22 +680,53 @@ export const accountsApi = {
     return { members: data };
   },
 
-  // Add member by email
-  addMember: async (accountId: number, email: string, role: MemberRole = 'member') => {
+  // Add member by email (with optional permissions)
+  addMember: async (
+    accountId: number,
+    email: string,
+    role: MemberRole = 'member',
+    permissions?: Partial<FeaturePermissions>
+  ) => {
     const { data } = await api.post<AccountMember[]>(
       `/accounts/${accountId}/members`,
-      { email, role }
+      { email, role, permissions }
     );
     return { members: data };
   },
 
-  // Update member role
-  updateMember: async (accountId: number, userId: number, role: MemberRole) => {
+  // Update member role (with optional permissions)
+  updateMember: async (
+    accountId: number,
+    userId: number,
+    role: MemberRole,
+    permissions?: Partial<FeaturePermissions>
+  ) => {
     const { data } = await api.put<AccountMember[]>(
       `/accounts/${accountId}/members/${userId}`,
-      { role }
+      { role, permissions }
     );
     return { members: data };
+  },
+
+  // Get member permissions
+  getMemberPermissions: async (accountId: number, userId: number) => {
+    const { data } = await api.get<FeaturePermissions>(
+      `/accounts/${accountId}/members/${userId}/permissions`
+    );
+    return data;
+  },
+
+  // Update member permissions
+  updateMemberPermissions: async (
+    accountId: number,
+    userId: number,
+    permissions: Partial<FeaturePermissions>
+  ) => {
+    const { data } = await api.put<FeaturePermissions>(
+      `/accounts/${accountId}/members/${userId}/permissions`,
+      { permissions }
+    );
+    return data;
   },
 
   // Remove member
@@ -784,6 +819,65 @@ export const accountsApi = {
       actions: string[];
       resource_types: string[];
     }>('/accounts/audit-log/filters');
+    return data;
+  },
+
+  // ========== Features & Permissions ==========
+
+  // Get available features (based on license tier)
+  getAvailableFeatures: async () => {
+    const { data } = await api.get<AvailableFeatures>('/accounts/features');
+    return data;
+  },
+
+  // Get current user's permissions for an account
+  getMyPermissions: async (accountId: number) => {
+    const { data } = await api.get<FeaturePermissions>(
+      `/accounts/${accountId}/my-permissions`
+    );
+    return data;
+  },
+};
+
+// ============================================
+// UTM Access Endpoints (Data Segmentation)
+// ============================================
+export const utmAccessApi = {
+  // Get users who have access to a UTM
+  getAccess: async (utmId: number) => {
+    const { data } = await api.get<UTMAccess[]>(`/utms/${utmId}/access`);
+    return data;
+  },
+
+  // Assign users to a UTM
+  assignUsers: async (
+    utmId: number,
+    userIds: number[],
+    accessLevel: UTMAccessLevel = 'view'
+  ) => {
+    const { data } = await api.post<{ assigned: number }>(`/utms/${utmId}/assign`, {
+      user_ids: userIds,
+      access_level: accessLevel,
+    });
+    return data;
+  },
+
+  // Revoke user access to a UTM
+  revokeAccess: async (utmId: number, userId: number) => {
+    await api.delete(`/utms/${utmId}/assign/${userId}`);
+  },
+
+  // Bulk assign UTMs to users
+  bulkAssign: async (
+    utmIds: number[],
+    userIds: number[],
+    accessLevel: UTMAccessLevel = 'view'
+  ) => {
+    const { data } = await api.post<{ assigned: number }>('/utms/bulk-assign', {
+      utm_ids: utmIds,
+      user_ids: userIds,
+      access_level: accessLevel,
+    });
     return data;
   },
 };

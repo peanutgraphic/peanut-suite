@@ -37,6 +37,10 @@ class Peanut_Core {
         require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-security.php';
         require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-license.php';
         require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-integrations.php';
+        require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-account-service.php';
+        require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-api-keys-service.php';
+        require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-audit-log-service.php';
+        require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-utm-access-service.php';
 
         // Database
         require_once PEANUT_PLUGIN_DIR . 'core/database/class-peanut-database.php';
@@ -44,6 +48,7 @@ class Peanut_Core {
         // API
         require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-rest-controller.php';
         require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-settings-controller.php';
+        require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-accounts-controller.php';
 
         // Admin
         require_once PEANUT_PLUGIN_DIR . 'core/admin/class-peanut-admin.php';
@@ -403,6 +408,10 @@ class Peanut_Core {
         require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-connect-controller.php';
         $connect_controller = new Peanut_Connect_Controller();
         $connect_controller->register_routes();
+
+        // Accounts API (multi-tenancy)
+        $accounts_controller = new Peanut_Accounts_Controller();
+        $accounts_controller->register_routes();
 
         // Let modules register their routes
         do_action('peanut_register_routes');
