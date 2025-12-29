@@ -4,6 +4,13 @@ functions/node_modules/
 
 # Build output
 functions/lib/
+assets/dist/
+peanut-suite/assets/dist/
+
+# Distribution packages
+dist/
+peanut-suite/dist/
+*.zip
 
 # Firebase
 .firebase/
