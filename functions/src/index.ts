@@ -8,6 +8,9 @@ admin.initializeApp();
 
 // Import API routers
 import accountRouter from "./api/account";
+import performerRouter from "./api/performer";
+import venueRouter from "./api/venue";
+import bookingRouter from "./api/booking";
 
 // Create Express app
 const app = express();
@@ -28,12 +31,9 @@ app.get("/api/v1/health", (req, res) => {
 
 // Mount API routes
 app.use("/api/v1/account", accountRouter);
-
-// TODO: Add these routers in Phase 2+
-// app.use("/api/v1/performer", performerRouter);
-// app.use("/api/v1/venue", venueRouter);
-// app.use("/api/v1/booking", bookingRouter);
-// app.use("/api/v1/sync", syncRouter);
+app.use("/api/v1/performer", performerRouter);
+app.use("/api/v1/venue", venueRouter);
+app.use("/api/v1/booking", bookingRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -67,7 +67,7 @@ export const api = functions.https.onRequest(app);
 export const onAccountCreated = functions.firestore
   .document("accounts/{peanutId}")
   .onCreate(async (snapshot, context) => {
-    const account = snapshot.data();
+    const _account = snapshot.data();
     const peanutId = context.params.peanutId;
 
     console.log(`New Peanut Account created: ${peanutId}`);
@@ -109,7 +109,7 @@ export const onAccountUpdated = functions.firestore
 export const onBookingCreated = functions.firestore
   .document("bookings/{bookingId}")
   .onCreate(async (snapshot, context) => {
-    const booking = snapshot.data();
+    const _booking = snapshot.data();
     const bookingId = context.params.bookingId;
 
     console.log(`New booking created: ${bookingId}`);
