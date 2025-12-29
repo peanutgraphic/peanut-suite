@@ -14,6 +14,12 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
     protected string $rest_base = 'accounts';
 
     /**
+     * Rate limit settings
+     */
+    private const INVITE_RATE_LIMIT = 10; // Max invites per window
+    private const INVITE_RATE_WINDOW = 3600; // 1 hour in seconds
+
+    /**
      * Register routes
      */
     public function register_routes(): void {
@@ -226,6 +232,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'update_account', Peanut_Audit_Log_Service::RESOURCE_ACCOUNT, $account_id);
             return $this->error('Admin access required', 'forbidden', 403);
         }
 
@@ -292,7 +299,27 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $current_user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $current_user_id, 'admin')) {
+            // Log failed permission check
+            Peanut_Audit_Log_Service::log(
+                $account_id,
+                Peanut_Audit_Log_Service::ACTION_ACCESS_DENIED,
+                Peanut_Audit_Log_Service::RESOURCE_MEMBER,
+                null,
+                ['action' => 'add_member', 'reason' => 'insufficient_role']
+            );
             return $this->error('Admin access required', 'forbidden', 403);
+        }
+
+        // Rate limiting check
+        if (!$this->check_invite_rate_limit($account_id, $current_user_id)) {
+            Peanut_Audit_Log_Service::log(
+                $account_id,
+                Peanut_Audit_Log_Service::ACTION_RATE_LIMITED,
+                Peanut_Audit_Log_Service::RESOURCE_MEMBER,
+                null,
+                ['action' => 'add_member', 'limit' => self::INVITE_RATE_LIMIT]
+            );
+            return $this->error('Too many invitation attempts. Please try again later.', 'rate_limited', 429);
         }
 
         $email = sanitize_email($request->get_param('email'));
@@ -305,7 +332,8 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         $user = get_user_by('email', $email);
         if (!$user) {
-            return $this->error('User not found. They must have a WordPress account.', 'user_not_found', 404);
+            // Generic error message to prevent user enumeration
+            return $this->error('Unable to add member. Please verify the email address and try again.', 'add_failed', 400);
         }
 
         // Validate permissions if provided
@@ -323,8 +351,11 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         );
 
         if (!$result) {
-            return $this->error('Failed to add member. They may already be a member or the team is full.', 'add_failed');
+            return $this->error('Unable to add member. Please verify the email address and try again.', 'add_failed');
         }
+
+        // Increment rate limit counter on success
+        $this->increment_invite_counter($account_id, $current_user_id);
 
         Peanut_Audit_Log_Service::log(
             $account_id,
@@ -347,6 +378,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $current_user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $current_user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'update_member', Peanut_Audit_Log_Service::RESOURCE_MEMBER, $target_user_id);
             return $this->error('Admin access required', 'forbidden', 403);
         }
 
@@ -394,6 +426,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
                       $this->user_has_account_role($account_id, $current_user_id, 'admin');
 
         if (!$can_remove) {
+            $this->log_access_denied($account_id, 'remove_member', Peanut_Audit_Log_Service::RESOURCE_MEMBER, $target_user_id);
             return $this->error('Permission denied', 'forbidden', 403);
         }
 
@@ -423,6 +456,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $current_user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $current_user_id, 'owner')) {
+            $this->log_access_denied($account_id, 'transfer_ownership', Peanut_Audit_Log_Service::RESOURCE_ACCOUNT, $account_id);
             return $this->error('Only the owner can transfer ownership', 'forbidden', 403);
         }
 
@@ -456,6 +490,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'get_api_keys', Peanut_Audit_Log_Service::RESOURCE_API_KEY);
             return $this->error('Admin access required', 'forbidden', 403);
         }
 
@@ -473,6 +508,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'create_api_key', Peanut_Audit_Log_Service::RESOURCE_API_KEY);
             return $this->error('Admin access required', 'forbidden', 403);
         }
 
@@ -514,6 +550,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'revoke_api_key', Peanut_Audit_Log_Service::RESOURCE_API_KEY, $key_id);
             return $this->error('Admin access required', 'forbidden', 403);
         }
 
@@ -549,6 +586,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'regenerate_api_key', Peanut_Audit_Log_Service::RESOURCE_API_KEY, $key_id);
             return $this->error('Admin access required', 'forbidden', 403);
         }
 
@@ -594,6 +632,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'get_audit_logs', 'audit_log');
             return $this->error('Admin access required', 'forbidden', 403);
         }
 
@@ -627,6 +666,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'export_audit_logs', 'audit_log');
             return $this->error('Admin access required', 'forbidden', 403);
         }
 
@@ -732,5 +772,38 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         }
 
         return $sanitized;
+    }
+
+    /**
+     * Check if user is within invite rate limit
+     */
+    private function check_invite_rate_limit(int $account_id, int $user_id): bool {
+        $transient_key = "peanut_invite_limit_{$account_id}_{$user_id}";
+        $count = (int) get_transient($transient_key);
+
+        return $count < self::INVITE_RATE_LIMIT;
+    }
+
+    /**
+     * Increment invite counter for rate limiting
+     */
+    private function increment_invite_counter(int $account_id, int $user_id): void {
+        $transient_key = "peanut_invite_limit_{$account_id}_{$user_id}";
+        $count = (int) get_transient($transient_key);
+
+        set_transient($transient_key, $count + 1, self::INVITE_RATE_WINDOW);
+    }
+
+    /**
+     * Log access denied for sensitive operations
+     */
+    private function log_access_denied(int $account_id, string $action, string $resource_type, ?int $resource_id = null): void {
+        Peanut_Audit_Log_Service::log(
+            $account_id,
+            Peanut_Audit_Log_Service::ACTION_ACCESS_DENIED,
+            $resource_type,
+            $resource_id,
+            ['action' => $action, 'reason' => 'insufficient_permissions']
+        );
     }
 }

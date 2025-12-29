@@ -22,6 +22,8 @@ class Peanut_Audit_Log_Service {
     public const ACTION_INVITE = 'invite';
     public const ACTION_REVOKE = 'revoke';
     public const ACTION_EXPORT = 'export';
+    public const ACTION_ACCESS_DENIED = 'access_denied';
+    public const ACTION_RATE_LIMITED = 'rate_limited';
 
     /**
      * Resource types
@@ -197,6 +199,8 @@ class Peanut_Audit_Log_Service {
             self::ACTION_INVITE,
             self::ACTION_REVOKE,
             self::ACTION_EXPORT,
+            self::ACTION_ACCESS_DENIED,
+            self::ACTION_RATE_LIMITED,
         ];
     }
 
