@@ -136,6 +136,9 @@ class Peanut_License {
     private function remote_validate(string $key): array {
         $response = wp_remote_post(self::LICENSE_API . '/license/validate', [
             'timeout' => 15,
+            'headers' => [
+                'X-HTTP-Method-Override' => 'POST', // Bypass server firewall restrictions
+            ],
             'body' => [
                 'license_key' => $key,
                 'site_url' => home_url(),
@@ -302,6 +305,9 @@ class Peanut_License {
         if (!empty($key) && !$this->is_dev_license($key)) {
             wp_remote_post(self::LICENSE_API . '/license/deactivate', [
                 'timeout' => 10,
+                'headers' => [
+                    'X-HTTP-Method-Override' => 'POST', // Bypass server firewall restrictions
+                ],
                 'body' => [
                     'license_key' => $key,
                     'site_url' => home_url(),
