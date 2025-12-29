@@ -1,0 +1,158 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to get user's Peanut ID from their Firebase UID
+    function getPeanutId() {
+      return get(/databases/$(database)/documents/accounts_by_uid/$(request.auth.uid)).data.peanut_id;
+    }
+
+    // Helper to check if user owns a Peanut Account
+    function isAccountOwner(peanutId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/accounts_by_uid/$(request.auth.uid))
+        && get(/databases/$(database)/documents/accounts_by_uid/$(request.auth.uid)).data.peanut_id == peanutId;
+    }
+
+    // ============================================
+    // PEANUT ACCOUNTS
+    // ============================================
+
+    // Main accounts collection - only owner can read/write
+    match /accounts/{peanutId} {
+      allow read: if isAccountOwner(peanutId);
+      allow create: if request.auth != null
+        && request.resource.data.firebase_uid == request.auth.uid;
+      allow update: if isAccountOwner(peanutId)
+        && request.resource.data.firebase_uid == resource.data.firebase_uid; // Can't change firebase_uid
+      allow delete: if false; // Accounts can only be deleted by admin
+    }
+
+    // Lookup table: Firebase UID -> Peanut ID
+    match /accounts_by_uid/{firebaseUid} {
+      allow read: if request.auth != null && request.auth.uid == firebaseUid;
+      allow create: if request.auth != null && request.auth.uid == firebaseUid;
+      allow update, delete: if false; // Only via Cloud Functions
+    }
+
+    // App-specific profile data (nested under accounts)
+    match /accounts/{peanutId}/notebook/{document=**} {
+      allow read, write: if isAccountOwner(peanutId);
+    }
+
+    match /accounts/{peanutId}/booker/{document=**} {
+      allow read, write: if isAccountOwner(peanutId);
+    }
+
+    match /accounts/{peanutId}/festival/{document=**} {
+      allow read, write: if isAccountOwner(peanutId);
+    }
+
+    // ============================================
+    // PERFORMERS (Public profiles)
+    // ============================================
+
+    match /performers/{performerId} {
+      // Anyone can read public performer profiles
+      allow read: if true;
+
+      // Only the owner can create/update their profile
+      allow create: if request.auth != null
+        && request.resource.data.peanut_id == getPeanutId();
+      allow update: if request.auth != null
+        && resource.data.peanut_id == getPeanutId();
+      allow delete: if false; // Only via Cloud Functions
+    }
+
+    // ============================================
+    // VENUES (Shared database)
+    // ============================================
+
+    match /venues/{venueId} {
+      // Anyone can read venues
+      allow read: if true;
+
+      // Authenticated users can create venues
+      allow create: if request.auth != null
+        && request.resource.data.created_by_peanut_id == getPeanutId();
+
+      // Authenticated users can update venues (merge strategy)
+      allow update: if request.auth != null;
+
+      allow delete: if false; // Only admins can delete
+    }
+
+    // ============================================
+    // OPEN MICS (Community data)
+    // ============================================
+
+    match /open_mics/{openMicId} {
+      // Anyone can read active open mics
+      allow read: if true;
+
+      // Authenticated users can create
+      allow create: if request.auth != null
+        && request.resource.data.submitted_by_peanut_id == getPeanutId();
+
+      // Owner or admin can update
+      allow update: if request.auth != null
+        && (resource.data.submitted_by_peanut_id == getPeanutId()
+            || resource.data.is_verified == false);
+
+      allow delete: if false;
+    }
+
+    // Open mic reports (moderation)
+    match /open_mic_reports/{reportId} {
+      allow create: if request.auth != null;
+      allow read: if false; // Only admins
+      allow update, delete: if false;
+    }
+
+    // ============================================
+    // BOOKINGS (Cross-app sync)
+    // ============================================
+
+    match /bookings/{bookingId} {
+      // Only involved parties can read
+      allow read: if request.auth != null
+        && (resource.data.performer_peanut_id == getPeanutId()
+            || resource.data.customer_peanut_id == getPeanutId());
+
+      // Only Cloud Functions can write bookings
+      allow create, update, delete: if false;
+    }
+
+    // ============================================
+    // FESTIVALS
+    // ============================================
+
+    match /festivals/{festivalId} {
+      // Public read for published festivals
+      allow read: if resource.data.is_published == true || isAccountOwner(resource.data.organizer_peanut_id);
+
+      // Only organizer can create/update
+      allow create: if request.auth != null
+        && request.resource.data.organizer_peanut_id == getPeanutId();
+      allow update: if request.auth != null
+        && resource.data.organizer_peanut_id == getPeanutId();
+      allow delete: if false;
+    }
+
+    match /festivals/{festivalId}/shows/{showId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/festivals/$(festivalId)).data.organizer_peanut_id == getPeanutId();
+    }
+
+    // ============================================
+    // STORAGE REFERENCES (for avatar URLs, etc.)
+    // ============================================
+
+    match /avatars/{peanutId} {
+      allow read: if true;
+      allow write: if isAccountOwner(peanutId);
+    }
+
+  }
+}
