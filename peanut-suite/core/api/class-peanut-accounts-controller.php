@@ -322,6 +322,9 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
             return $this->error('Too many invitation attempts. Please try again later.', 'rate_limited', 429);
         }
 
+        // Increment rate limit counter on every attempt (prevents email enumeration)
+        $this->increment_invite_counter($account_id, $current_user_id);
+
         $email = sanitize_email($request->get_param('email'));
         $role = sanitize_key($request->get_param('role'));
         $permissions = $request->get_param('permissions');
@@ -353,9 +356,6 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         if (!$result) {
             return $this->error('Unable to add member. Please verify the email address and try again.', 'add_failed');
         }
-
-        // Increment rate limit counter on success
-        $this->increment_invite_counter($account_id, $current_user_id);
 
         Peanut_Audit_Log_Service::log(
             $account_id,
