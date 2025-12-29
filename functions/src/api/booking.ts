@@ -102,7 +102,7 @@ router.get(
         error_code: "BOOKING_500",
       } as BookingResponse);
     }
-  }
+  },
 );
 
 /**
@@ -160,7 +160,7 @@ router.get(
         error_code: "BOOKING_500",
       } as BookingResponse);
     }
-  }
+  },
 );
 
 /**
@@ -406,7 +406,7 @@ router.post(
         error_code: "BOOKING_500",
       } as BookingResponse);
     }
-  }
+  },
 );
 
 export default router;

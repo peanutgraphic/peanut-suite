@@ -22,7 +22,7 @@ declare global {
 export const authenticateToken = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
 
@@ -61,7 +61,7 @@ export const authenticateToken = async (
 export const loadPeanutAccount = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   if (!req.user?.uid) {
     res.status(401).json({
@@ -130,7 +130,7 @@ export const loadPeanutAccount = async (
 export const requirePeanutAccount = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   if (!req.user?.peanutId || !req.user?.account) {
     res.status(404).json({
@@ -156,7 +156,7 @@ export const isAccountOwner = (req: Request, peanutId: string): boolean => {
 export const verifyWebhookSignature = (
   payload: string,
   signature: string,
-  secret: string
+  secret: string,
 ): boolean => {
   const crypto = require("crypto");
   const expectedSignature = crypto
@@ -167,7 +167,7 @@ export const verifyWebhookSignature = (
   try {
     return crypto.timingSafeEqual(
       Buffer.from(signature),
-      Buffer.from(expectedSignature)
+      Buffer.from(expectedSignature),
     );
   } catch {
     return false;

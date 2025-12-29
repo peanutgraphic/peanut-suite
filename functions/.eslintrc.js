@@ -34,6 +34,9 @@ module.exports = {
     "max-len": ["error", { "code": 120 }],
     "require-jsdoc": 0,
     "valid-jsdoc": 0,
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "new-cap": 0,
+    "@typescript-eslint/no-namespace": 0,
+    "@typescript-eslint/no-var-requires": 0,
   },
 };

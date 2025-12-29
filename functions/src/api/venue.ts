@@ -80,7 +80,7 @@ router.get("/search", async (req, res) => {
 
     // For geo search, we'd need a geo-index library
     // For now, do a simple name/city search
-    let venuesRef: admin.firestore.Query = db.collection("venues")
+    const venuesRef: admin.firestore.Query = db.collection("venues")
       .where("is_active", "==", true)
       .limit(50);
 
@@ -108,7 +108,7 @@ router.get("/search", async (req, res) => {
             query.lat,
             query.lng,
             venue.latitude,
-            venue.longitude
+            venue.longitude,
           );
           if (distance > query.radius_miles) {
             return;
@@ -262,7 +262,7 @@ router.post(
         error_code: "VENUE_500",
       } as VenueResponse);
     }
-  }
+  },
 );
 
 /**
@@ -329,7 +329,7 @@ router.patch(
         error_code: "VENUE_500",
       } as VenueResponse);
     }
-  }
+  },
 );
 
 // Helper: Haversine distance calculation
@@ -337,7 +337,7 @@ function haversineDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   const R = 3959; // Earth's radius in miles
 

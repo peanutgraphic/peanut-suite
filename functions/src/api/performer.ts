@@ -260,7 +260,7 @@ router.post(
         error_code: "PERFORMER_500",
       } as PerformerResponse);
     }
-  }
+  },
 );
 
 /**
@@ -337,7 +337,7 @@ router.patch(
         error_code: "PERFORMER_500",
       } as PerformerResponse);
     }
-  }
+  },
 );
 
 /**
@@ -401,7 +401,7 @@ router.post(
         error_code: "PERFORMER_500",
       } as PerformerResponse);
     }
-  }
+  },
 );
 
 export default router;

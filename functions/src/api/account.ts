@@ -101,7 +101,7 @@ router.post(
         error_code: "PEANUT_006",
       } as AccountResponse);
     }
-  }
+  },
 );
 
 /**
@@ -146,7 +146,7 @@ router.get(
         error_code: "PEANUT_001",
       } as AccountResponse);
     }
-  }
+  },
 );
 
 /**
@@ -209,7 +209,7 @@ router.patch(
         error_code: "PEANUT_006",
       } as AccountResponse);
     }
-  }
+  },
 );
 
 /**
@@ -272,7 +272,7 @@ router.post(
         error_code: "PEANUT_002",
       } as AccountResponse);
     }
-  }
+  },
 );
 
 /**
@@ -332,7 +332,7 @@ router.post(
         error_code: "PEANUT_002",
       } as AccountResponse);
     }
-  }
+  },
 );
 
 /**
@@ -377,7 +377,7 @@ router.delete(
         error_code: "PEANUT_006",
       } as AccountResponse);
     }
-  }
+  },
 );
 
 export default router;
