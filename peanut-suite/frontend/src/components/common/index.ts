@@ -20,3 +20,4 @@ export { default as SampleDataBanner } from './SampleDataBanner';
 export { default as CommandPalette } from './CommandPalette';
 export { default as ToastProvider, useToast } from './Toast';
 export { default as BulkActionsBar, bulkActions } from './BulkActionsBar';
+export { default as PageGuide, PageGuideButton, useAutoShowGuide } from './PageGuide';

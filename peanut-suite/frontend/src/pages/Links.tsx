@@ -211,7 +211,7 @@ export default function Links() {
   const pageHelpContent = { howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent}>
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent} pageGuideId="links">
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">

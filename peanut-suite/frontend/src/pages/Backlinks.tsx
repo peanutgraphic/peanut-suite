@@ -25,9 +25,10 @@ import {
   Badge,
   useToast,
   ConfirmModal,
+  SampleDataBanner,
 } from '../components/common';
 import { backlinksApi } from '../api/endpoints';
-import { pageDescriptions } from '../constants';
+import { pageDescriptions, sampleBacklinks, sampleBacklinksStats } from '../constants';
 
 interface Backlink {
   id: number;
@@ -51,6 +52,7 @@ export default function Backlinks() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ['backlinks', page, search, statusFilter],
@@ -61,6 +63,12 @@ export default function Backlinks() {
       status: statusFilter as 'active' | 'lost' | 'broken' | 'pending' | undefined,
     }),
   });
+
+  // Determine if we should show sample data
+  const realBacklinks = data?.backlinks || [];
+  const hasNoRealData = !isLoading && realBacklinks.length === 0;
+  const displaySampleData = hasNoRealData && showSampleData;
+  const backlinks = displaySampleData ? sampleBacklinks as Backlink[] : realBacklinks;
 
   const discoverMutation = useMutation({
     mutationFn: backlinksApi.triggerDiscovery,
@@ -192,19 +200,21 @@ export default function Backlinks() {
           >
             <ExternalLink className="w-4 h-4" />
           </a>
-          <button
-            onClick={() => setDeleteId(info.row.original.id)}
-            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Remove"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {!displaySampleData && (
+            <button
+              onClick={() => setDeleteId(info.row.original.id)}
+              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+              title="Remove"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       ),
     }),
   ];
 
-  const stats = data?.stats || {
+  const realStats = data?.stats || {
     total: 0,
     active: 0,
     lost: 0,
@@ -215,6 +225,7 @@ export default function Backlinks() {
     new_30_days: 0,
     lost_7_days: 0,
   };
+  const stats = displaySampleData ? sampleBacklinksStats : realStats;
 
   const pageInfo = pageDescriptions.backlinks || {
     title: 'Backlinks',
@@ -225,7 +236,12 @@ export default function Backlinks() {
   };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }}>
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }} pageGuideId="backlinks">
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -335,7 +351,7 @@ export default function Backlinks() {
       {/* Table */}
       <Card>
         <Table
-          data={data?.backlinks || []}
+          data={backlinks}
           columns={columns}
           loading={isLoading}
         />

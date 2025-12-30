@@ -12,9 +12,9 @@ import {
   PieChart,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Table, Pagination, Badge, Select } from '../components/common';
+import { Card, Button, Table, Pagination, Badge, Select, SampleDataBanner } from '../components/common';
 import { woocommerceApi } from '../api/endpoints';
-import { pageDescriptions } from '../constants';
+import { pageDescriptions, sampleWooCommerceStats, sampleWooCommerceReport, sampleWooCommerceOrders } from '../constants';
 
 interface AttributedOrder {
   id: number;
@@ -33,6 +33,7 @@ export default function WooCommerce() {
   const [period, setPeriod] = useState(30);
   const [groupBy, setGroupBy] = useState<'source' | 'medium' | 'campaign'>('source');
   const [page, setPage] = useState(1);
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data: revenueStats, isLoading: revenueLoading } = useQuery({
     queryKey: ['woocommerce-revenue', period],
@@ -48,6 +49,12 @@ export default function WooCommerce() {
     queryKey: ['woocommerce-orders', page],
     queryFn: () => woocommerceApi.getAttributedOrders({ page, per_page: 10 }),
   });
+
+  // Determine if we should show sample data
+  const hasNoRealData = !revenueLoading && !reportLoading && !ordersLoading &&
+    (!revenueStats?.total_orders || revenueStats.total_orders === 0) &&
+    (!ordersData?.orders || ordersData.orders.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -97,7 +104,7 @@ export default function WooCommerce() {
     }),
   ];
 
-  const stats = revenueStats || {
+  const realStats = revenueStats || {
     total_revenue: 0,
     total_orders: 0,
     attributed_orders: 0,
@@ -106,6 +113,9 @@ export default function WooCommerce() {
     by_campaign: [],
     daily: [],
   };
+  const stats = displaySampleData ? sampleWooCommerceStats : realStats;
+  const displayReport = displaySampleData ? sampleWooCommerceReport : (attributionReport?.report || []);
+  const displayOrders = displaySampleData ? sampleWooCommerceOrders as AttributedOrder[] : (ordersData?.orders || []);
 
   const pageInfo = pageDescriptions.woocommerce || {
     title: 'Revenue Attribution',
@@ -116,7 +126,12 @@ export default function WooCommerce() {
   };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }}>
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }} pageGuideId="woocommerce">
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -302,7 +317,7 @@ export default function WooCommerce() {
 
         {reportLoading ? (
           <div className="animate-pulse h-48 bg-slate-100 rounded-lg" />
-        ) : !attributionReport?.report?.length ? (
+        ) : displayReport.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <Users className="w-12 h-12 mx-auto mb-3 text-slate-300" />
             <p>No attribution data for this period</p>
@@ -326,7 +341,7 @@ export default function WooCommerce() {
                 </tr>
               </thead>
               <tbody>
-                {attributionReport.report.map((row) => (
+                {displayReport.map((row) => (
                   <tr key={row.channel} className="border-b border-slate-100">
                     <td className="py-3 px-4">
                       <span className="font-medium text-slate-900">{row.channel || 'Direct'}</span>
@@ -351,11 +366,11 @@ export default function WooCommerce() {
       <Card>
         <h3 className="font-semibold text-slate-900 mb-4">Recent Attributed Orders</h3>
         <Table
-          data={ordersData?.orders || []}
+          data={displayOrders}
           columns={columns}
           loading={ordersLoading}
         />
-        {ordersData && ordersData.total_pages > 1 && (
+        {!displaySampleData && ordersData && ordersData.total_pages > 1 && (
           <Pagination
             page={page}
             totalPages={ordersData.total_pages}

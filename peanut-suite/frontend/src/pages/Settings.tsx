@@ -14,6 +14,7 @@ import {
 import { Layout } from '../components/layout';
 import { Card, Button, Input, Badge, InfoTooltip } from '../components/common';
 import { useTourStore } from '../store';
+import { usePageGuideStore } from '../store/usePageGuideStore';
 import { helpContent } from '../constants';
 
 type Tab = 'general' | 'license' | 'integrations' | 'notifications' | 'advanced';
@@ -30,7 +31,7 @@ export default function Settings() {
   ];
 
   return (
-    <Layout title="Settings" description="Configure your Peanut Suite">
+    <Layout title="Settings" description="Configure your Peanut Suite" pageGuideId="settings">
       <div className="flex gap-6">
         {/* Sidebar */}
         <div className="w-56 flex-shrink-0">
@@ -354,10 +355,15 @@ function NotificationToggle({
 
 function AdvancedSettings() {
   const { resetTour, startTour, hasCompletedTour } = useTourStore();
+  const { dismissedGuides, resetAllGuides } = usePageGuideStore();
 
   const handleRestartTour = () => {
     resetTour();
     startTour();
+  };
+
+  const handleResetGuides = () => {
+    resetAllGuides();
   };
 
   return (
@@ -365,23 +371,44 @@ function AdvancedSettings() {
       {/* Onboarding */}
       <Card>
         <h3 className="text-lg font-semibold text-slate-900 mb-6">Onboarding</h3>
-        <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
-          <div>
-            <p className="font-medium text-slate-900">Feature Tour</p>
-            <p className="text-sm text-slate-500">
-              {hasCompletedTour
-                ? 'You\'ve completed the tour. Restart anytime to refresh your memory.'
-                : 'Take a guided tour of all Peanut Suite features.'}
-            </p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+            <div>
+              <p className="font-medium text-slate-900">Feature Tour</p>
+              <p className="text-sm text-slate-500">
+                {hasCompletedTour
+                  ? 'You\'ve completed the tour. Restart anytime to refresh your memory.'
+                  : 'Take a guided tour of all Peanut Suite features.'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<RotateCcw className="w-4 h-4" />}
+              onClick={handleRestartTour}
+            >
+              {hasCompletedTour ? 'Restart Tour' : 'Start Tour'}
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<RotateCcw className="w-4 h-4" />}
-            onClick={handleRestartTour}
-          >
-            {hasCompletedTour ? 'Restart Tour' : 'Start Tour'}
-          </Button>
+          <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+            <div>
+              <p className="font-medium text-slate-900">Page Guides</p>
+              <p className="text-sm text-slate-500">
+                {dismissedGuides.length > 0
+                  ? `You've dismissed ${dismissedGuides.length} page guide${dismissedGuides.length > 1 ? 's' : ''}. Reset to see them again.`
+                  : 'Step-by-step guides appear on each page to help you get started.'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<RotateCcw className="w-4 h-4" />}
+              onClick={handleResetGuides}
+              disabled={dismissedGuides.length === 0}
+            >
+              Reset Guides
+            </Button>
+          </div>
         </div>
       </Card>
 

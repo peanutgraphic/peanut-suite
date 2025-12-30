@@ -196,7 +196,7 @@ export default function Visitors() {
   const pageHelpContent = { howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent}>
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent} pageGuideId="visitors">
       {/* Sample Data Banner */}
       {displaySampleData && (
         <SampleDataBanner onDismiss={() => setShowSampleData(false)} />

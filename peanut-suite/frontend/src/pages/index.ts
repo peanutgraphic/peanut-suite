@@ -8,3 +8,4 @@ export { default as PopupBuilder } from './PopupBuilder';
 export { default as Monitor } from './Monitor';
 export { default as SiteDetail } from './SiteDetail';
 export { default as Settings } from './Settings';
+export { default as Team } from './Team';

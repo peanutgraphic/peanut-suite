@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, createContext, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Shield,
@@ -18,14 +18,39 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Badge, useToast } from '../components/common';
+import { Card, Button, Input, Badge, useToast, SampleDataBanner } from '../components/common';
 import { securityApi } from '../api/endpoints';
-import { pageDescriptions } from '../constants';
+import { pageDescriptions, sampleSecuritySettings, sampleLoginAttempts, sampleLockouts } from '../constants';
+
+// Context to share sample data state across components
+const SampleDataContext = createContext<{ showSampleData: boolean; displaySampleData: boolean; setShowSampleData: (v: boolean) => void }>({
+  showSampleData: true,
+  displaySampleData: false,
+  setShowSampleData: () => {},
+});
 
 type Tab = 'login-protection' | 'attempts' | 'ip-management' | '2fa' | 'notifications';
 
 export default function Security() {
   const [activeTab, setActiveTab] = useState<Tab>('login-protection');
+  const [showSampleData, setShowSampleData] = useState(true);
+
+  // Check if we have real data by querying settings
+  const { data: settings, isLoading: settingsLoading } = useQuery({
+    queryKey: ['security-settings'],
+    queryFn: securityApi.getSettings,
+  });
+
+  const { data: attempts, isLoading: attemptsLoading } = useQuery({
+    queryKey: ['login-attempts'],
+    queryFn: securityApi.getLoginAttempts,
+  });
+
+  // Determine if we should show sample data
+  const hasNoRealData = !settingsLoading && !attemptsLoading &&
+    (!settings || (!settings.hide_login_enabled && !settings.limit_login_enabled && !settings['2fa_enabled'])) &&
+    (!attempts || attempts.length === 0);
+  const displaySampleData = hasNoRealData && showSampleData;
 
   const tabs = [
     { id: 'login-protection' as Tab, label: 'Login Protection', icon: Lock },
@@ -44,7 +69,13 @@ export default function Security() {
   };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }}>
+    <SampleDataContext.Provider value={{ showSampleData, displaySampleData, setShowSampleData }}>
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }} pageGuideId="security">
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       <div className="flex gap-6">
         {/* Sidebar */}
         <div className="w-56 flex-shrink-0">
@@ -76,6 +107,7 @@ export default function Security() {
         </div>
       </div>
     </Layout>
+    </SampleDataContext.Provider>
   );
 }
 
@@ -83,11 +115,15 @@ function LoginProtection() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [showSlug, setShowSlug] = useState(false);
+  const { displaySampleData } = useContext(SampleDataContext);
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['security-settings'],
     queryFn: securityApi.getSettings,
   });
+
+  // Use sample data if needed
+  const effectiveSettings = displaySampleData ? sampleSecuritySettings : settings;
 
   const [formData, setFormData] = useState({
     hide_login_enabled: false,
@@ -101,15 +137,15 @@ function LoginProtection() {
 
   // Update form when settings load
   useState(() => {
-    if (settings) {
+    if (effectiveSettings) {
       setFormData({
-        hide_login_enabled: settings.hide_login_enabled,
-        login_slug: settings.login_slug,
-        redirect_slug: settings.redirect_slug,
-        limit_login_enabled: settings.limit_login_enabled,
-        max_attempts: settings.max_attempts,
-        lockout_duration: settings.lockout_duration,
-        lockout_increment: settings.lockout_increment,
+        hide_login_enabled: effectiveSettings.hide_login_enabled,
+        login_slug: effectiveSettings.login_slug,
+        redirect_slug: effectiveSettings.redirect_slug,
+        limit_login_enabled: effectiveSettings.limit_login_enabled,
+        max_attempts: effectiveSettings.max_attempts,
+        lockout_duration: effectiveSettings.lockout_duration,
+        lockout_increment: effectiveSettings.lockout_increment,
       });
     }
   });
@@ -277,6 +313,7 @@ function LoginProtection() {
 function LoginAttempts() {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { displaySampleData } = useContext(SampleDataContext);
 
   const { data: attempts, isLoading: attemptsLoading } = useQuery({
     queryKey: ['login-attempts'],
@@ -287,6 +324,10 @@ function LoginAttempts() {
     queryKey: ['lockouts'],
     queryFn: securityApi.getLockouts,
   });
+
+  // Use sample data if needed
+  const displayAttempts = displaySampleData ? sampleLoginAttempts : (attempts || []);
+  const displayLockouts = displaySampleData ? sampleLockouts : (lockouts || []);
 
   const unlockMutation = useMutation({
     mutationFn: securityApi.unlockIp,
@@ -317,14 +358,14 @@ function LoginAttempts() {
 
         {lockoutsLoading ? (
           <div className="animate-pulse h-24 bg-slate-100 rounded-lg" />
-        ) : !lockouts?.length ? (
+        ) : displayLockouts.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <Shield className="w-12 h-12 mx-auto mb-3 text-slate-300" />
             <p>No active lockouts</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {lockouts.map((lockout) => (
+            {displayLockouts.map((lockout) => (
               <div
                 key={lockout.id}
                 className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg"
@@ -336,15 +377,17 @@ function LoginAttempts() {
                     {new Date(lockout.lockout_until).toLocaleString()}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<Unlock className="w-4 h-4" />}
-                  onClick={() => unlockMutation.mutate(lockout.ip_address)}
-                  loading={unlockMutation.isPending}
-                >
-                  Unlock
-                </Button>
+                {!displaySampleData && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Unlock className="w-4 h-4" />}
+                    onClick={() => unlockMutation.mutate(lockout.ip_address)}
+                    loading={unlockMutation.isPending}
+                  >
+                    Unlock
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -357,7 +400,7 @@ function LoginAttempts() {
 
         {attemptsLoading ? (
           <div className="animate-pulse h-48 bg-slate-100 rounded-lg" />
-        ) : !attempts?.length ? (
+        ) : displayAttempts.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <UserX className="w-12 h-12 mx-auto mb-3 text-slate-300" />
             <p>No login attempts recorded</p>
@@ -374,7 +417,7 @@ function LoginAttempts() {
                 </tr>
               </thead>
               <tbody>
-                {attempts.map((attempt) => (
+                {displayAttempts.map((attempt) => (
                   <tr key={attempt.id} className="border-b border-slate-100">
                     <td className="py-3 px-4 text-sm text-slate-600">
                       {new Date(attempt.attempt_time).toLocaleString()}

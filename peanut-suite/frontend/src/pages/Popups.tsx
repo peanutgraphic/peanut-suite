@@ -195,7 +195,7 @@ export default function Popups() {
   const pageHelpContent = { howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent}>
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={pageHelpContent} pageGuideId="popups">
       {/* Header Actions */}
       <div className="flex items-center gap-4 mb-6">
         <div className="flex items-center gap-4 flex-1">

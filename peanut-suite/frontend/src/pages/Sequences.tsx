@@ -12,9 +12,9 @@ import {
   Edit2,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Badge, Modal, ConfirmModal, useToast } from '../components/common';
+import { Card, Button, Input, Badge, Modal, ConfirmModal, useToast, SampleDataBanner } from '../components/common';
 import { sequencesApi } from '../api/endpoints';
-import { pageDescriptions } from '../constants';
+import { pageDescriptions, sampleSequences, sampleSequenceDetail, sampleSequenceSubscribers } from '../constants';
 
 interface Sequence {
   id: number;
@@ -45,11 +45,18 @@ export default function Sequences() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedSequence, setSelectedSequence] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ['sequences'],
     queryFn: sequencesApi.getAll,
   });
+
+  // Determine if we should show sample data
+  const realSequences = data?.sequences || [];
+  const hasNoRealData = !isLoading && realSequences.length === 0;
+  const displaySampleData = hasNoRealData && showSampleData;
+  const displaySequences = displaySampleData ? sampleSequences as Sequence[] : realSequences;
 
   const [newSequence, setNewSequence] = useState({
     name: '',
@@ -131,7 +138,12 @@ export default function Sequences() {
   };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }}>
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }} pageGuideId="sequences">
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       <div className="flex gap-6">
         {/* Sequences List */}
         <div className="w-80 flex-shrink-0">
@@ -152,7 +164,7 @@ export default function Sequences() {
                     ))}
                   </div>
                 </div>
-              ) : !data?.sequences?.length ? (
+              ) : displaySequences.length === 0 ? (
                 <div className="p-8 text-center text-slate-500">
                   <Mail className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                   <p>No sequences yet</p>
@@ -166,7 +178,7 @@ export default function Sequences() {
                   </Button>
                 </div>
               ) : (
-                data.sequences.map((sequence) => (
+                displaySequences.map((sequence) => (
                   <button
                     key={sequence.id}
                     onClick={() => setSelectedSequence(sequence.id)}
@@ -201,9 +213,10 @@ export default function Sequences() {
           {selectedSequence ? (
             <SequenceDetail
               sequenceId={selectedSequence}
-              onDelete={() => setDeleteId(selectedSequence)}
+              displaySampleData={displaySampleData}
+              onDelete={() => !displaySampleData && setDeleteId(selectedSequence)}
               onStatusChange={(status) =>
-                updateStatusMutation.mutate({ id: selectedSequence, status })
+                !displaySampleData && updateStatusMutation.mutate({ id: selectedSequence, status })
               }
             />
           ) : (
@@ -292,10 +305,12 @@ export default function Sequences() {
 
 function SequenceDetail({
   sequenceId,
+  displaySampleData = false,
   onDelete,
   onStatusChange,
 }: {
   sequenceId: number;
+  displaySampleData?: boolean;
   onDelete: () => void;
   onStatusChange: (status: string) => void;
 }) {
@@ -311,15 +326,21 @@ function SequenceDetail({
   });
   const [enrollEmail, setEnrollEmail] = useState('');
 
-  const { data: sequence, isLoading } = useQuery({
+  const { data: realSequence, isLoading } = useQuery({
     queryKey: ['sequence', sequenceId],
     queryFn: () => sequencesApi.getById(sequenceId),
+    enabled: !displaySampleData,
   });
 
-  const { data: subscribers } = useQuery({
+  const { data: realSubscribers } = useQuery({
     queryKey: ['sequence-subscribers', sequenceId],
     queryFn: () => sequencesApi.getSubscribers(sequenceId),
+    enabled: !displaySampleData,
   });
+
+  // Use sample data if needed
+  const sequence = displaySampleData ? sampleSequenceDetail : realSequence;
+  const subscribers = displaySampleData ? { subscribers: sampleSequenceSubscribers } : realSubscribers;
 
   const addEmailMutation = useMutation({
     mutationFn: (email: typeof newEmail) => sequencesApi.addEmail(sequenceId, email),
@@ -456,12 +477,14 @@ function SequenceDetail({
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={() => deleteEmailMutation.mutate(email.id)}
-                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {!displaySampleData && (
+                  <button
+                    onClick={() => deleteEmailMutation.mutate(email.id)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             ))}
           </div>

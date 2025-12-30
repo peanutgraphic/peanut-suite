@@ -14,9 +14,9 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Badge, Modal, ConfirmModal, useToast } from '../components/common';
+import { Card, Button, Input, Badge, Modal, ConfirmModal, useToast, SampleDataBanner } from '../components/common';
 import { seoApi } from '../api/endpoints';
-import { pageDescriptions } from '../constants';
+import { pageDescriptions, sampleKeywords } from '../constants';
 
 interface Keyword {
   id: number;
@@ -37,11 +37,18 @@ export default function Keywords() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ['keywords'],
     queryFn: seoApi.getKeywords,
   });
+
+  // Determine if we should show sample data
+  const realKeywords = data?.keywords || [];
+  const hasNoRealData = !isLoading && realKeywords.length === 0;
+  const displaySampleData = hasNoRealData && showSampleData;
+  const keywords = displaySampleData ? sampleKeywords as Keyword[] : realKeywords;
 
   const [newKeyword, setNewKeyword] = useState({
     keyword: '',
@@ -127,7 +134,6 @@ export default function Keywords() {
     );
   };
 
-  const keywords = data?.keywords || [];
   const rankedKeywords = keywords.filter((k) => k.current_position !== null);
   const avgPosition = rankedKeywords.length
     ? Math.round(rankedKeywords.reduce((sum, k) => sum + (k.current_position || 0), 0) / rankedKeywords.length)
@@ -145,7 +151,12 @@ export default function Keywords() {
   };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }}>
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={{ howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases }} pageGuideId="keywords">
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -234,7 +245,7 @@ export default function Keywords() {
               <div key={i} className="h-12 bg-slate-100 rounded-lg" />
             ))}
           </div>
-        ) : !keywords.length ? (
+        ) : keywords.length === 0 ? (
           <div className="text-center py-12 text-slate-500">
             <Search className="w-16 h-16 mx-auto mb-4 text-slate-300" />
             <p className="text-lg font-medium">No keywords tracked yet</p>
@@ -290,15 +301,17 @@ export default function Keywords() {
                         : 'Never'}
                     </td>
                     <td className="py-3 px-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteId(keyword.id);
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!displaySampleData && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteId(keyword.id);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

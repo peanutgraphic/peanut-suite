@@ -217,7 +217,7 @@ export default function Contacts() {
   const helpContent2 = { howTo: pageInfo.howTo, tips: pageInfo.tips, useCases: pageInfo.useCases };
 
   return (
-    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={helpContent2}>
+    <Layout title={pageInfo.title} description={pageInfo.description} helpContent={helpContent2} pageGuideId="contacts">
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">

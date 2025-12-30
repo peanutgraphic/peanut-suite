@@ -609,3 +609,64 @@ export interface AnalyticsComparisonMetric {
   change_percent: number;
   trend: 'up' | 'down';
 }
+
+// Account & Team Types
+export type AccountRole = 'owner' | 'admin' | 'member' | 'viewer';
+
+export interface FeaturePermission {
+  access: boolean;
+}
+
+export interface FeaturePermissions {
+  utm?: FeaturePermission;
+  links?: FeaturePermission;
+  contacts?: FeaturePermission;
+  webhooks?: FeaturePermission;
+  visitors?: FeaturePermission;
+  attribution?: FeaturePermission;
+  analytics?: FeaturePermission;
+  popups?: FeaturePermission;
+  monitor?: FeaturePermission;
+}
+
+export interface Account {
+  id: number;
+  name: string;
+  slug: string;
+  status: 'active' | 'suspended';
+  tier: 'free' | 'pro' | 'agency';
+  max_users: number;
+  owner_user_id: number;
+  role: AccountRole;
+  settings: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AccountMember {
+  user_id: number;
+  user_login: string;
+  user_email: string;
+  display_name: string;
+  role: AccountRole;
+  feature_permissions: FeaturePermissions | null;
+  invited_at: string | null;
+  accepted_at: string | null;
+  created_at: string;
+}
+
+export interface AccountMemberFormData {
+  email: string;
+  role: AccountRole;
+  feature_permissions?: FeaturePermissions;
+}
+
+export interface UTMAccess {
+  id: number;
+  utm_id: number;
+  user_id: number;
+  account_id: number;
+  access_level: 'view' | 'edit' | 'full';
+  assigned_by: number;
+  assigned_at: string;
+}

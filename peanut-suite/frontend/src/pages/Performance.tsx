@@ -17,9 +17,9 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Badge, Select } from '../components/common';
+import { Card, Button, Input, Badge, Select, SampleDataBanner } from '../components/common';
 import { performanceApi } from '../api/endpoints';
-import { pageDescriptions } from '../constants';
+import { pageDescriptions, samplePerformanceScores, samplePerformanceAverages, samplePerformanceSettings } from '../constants';
 
 interface ScoreCardProps {
   label: string;
@@ -134,6 +134,7 @@ export default function Performance() {
   const [newUrl, setNewUrl] = useState('');
   const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
   const [runningCheck, setRunningCheck] = useState<string | null>(null);
+  const [showSampleData, setShowSampleData] = useState(true);
 
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ['performance-settings'],
@@ -144,6 +145,11 @@ export default function Performance() {
     queryKey: ['performance-scores', strategy],
     queryFn: () => performanceApi.getScores(strategy),
   });
+
+  // Determine if we should show sample data
+  const realScores = scoresData?.scores || [];
+  const hasNoRealData = !scoresLoading && realScores.length === 0;
+  const displaySampleData = hasNoRealData && showSampleData;
 
   const updateSettingsMutation = useMutation({
     mutationFn: performanceApi.updateSettings,
@@ -196,8 +202,9 @@ export default function Performance() {
     howTo: { title: 'Getting Started', steps: [] },
   };
 
-  const scores = scoresData?.scores || [];
-  const averages = scoresData?.averages;
+  const scores = displaySampleData ? samplePerformanceScores : realScores;
+  const averages = displaySampleData ? samplePerformanceAverages : scoresData?.averages;
+  const displaySettings = displaySampleData ? samplePerformanceSettings : settings;
 
   return (
     <Layout
@@ -208,7 +215,13 @@ export default function Performance() {
         tips: pageInfo.tips,
         useCases: pageInfo.useCases,
       }}
+      pageGuideId="performance"
     >
+      {/* Sample Data Banner */}
+      {displaySampleData && (
+        <SampleDataBanner onDismiss={() => setShowSampleData(false)} />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -271,12 +284,13 @@ export default function Performance() {
                 </label>
                 <Input
                   type="password"
-                  placeholder={settings?.api_key_set ? 'API key is set' : 'Enter API key for higher rate limits'}
+                  placeholder={displaySettings?.api_key_set ? 'API key is set' : 'Enter API key for higher rate limits'}
                   onChange={(e) => {
-                    if (e.target.value && !e.target.value.startsWith('••••')) {
+                    if (!displaySampleData && e.target.value && !e.target.value.startsWith('••••')) {
                       updateSettingsMutation.mutate({ api_key: e.target.value });
                     }
                   }}
+                  disabled={displaySampleData}
                 />
                 <p className="text-xs text-slate-500 mt-1">
                   Without an API key, requests are limited. Get a free key from{' '}
@@ -297,15 +311,17 @@ export default function Performance() {
                     Auto-check Frequency
                   </label>
                   <Select
-                    value={settings?.auto_check_enabled ? settings.check_frequency : 'disabled'}
+                    value={displaySettings?.auto_check_enabled ? displaySettings.check_frequency : 'disabled'}
                     onChange={(e) => {
-                      if (e.target.value === 'disabled') {
-                        updateSettingsMutation.mutate({ auto_check_enabled: false });
-                      } else {
-                        updateSettingsMutation.mutate({
-                          auto_check_enabled: true,
-                          check_frequency: e.target.value,
-                        });
+                      if (!displaySampleData) {
+                        if (e.target.value === 'disabled') {
+                          updateSettingsMutation.mutate({ auto_check_enabled: false });
+                        } else {
+                          updateSettingsMutation.mutate({
+                            auto_check_enabled: true,
+                            check_frequency: e.target.value,
+                          });
+                        }
                       }
                     }}
                     options={[
@@ -313,6 +329,7 @@ export default function Performance() {
                       { value: 'daily', label: 'Daily' },
                       { value: 'weekly', label: 'Weekly' },
                     ]}
+                    disabled={displaySampleData}
                   />
                 </div>
 
@@ -325,11 +342,14 @@ export default function Performance() {
                       type="number"
                       min={0}
                       max={100}
-                      value={settings?.alert_threshold || 50}
-                      onChange={(e) =>
-                        updateSettingsMutation.mutate({ alert_threshold: parseInt(e.target.value) })
-                      }
+                      value={displaySettings?.alert_threshold || 50}
+                      onChange={(e) => {
+                        if (!displaySampleData) {
+                          updateSettingsMutation.mutate({ alert_threshold: parseInt(e.target.value) });
+                        }
+                      }}
                       className="w-20"
+                      disabled={displaySampleData}
                     />
                     <span className="text-sm text-slate-500 self-center">
                       Alert when score drops below this
@@ -344,32 +364,36 @@ export default function Performance() {
                   Tracked URLs
                 </label>
                 <div className="space-y-2 mb-3">
-                  {settings?.urls?.map((url, index) => (
+                  {displaySettings?.urls?.map((url, index) => (
                     <div
                       key={url}
                       className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-lg"
                     >
                       <span className="text-sm text-slate-700 truncate">{url}</span>
-                      <button
-                        onClick={() => deleteUrlMutation.mutate(index)}
-                        className="text-slate-400 hover:text-red-500"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!displaySampleData && (
+                        <button
+                          onClick={() => deleteUrlMutation.mutate(index)}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
-                <form onSubmit={handleAddUrl} className="flex gap-2">
-                  <Input
-                    placeholder="https://example.com/page"
-                    value={newUrl}
-                    onChange={(e) => setNewUrl(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button type="submit" icon={<Plus className="w-4 h-4" />}>
-                    Add
-                  </Button>
-                </form>
+                {!displaySampleData && (
+                  <form onSubmit={handleAddUrl} className="flex gap-2">
+                    <Input
+                      placeholder="https://example.com/page"
+                      value={newUrl}
+                      onChange={(e) => setNewUrl(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button type="submit" icon={<Plus className="w-4 h-4" />}>
+                      Add
+                    </Button>
+                  </form>
+                )}
               </div>
             </div>
           )}
