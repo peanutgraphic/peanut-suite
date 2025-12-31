@@ -48,19 +48,21 @@ export interface UTMFormData {
 // Link Types
 export interface Link {
   id: number;
-  original_url: string;
+  destination_url: string;
   slug: string;
   short_url: string;
   title?: string;
   utm_id?: number;
   click_count: number;
-  unique_clicks: number;
-  status: 'active' | 'inactive' | 'expired';
+  unique_clicks?: number;
+  status?: 'active' | 'inactive' | 'expired';
   is_active: boolean;
-  password_protected: boolean;
+  password_protected?: boolean;
+  has_password?: boolean;
   expires_at?: string;
+  qr_code_url?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface LinkClick {
@@ -77,7 +79,7 @@ export interface LinkClick {
 }
 
 export interface LinkFormData {
-  original_url: string;
+  destination_url: string;
   slug?: string;
   title?: string;
   utm_id?: number;

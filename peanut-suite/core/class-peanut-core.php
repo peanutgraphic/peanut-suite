@@ -476,6 +476,16 @@ class Peanut_Core {
             $health_reports = new Health_Reports_Module();
             $health_reports->init();
         }
+
+        // Popups module - directly register routes since action timing can be tricky
+        if (!class_exists('Popups_Module')) {
+            require_once PEANUT_PLUGIN_DIR . 'modules/popups/class-popups-module.php';
+        }
+        // Always load and register Popups routes for REST context
+        require_once PEANUT_PLUGIN_DIR . 'modules/popups/class-popups-database.php';
+        require_once PEANUT_PLUGIN_DIR . 'modules/popups/api/class-popups-controller.php';
+        $popups_controller = new Popups_Controller();
+        $popups_controller->register_routes();
     }
 
     /**

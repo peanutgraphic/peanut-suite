@@ -163,7 +163,7 @@ export const utmExportColumns = [
 // Links Export columns
 export const linksExportColumns = [
   { key: 'title', header: 'Title' },
-  { key: 'original_url', header: 'Original URL' },
+  { key: 'destination_url', header: 'Destination URL' },
   { key: 'short_url', header: 'Short URL' },
   { key: 'slug', header: 'Slug' },
   { key: 'click_count', header: 'Clicks' },

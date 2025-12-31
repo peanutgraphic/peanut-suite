@@ -91,7 +91,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
     links.forEach((link: Link) => {
       const matches =
         link.slug?.toLowerCase().includes(lowerQuery) ||
-        link.original_url?.toLowerCase().includes(lowerQuery) ||
+        link.destination_url?.toLowerCase().includes(lowerQuery) ||
         link.title?.toLowerCase().includes(lowerQuery);
 
       if (matches) {
@@ -99,7 +99,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
           id: `link-${link.id}`,
           type: 'link',
           title: link.title || link.slug || 'Untitled Link',
-          subtitle: link.original_url,
+          subtitle: link.destination_url,
           icon: <Link2 className="w-4 h-4" />,
           url: `/links?edit=${link.id}`,
         });

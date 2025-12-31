@@ -3,7 +3,7 @@
  * Plugin Name: Peanut Suite
  * Plugin URI: https://peanutgraphic.com/peanut-suite
  * Description: Complete marketing toolkit - UTM campaigns, link management, lead tracking, and analytics in one unified dashboard.
- * Version: 4.2.4
+ * Version: 4.2.5
  * Author: Peanut Graphic
  * Author URI: https://peanutgraphic.com
  * License: GPL-2.0+
@@ -26,8 +26,8 @@ if (defined('PEANUT_VERSION')) {
 /**
  * Plugin constants
  */
-define('PEANUT_VERSION', '4.2.4');
-define('PEANUT_SUITE_VERSION', '4.2.4'); // Alias for updater
+define('PEANUT_VERSION', '4.2.5');
+define('PEANUT_SUITE_VERSION', '4.2.5'); // Alias for updater
 define('PEANUT_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('PEANUT_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PEANUT_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -351,6 +351,21 @@ function peanut_ajax_dismiss_welcome(): void {
     wp_send_json_success();
 }
 add_action('wp_ajax_peanut_dismiss_welcome', 'peanut_ajax_dismiss_welcome');
+
+/**
+ * Check if database needs upgrade on plugin update
+ * This runs on admin_init to catch plugin updates (not just fresh activations)
+ */
+function peanut_maybe_upgrade_database(): void {
+    require_once PEANUT_PLUGIN_DIR . 'core/database/class-peanut-database.php';
+
+    if (Peanut_Database::needs_upgrade()) {
+        // Run activation routine to create any missing tables
+        require_once PEANUT_PLUGIN_DIR . 'core/class-peanut-activator.php';
+        Peanut_Activator::activate();
+    }
+}
+add_action('admin_init', 'peanut_maybe_upgrade_database', 5);
 
 /**
  * Initialize self-hosted updater

@@ -43,6 +43,20 @@ class Dashboard_Module {
             'callback' => [$this, 'get_activity'],
             'permission_callback' => [$this, 'permission_callback'],
         ]);
+
+        // Timeline data
+        register_rest_route(PEANUT_API_NAMESPACE, '/dashboard/timeline', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => [$this, 'get_timeline'],
+            'permission_callback' => [$this, 'permission_callback'],
+            'args' => [
+                'period' => [
+                    'type' => 'string',
+                    'default' => '30d',
+                    'enum' => ['7d', '30d', '90d', 'year', 'all'],
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -79,6 +93,54 @@ class Dashboard_Module {
         return new WP_REST_Response([
             'success' => true,
             'data' => $stats,
+        ], 200);
+    }
+
+    /**
+     * Get timeline data endpoint
+     */
+    public function get_timeline(WP_REST_Request $request): WP_REST_Response {
+        $period = $request->get_param('period') ?? '30d';
+        $user_id = get_current_user_id();
+
+        $timeline = $this->get_timeline_data($user_id, $period);
+
+        // Transform data for frontend
+        $days = match ($period) {
+            '7d' => 7,
+            '30d' => 30,
+            '90d' => 90,
+            'year' => 365,
+            default => 30,
+        };
+
+        // Create date-indexed arrays
+        $clicks_by_date = [];
+        foreach ($timeline['clicks'] ?? [] as $row) {
+            $clicks_by_date[$row['date']] = (int) $row['count'];
+        }
+
+        $contacts_by_date = [];
+        foreach ($timeline['contacts'] ?? [] as $row) {
+            $contacts_by_date[$row['date']] = (int) $row['count'];
+        }
+
+        // Generate response with all dates
+        $result = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = gmdate('Y-m-d', strtotime("-$i days"));
+            $result[] = [
+                'date' => $date,
+                'utm_clicks' => 0, // TODO: Add UTM click tracking
+                'link_clicks' => $clicks_by_date[$date] ?? 0,
+                'contacts' => $contacts_by_date[$date] ?? 0,
+                'conversions' => 0, // TODO: Add conversion tracking
+            ];
+        }
+
+        return new WP_REST_Response([
+            'success' => true,
+            'data' => $result,
         ], 200);
     }
 

@@ -50,7 +50,7 @@ export default function Links() {
 
   // Form state
   const [newLink, setNewLink] = useState({
-    original_url: '',
+    destination_url: '',
     slug: '',
     title: '',
   });
@@ -74,7 +74,7 @@ export default function Links() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links'] });
       setCreateModalOpen(false);
-      setNewLink({ original_url: '', slug: '', title: '' });
+      setNewLink({ destination_url: '', slug: '', title: '' });
       toast.success('Link created successfully');
     },
     onError: () => {
@@ -113,7 +113,7 @@ export default function Links() {
 
   const handleCreate = () => {
     createMutation.mutate({
-      original_url: newLink.original_url,
+      destination_url: newLink.destination_url,
       slug: newLink.slug || undefined,
       title: newLink.title || undefined,
     });
@@ -134,7 +134,7 @@ export default function Links() {
         </div>
       ),
     }),
-    columnHelper.accessor('original_url', {
+    columnHelper.accessor('destination_url', {
       header: 'Destination',
       cell: (info) => (
         <p className="text-sm text-slate-500 truncate max-w-xs">{info.getValue()}</p>
@@ -142,7 +142,7 @@ export default function Links() {
     }),
     columnHelper.accessor('status', {
       header: 'Status',
-      cell: (info) => <StatusBadge status={info.getValue()} />,
+      cell: (info) => <StatusBadge status={info.getValue() ?? (info.row.original.is_active ? 'active' : 'inactive')} />,
     }),
     columnHelper.accessor('click_count', {
       header: 'Clicks',
@@ -331,8 +331,8 @@ export default function Links() {
           <Input
             label="Destination URL"
             placeholder="https://example.com/your-long-url"
-            value={newLink.original_url}
-            onChange={(e) => setNewLink({ ...newLink, original_url: e.target.value })}
+            value={newLink.destination_url}
+            onChange={(e) => setNewLink({ ...newLink, destination_url: e.target.value })}
             tooltip={helpContent.links.shortUrl}
             required
           />
@@ -358,7 +358,7 @@ export default function Links() {
           <Button
             onClick={handleCreate}
             loading={createMutation.isPending}
-            disabled={!newLink.original_url}
+            disabled={!newLink.destination_url}
           >
             Create Link
           </Button>
