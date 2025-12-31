@@ -19,6 +19,13 @@ class Popups_Controller extends Peanut_REST_Controller {
     }
 
     /**
+     * Check permission for popups endpoints
+     */
+    public function check_permission(): bool {
+        return current_user_can('manage_options');
+    }
+
+    /**
      * Register routes
      */
     public function register_routes(): void {
