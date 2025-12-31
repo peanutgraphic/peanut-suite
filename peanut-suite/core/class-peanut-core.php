@@ -463,6 +463,13 @@ class Peanut_Core {
      * These modules need to be loaded so their routes are registered
      */
     private function init_tier_modules_for_rest(): void {
+        // Monitor module
+        if (!class_exists('Monitor_Module')) {
+            require_once PEANUT_PLUGIN_DIR . 'modules/monitor/class-monitor-module.php';
+            $monitor = new Monitor_Module();
+            $monitor->init();
+        }
+
         // Health Reports module
         if (!class_exists('Health_Reports_Module')) {
             require_once PEANUT_PLUGIN_DIR . 'modules/health-reports/class-health-reports-module.php';

@@ -118,7 +118,23 @@ class Health_Reports_Controller {
     /**
      * Check permissions
      */
-    public function check_permission(): bool {
+    public function check_permission(WP_REST_Request $request): bool|WP_Error {
+        if (!is_user_logged_in()) {
+            return new WP_Error(
+                'rest_not_logged_in',
+                __('Authentication required.', 'peanut-suite'),
+                ['status' => 401]
+            );
+        }
+
+        if (!wp_verify_nonce($request->get_header('X-WP-Nonce'), 'wp_rest')) {
+            return new WP_Error(
+                'rest_invalid_nonce',
+                __('Invalid security token.', 'peanut-suite'),
+                ['status' => 403]
+            );
+        }
+
         return current_user_can('manage_options');
     }
 

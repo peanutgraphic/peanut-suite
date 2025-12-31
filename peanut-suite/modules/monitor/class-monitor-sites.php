@@ -334,7 +334,8 @@ class Monitor_Sites {
 
         // Use Peanut encryption service
         if (class_exists('Peanut_Encryption')) {
-            return Peanut_Encryption::decrypt($encrypted);
+            $encryption = new Peanut_Encryption();
+            return $encryption->decrypt($encrypted);
         }
 
         return null;
@@ -345,7 +346,8 @@ class Monitor_Sites {
      */
     public function store_site_key(int $site_id, string $site_key): bool {
         if (class_exists('Peanut_Encryption')) {
-            $encrypted = Peanut_Encryption::encrypt($site_key);
+            $encryption = new Peanut_Encryption();
+            $encrypted = $encryption->encrypt($site_key);
             return update_option("peanut_monitor_site_key_{$site_id}", $encrypted);
         }
 

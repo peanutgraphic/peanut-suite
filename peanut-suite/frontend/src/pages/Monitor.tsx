@@ -365,10 +365,11 @@ export default function Monitor() {
           </div>
           <Input
             label="Site Key"
-            placeholder="xxxx-xxxx-xxxx-xxxx"
+            placeholder="Paste your site key here"
             value={newSite.site_key}
             onChange={(e) => setNewSite({ ...newSite, site_key: e.target.value })}
             helper="Get this from the Peanut Connect plugin on the target site"
+            required
           />
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
@@ -382,8 +383,8 @@ export default function Monitor() {
           <button
             type="button"
             onClick={() => addMutation.mutate(newSite)}
-            disabled={!newSite.url || addMutation.isPending}
-            style={{ padding: '8px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: !newSite.url ? 0.5 : 1 }}
+            disabled={!newSite.url || !newSite.site_key || addMutation.isPending}
+            style={{ padding: '8px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: (!newSite.url || !newSite.site_key) ? 0.5 : 1 }}
           >
             {addMutation.isPending ? 'Adding...' : 'Add Site'}
           </button>

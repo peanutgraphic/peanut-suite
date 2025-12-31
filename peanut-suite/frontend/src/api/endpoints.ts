@@ -375,12 +375,16 @@ export const monitorApi = {
   },
 
   getSite: async (id: number) => {
-    const { data } = await api.get<MonitorSite>(`/monitor/sites/${id}`);
-    return data;
+    const { data } = await api.get<{ success: boolean; data: MonitorSite }>(`/monitor/sites/${id}`);
+    return data.data;
   },
 
   addSite: async (site: { url: string; name?: string; site_key?: string }) => {
-    const { data } = await api.post<{ id: number; site: MonitorSite }>('/monitor/sites', site);
+    const { data } = await api.post<{ id: number; site: MonitorSite }>('/monitor/sites', {
+      site_url: site.url,
+      site_name: site.name,
+      site_key: site.site_key,
+    });
     return data;
   },
 
@@ -389,8 +393,8 @@ export const monitorApi = {
   },
 
   refreshSite: async (id: number) => {
-    const { data } = await api.post<MonitorSite>(`/monitor/sites/${id}/refresh`);
-    return data;
+    const { data } = await api.post<{ success: boolean; data: MonitorSite }>(`/monitor/sites/${id}/check`);
+    return data.data;
   },
 
   getSiteHealth: async (id: number) => {

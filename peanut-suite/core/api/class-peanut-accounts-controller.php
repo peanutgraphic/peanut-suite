@@ -213,7 +213,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
 
         if (!$account) {
-            return $this->error('Failed to get or create account', 'account_error', 500);
+            return $this->error('account_error', 'Failed to get or create account', 500);
         }
 
         return $this->success($account);
@@ -227,7 +227,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_can_access_account($account_id, $user_id)) {
-            return $this->error('Access denied', 'forbidden', 403);
+            return $this->error('forbidden', 'Access denied', 403);
         }
 
         $account = Peanut_Account_Service::get_by_id($account_id);
@@ -247,7 +247,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
             $this->log_access_denied($account_id, 'update_account', Peanut_Audit_Log_Service::RESOURCE_ACCOUNT, $account_id);
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         $data = [
@@ -279,7 +279,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_can_access_account($account_id, $user_id)) {
-            return $this->error('Access denied', 'forbidden', 403);
+            return $this->error('forbidden', 'Access denied', 403);
         }
 
         $stats = Peanut_Account_Service::get_stats($account_id);
@@ -298,7 +298,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_can_access_account($account_id, $user_id)) {
-            return $this->error('Access denied', 'forbidden', 403);
+            return $this->error('forbidden', 'Access denied', 403);
         }
 
         $members = Peanut_Account_Service::get_members($account_id);
@@ -321,7 +321,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
                 null,
                 ['action' => 'add_member', 'reason' => 'insufficient_role']
             );
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         // Rate limiting check
@@ -333,7 +333,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
                 null,
                 ['action' => 'add_member', 'limit' => self::INVITE_RATE_LIMIT]
             );
-            return $this->error('Too many invitation attempts. Please try again later.', 'rate_limited', 429);
+            return $this->error('rate_limited', 'Too many invitation attempts. Please try again later.', 429);
         }
 
         // Increment rate limit counter on every attempt (prevents email enumeration)
@@ -344,13 +344,13 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $permissions = $request->get_param('permissions');
 
         if (!is_email($email)) {
-            return $this->error('Invalid email address', 'invalid_email');
+            return $this->error('invalid_email', 'Invalid email address');
         }
 
         $user = get_user_by('email', $email);
         if (!$user) {
             // Generic error message to prevent user enumeration
-            return $this->error('Unable to add member. Please verify the email address and try again.', 'add_failed', 400);
+            return $this->error('add_failed', 'Unable to add member. Please verify the email address and try again.', 400);
         }
 
         // Validate permissions if provided
@@ -368,7 +368,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         );
 
         if (!$result) {
-            return $this->error('Unable to add member. Please verify the email address and try again.', 'add_failed');
+            return $this->error('add_failed', 'Unable to add member. Please verify the email address and try again.');
         }
 
         Peanut_Audit_Log_Service::log(
@@ -393,7 +393,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $current_user_id, 'admin')) {
             $this->log_access_denied($account_id, 'update_member', Peanut_Audit_Log_Service::RESOURCE_MEMBER, $target_user_id);
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         $new_role = sanitize_key($request->get_param('role'));
@@ -403,7 +403,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         if ($new_role) {
             $result = Peanut_Account_Service::update_member_role($account_id, $target_user_id, $new_role);
             if (!$result) {
-                return $this->error('Failed to update member role', 'update_failed');
+                return $this->error('update_failed', 'Failed to update member role');
             }
         }
 
@@ -441,13 +441,13 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$can_remove) {
             $this->log_access_denied($account_id, 'remove_member', Peanut_Audit_Log_Service::RESOURCE_MEMBER, $target_user_id);
-            return $this->error('Permission denied', 'forbidden', 403);
+            return $this->error('forbidden', 'Permission denied', 403);
         }
 
         $result = Peanut_Account_Service::remove_member($account_id, $target_user_id);
 
         if (!$result) {
-            return $this->error('Failed to remove member. Cannot remove account owner.', 'remove_failed');
+            return $this->error('remove_failed', 'Failed to remove member. Cannot remove account owner.');
         }
 
         Peanut_Audit_Log_Service::log(
@@ -471,13 +471,13 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $current_user_id, 'owner')) {
             $this->log_access_denied($account_id, 'transfer_ownership', Peanut_Audit_Log_Service::RESOURCE_ACCOUNT, $account_id);
-            return $this->error('Only the owner can transfer ownership', 'forbidden', 403);
+            return $this->error('forbidden', 'Only the owner can transfer ownership', 403);
         }
 
         $result = Peanut_Account_Service::transfer_ownership($account_id, $current_user_id, $new_owner_id);
 
         if (!$result) {
-            return $this->error('Failed to transfer ownership', 'transfer_failed');
+            return $this->error('transfer_failed', 'Failed to transfer ownership');
         }
 
         Peanut_Audit_Log_Service::log(
@@ -505,7 +505,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
             $this->log_access_denied($account_id, 'get_api_keys', Peanut_Audit_Log_Service::RESOURCE_API_KEY);
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         $include_revoked = (bool) $request->get_param('include_revoked');
@@ -523,7 +523,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
             $this->log_access_denied($account_id, 'create_api_key', Peanut_Audit_Log_Service::RESOURCE_API_KEY);
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         $name = sanitize_text_field($request->get_param('name'));
@@ -531,17 +531,17 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $expires_at = $request->get_param('expires_at');
 
         if (empty($name)) {
-            return $this->error('Name is required', 'missing_name');
+            return $this->error('missing_name', 'Name is required');
         }
 
         if (empty($scopes)) {
-            return $this->error('At least one scope is required', 'missing_scopes');
+            return $this->error('missing_scopes', 'At least one scope is required');
         }
 
         $key = Peanut_Api_Keys_Service::create($account_id, $user_id, $name, $scopes, $expires_at);
 
         if (!$key) {
-            return $this->error('Failed to create API key', 'create_failed');
+            return $this->error('create_failed', 'Failed to create API key');
         }
 
         Peanut_Audit_Log_Service::log(
@@ -565,7 +565,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
             $this->log_access_denied($account_id, 'revoke_api_key', Peanut_Audit_Log_Service::RESOURCE_API_KEY, $key_id);
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         // Verify key belongs to account
@@ -577,7 +577,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $result = Peanut_Api_Keys_Service::revoke($key_id, $user_id);
 
         if (!$result) {
-            return $this->error('Failed to revoke API key', 'revoke_failed');
+            return $this->error('revoke_failed', 'Failed to revoke API key');
         }
 
         Peanut_Audit_Log_Service::log(
@@ -601,7 +601,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
             $this->log_access_denied($account_id, 'regenerate_api_key', Peanut_Audit_Log_Service::RESOURCE_API_KEY, $key_id);
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         // Verify key belongs to account
@@ -613,7 +613,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $new_key = Peanut_Api_Keys_Service::regenerate($key_id, $user_id);
 
         if (!$new_key) {
-            return $this->error('Failed to regenerate API key', 'regenerate_failed');
+            return $this->error('regenerate_failed', 'Failed to regenerate API key');
         }
 
         Peanut_Audit_Log_Service::log(
@@ -647,7 +647,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
             $this->log_access_denied($account_id, 'get_audit_logs', 'audit_log');
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         $pagination = $this->get_pagination($request);
@@ -681,7 +681,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
             $this->log_access_denied($account_id, 'export_audit_logs', 'audit_log');
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         $args = [
@@ -719,7 +719,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
 
         if (!$account) {
-            return $this->error('Failed to get account', 'account_error', 500);
+            return $this->error('account_error', 'Failed to get account', 500);
         }
 
         $features = Peanut_Account_Service::get_available_features($account['tier']);
@@ -734,7 +734,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_can_access_account($account_id, $user_id)) {
-            return $this->error('Access denied', 'forbidden', 403);
+            return $this->error('forbidden', 'Access denied', 403);
         }
 
         $role = Peanut_Account_Service::get_user_role($account_id, $user_id);
@@ -761,7 +761,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
         $user_id = get_current_user_id();
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         $account = Peanut_Account_Service::get_by_id($account_id);
@@ -804,7 +804,7 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
             $this->log_access_denied($account_id, 'update_login_settings', Peanut_Audit_Log_Service::RESOURCE_ACCOUNT, $account_id);
-            return $this->error('Admin access required', 'forbidden', 403);
+            return $this->error('forbidden', 'Admin access required', 403);
         }
 
         $account = Peanut_Account_Service::get_by_id($account_id);

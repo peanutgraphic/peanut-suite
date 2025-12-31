@@ -91,7 +91,7 @@ abstract class Peanut_REST_Controller {
     /**
      * Error response
      */
-    protected function error(string $message, string $code = 'error', int $status = 400): WP_Error {
+    protected function error(string $code, string $message = 'An error occurred', int $status = 400): WP_Error {
         return new WP_Error($code, $message, ['status' => $status]);
     }
 
@@ -99,7 +99,7 @@ abstract class Peanut_REST_Controller {
      * Not found response
      */
     protected function not_found(string $message = 'Resource not found'): WP_Error {
-        return $this->error($message, 'not_found', 404);
+        return $this->error('not_found', $message, 404);
     }
 
     /**

@@ -39,13 +39,13 @@ class Monitor_Controller extends Peanut_REST_Controller {
             [
                 'methods' => WP_REST_Server::READABLE,
                 'callback' => [$this, 'get_sites'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'permission_callback'],
                 'args' => $this->get_collection_params(),
             ],
             [
                 'methods' => WP_REST_Server::CREATABLE,
                 'callback' => [$this, 'add_site'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'permission_callback'],
                 'args' => [
                     'site_url' => [
                         'required' => true,
@@ -70,7 +70,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
             [
                 'methods' => WP_REST_Server::READABLE,
                 'callback' => [$this, 'get_site'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'permission_callback'],
                 'args' => [
                     'id' => [
                         'required' => true,
@@ -81,7 +81,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
             [
                 'methods' => WP_REST_Server::EDITABLE,
                 'callback' => [$this, 'update_site'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'permission_callback'],
                 'args' => [
                     'id' => [
                         'required' => true,
@@ -97,7 +97,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
             [
                 'methods' => WP_REST_Server::DELETABLE,
                 'callback' => [$this, 'disconnect_site'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'permission_callback'],
                 'args' => [
                     'id' => [
                         'required' => true,
@@ -111,7 +111,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
         register_rest_route(PEANUT_API_NAMESPACE, '/' . $this->rest_base . '/sites/(?P<id>\d+)/check', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'check_site_health'],
-            'permission_callback' => [$this, 'check_permission'],
+            'permission_callback' => [$this, 'permission_callback'],
             'args' => [
                 'id' => [
                     'required' => true,
@@ -125,12 +125,12 @@ class Monitor_Controller extends Peanut_REST_Controller {
             [
                 'methods' => WP_REST_Server::READABLE,
                 'callback' => [$this, 'get_site_updates'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'permission_callback'],
             ],
             [
                 'methods' => WP_REST_Server::CREATABLE,
                 'callback' => [$this, 'perform_site_update'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'permission_callback'],
                 'args' => [
                     'type' => [
                         'required' => true,
@@ -150,7 +150,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
         register_rest_route(PEANUT_API_NAMESPACE, '/' . $this->rest_base . '/sites/(?P<id>\d+)/health', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_site_health_history'],
-            'permission_callback' => [$this, 'check_permission'],
+            'permission_callback' => [$this, 'permission_callback'],
             'args' => [
                 'days' => [
                     'required' => false,
@@ -164,7 +164,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
         register_rest_route(PEANUT_API_NAMESPACE, '/' . $this->rest_base . '/sites/(?P<id>\d+)/uptime', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_site_uptime'],
-            'permission_callback' => [$this, 'check_permission'],
+            'permission_callback' => [$this, 'permission_callback'],
             'args' => [
                 'days' => [
                     'required' => false,
@@ -179,12 +179,12 @@ class Monitor_Controller extends Peanut_REST_Controller {
             [
                 'methods' => WP_REST_Server::READABLE,
                 'callback' => [$this, 'get_site_analytics'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'permission_callback'],
             ],
             [
                 'methods' => WP_REST_Server::CREATABLE,
                 'callback' => [$this, 'sync_site_analytics'],
-                'permission_callback' => [$this, 'check_permission'],
+                'permission_callback' => [$this, 'permission_callback'],
             ],
         ]);
 
@@ -192,14 +192,14 @@ class Monitor_Controller extends Peanut_REST_Controller {
         register_rest_route(PEANUT_API_NAMESPACE, '/' . $this->rest_base . '/updates', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_all_updates'],
-            'permission_callback' => [$this, 'check_permission'],
+            'permission_callback' => [$this, 'permission_callback'],
         ]);
 
         // Bulk update
         register_rest_route(PEANUT_API_NAMESPACE, '/' . $this->rest_base . '/updates/bulk', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'bulk_update'],
-            'permission_callback' => [$this, 'check_permission'],
+            'permission_callback' => [$this, 'permission_callback'],
             'args' => [
                 'updates' => [
                     'required' => true,
@@ -212,21 +212,21 @@ class Monitor_Controller extends Peanut_REST_Controller {
         register_rest_route(PEANUT_API_NAMESPACE, '/' . $this->rest_base . '/analytics', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_aggregated_analytics'],
-            'permission_callback' => [$this, 'check_permission'],
+            'permission_callback' => [$this, 'permission_callback'],
         ]);
 
         // Overview dashboard
         register_rest_route(PEANUT_API_NAMESPACE, '/' . $this->rest_base . '/overview', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_overview'],
-            'permission_callback' => [$this, 'check_permission'],
+            'permission_callback' => [$this, 'permission_callback'],
         ]);
     }
 
     /**
      * Get sites list
      */
-    public function get_sites(WP_REST_Request $request): WP_REST_Response {
+    public function get_sites(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $args = [
             'status' => $request->get_param('status'),
             'search' => $request->get_param('search'),
@@ -238,19 +238,38 @@ class Monitor_Controller extends Peanut_REST_Controller {
 
         $result = $this->sites->get_all(array_filter($args));
 
-        // Parse health data for each site
-        foreach ($result['items'] as &$site) {
-            $site->last_health = json_decode($site->last_health, true);
-            $site->permissions = json_decode($site->permissions, true);
+        // Parse health data for each site and transform to frontend format
+        $sites = [];
+        foreach ($result['items'] as $site) {
+            $health = json_decode($site->last_health, true) ?? [];
+            $sites[] = [
+                'id' => (int) $site->id,
+                'name' => $site->site_name,
+                'url' => $site->site_url,
+                'status' => $site->status,
+                'health_score' => $health['score'] ?? 0,
+                'uptime_percent' => $health['uptime'] ?? 100,
+                'wp_version' => $health['checks']['wp_version']['version'] ?? null,
+                'php_version' => $health['checks']['php_version']['version'] ?? null,
+                'updates_available' => ($health['checks']['plugins']['updates_available'] ?? 0) + ($health['checks']['themes']['updates_available'] ?? 0),
+                'last_checked' => $site->last_check,
+                'peanut_suite_active' => (bool) $site->peanut_suite_active,
+            ];
         }
 
-        return $this->success($result);
+        // Return in format frontend expects
+        return new WP_REST_Response([
+            'data' => $sites,
+            'total' => $result['total'],
+            'total_pages' => $result['pages'],
+            'page' => $result['page'],
+        ], 200);
     }
 
     /**
      * Add new site
      */
-    public function add_site(WP_REST_Request $request): WP_REST_Response {
+    public function add_site(WP_REST_Request $request): WP_REST_Response|WP_Error {
         // Check site limit
         if (!$this->sites->can_add_site()) {
             return $this->error(
@@ -285,26 +304,40 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Get single site
      */
-    public function get_site(WP_REST_Request $request): WP_REST_Response {
-        $site = $this->sites->get($request->get_param('id'));
+    public function get_site(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $id = $request->get_param('id');
+        $site = $this->sites->get($id);
 
         if (!$site) {
             return $this->error('not_found', __('Site not found.', 'peanut-suite'), 404);
         }
 
-        $site->last_health = json_decode($site->last_health, true);
-        $site->permissions = json_decode($site->permissions, true);
+        $health = json_decode($site->last_health, true) ?? [];
 
-        // Get uptime stats
-        $site->uptime = $this->health->get_uptime_stats($site->id, 30);
+        // Transform to frontend format
+        $site_data = [
+            'id' => (int) $site->id,
+            'name' => $site->site_name,
+            'url' => $site->site_url,
+            'status' => $site->status,
+            'health_score' => $health['score'] ?? 0,
+            'uptime_percent' => $health['uptime'] ?? 100,
+            'wp_version' => $health['checks']['wp_version']['version'] ?? null,
+            'php_version' => $health['checks']['php_version']['version'] ?? null,
+            'updates_available' => ($health['checks']['plugins']['updates_available'] ?? 0) + ($health['checks']['themes']['updates_available'] ?? 0),
+            'last_checked' => $site->last_check,
+            'peanut_suite_active' => (bool) $site->peanut_suite_active,
+            'health' => $health,
+            'permissions' => json_decode($site->permissions, true) ?? [],
+        ];
 
-        return $this->success($site);
+        return $this->success($site_data);
     }
 
     /**
      * Update site
      */
-    public function update_site(WP_REST_Request $request): WP_REST_Response {
+    public function update_site(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $result = $this->sites->update($request->get_param('id'), [
             'site_name' => $request->get_param('site_name'),
         ]);
@@ -319,7 +352,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Disconnect site
      */
-    public function disconnect_site(WP_REST_Request $request): WP_REST_Response {
+    public function disconnect_site(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $id = $request->get_param('id');
 
         $result = $this->sites->disconnect($id);
@@ -337,7 +370,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Force health check on site
      */
-    public function check_site_health(WP_REST_Request $request): WP_REST_Response {
+    public function check_site_health(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $site = $this->sites->get($request->get_param('id'));
 
         if (!$site) {
@@ -352,7 +385,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Get pending updates for site
      */
-    public function get_site_updates(WP_REST_Request $request): WP_REST_Response {
+    public function get_site_updates(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $site = $this->sites->get($request->get_param('id'));
 
         if (!$site) {
@@ -371,7 +404,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Perform update on site
      */
-    public function perform_site_update(WP_REST_Request $request): WP_REST_Response {
+    public function perform_site_update(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $site = $this->sites->get($request->get_param('id'));
 
         if (!$site) {
@@ -397,7 +430,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Get site health history
      */
-    public function get_site_health_history(WP_REST_Request $request): WP_REST_Response {
+    public function get_site_health_history(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $site = $this->sites->get($request->get_param('id'));
 
         if (!$site) {
@@ -415,7 +448,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Get site uptime stats
      */
-    public function get_site_uptime(WP_REST_Request $request): WP_REST_Response {
+    public function get_site_uptime(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $site = $this->sites->get($request->get_param('id'));
 
         if (!$site) {
@@ -433,7 +466,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Get site analytics
      */
-    public function get_site_analytics(WP_REST_Request $request): WP_REST_Response {
+    public function get_site_analytics(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $site = $this->sites->get($request->get_param('id'));
 
         if (!$site) {
@@ -465,7 +498,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Sync analytics from site
      */
-    public function sync_site_analytics(WP_REST_Request $request): WP_REST_Response {
+    public function sync_site_analytics(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $site = $this->sites->get($request->get_param('id'));
 
         if (!$site) {
@@ -487,7 +520,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Get all pending updates across all sites
      */
-    public function get_all_updates(WP_REST_Request $request): WP_REST_Response {
+    public function get_all_updates(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $updates = $this->health->get_all_pending_updates();
         return $this->success($updates);
     }
@@ -495,7 +528,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Perform bulk updates
      */
-    public function bulk_update(WP_REST_Request $request): WP_REST_Response {
+    public function bulk_update(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $updates = $request->get_param('updates');
         $results = [];
 
@@ -538,7 +571,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Get aggregated analytics
      */
-    public function get_aggregated_analytics(WP_REST_Request $request): WP_REST_Response {
+    public function get_aggregated_analytics(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $analytics = $this->health->get_aggregated_analytics();
         return $this->success($analytics);
     }
@@ -546,7 +579,7 @@ class Monitor_Controller extends Peanut_REST_Controller {
     /**
      * Get monitor overview dashboard data
      */
-    public function get_overview(WP_REST_Request $request): WP_REST_Response {
+    public function get_overview(WP_REST_Request $request): WP_REST_Response|WP_Error {
         $sites_data = $this->sites->get_all(['status' => 'active']);
         $sites = $sites_data['items'];
 
