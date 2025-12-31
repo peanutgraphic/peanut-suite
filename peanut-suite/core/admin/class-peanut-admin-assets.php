@@ -304,9 +304,9 @@ class Peanut_Admin_Assets {
                 'avatar' => get_avatar_url($user_id, ['size' => 96]),
             ];
 
-            // Get account context if service is available
+            // Get or create account context if service is available
             if (class_exists('Peanut_Account_Service')) {
-                $account = Peanut_Account_Service::get_user_account($user_id);
+                $account = Peanut_Account_Service::get_or_create_for_user($user_id);
 
                 if ($account) {
                     $member = Peanut_Account_Service::get_member($account['id'], $user_id);

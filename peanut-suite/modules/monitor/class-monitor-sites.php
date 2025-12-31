@@ -14,29 +14,56 @@ require_once __DIR__ . '/class-monitor-database.php';
 class Monitor_Sites {
 
     /**
-     * Get all active sites for current user
+     * Get all active sites for current user's account
      */
     public function get_all_active(?int $user_id = null): array {
         global $wpdb;
         $table = Monitor_Database::sites_table();
-        $user_id = $user_id ?? get_current_user_id();
+        $current_user_id = $user_id ?? get_current_user_id();
 
+        // Get all user IDs in the same account
+        // Use get_or_create_for_user to ensure member entry exists
+        $account_user_ids = [$current_user_id];
+        if (class_exists('Peanut_Account_Service')) {
+            $account = Peanut_Account_Service::get_or_create_for_user($current_user_id);
+            if ($account) {
+                $members = Peanut_Account_Service::get_members($account['id']);
+                $account_user_ids = array_map(fn($m) => $m['user_id'], $members);
+            }
+        }
+
+        $placeholders = implode(',', array_fill(0, count($account_user_ids), '%d'));
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table WHERE user_id = %d AND status = 'active' ORDER BY site_name ASC",
-            $user_id
+            "SELECT * FROM $table WHERE user_id IN ($placeholders) AND status = 'active' ORDER BY site_name ASC",
+            ...$account_user_ids
         ));
     }
 
     /**
-     * Get all sites for current user (with optional filters)
+     * Get all sites for current user's account (with optional filters)
+     *
+     * Shows all sites created by any member of the same account.
      */
     public function get_all(array $args = []): array {
         global $wpdb;
         $table = Monitor_Database::sites_table();
-        $user_id = $args['user_id'] ?? get_current_user_id();
+        $current_user_id = $args['user_id'] ?? get_current_user_id();
 
-        $where = ['user_id = %d'];
-        $values = [$user_id];
+        // Get all user IDs in the same account for team-based access
+        // Use get_or_create_for_user to ensure member entry exists
+        $account_user_ids = [$current_user_id];
+        if (class_exists('Peanut_Account_Service')) {
+            $account = Peanut_Account_Service::get_or_create_for_user($current_user_id);
+            if ($account) {
+                $members = Peanut_Account_Service::get_members($account['id']);
+                $account_user_ids = array_map(fn($m) => $m['user_id'], $members);
+            }
+        }
+
+        // Build IN clause for all account members
+        $placeholders = implode(',', array_fill(0, count($account_user_ids), '%d'));
+        $where = ["user_id IN ($placeholders)"];
+        $values = $account_user_ids;
 
         if (!empty($args['status'])) {
             $where[] = 'status = %s';
@@ -79,17 +106,45 @@ class Monitor_Sites {
 
     /**
      * Get single site by ID
+     *
+     * Checks access via account membership - all team members can access sites
+     * created by anyone in the same account.
      */
     public function get(int $id): ?object {
         global $wpdb;
         $table = Monitor_Database::sites_table();
-        $user_id = get_current_user_id();
+        $current_user_id = get_current_user_id();
 
-        return $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table WHERE id = %d AND user_id = %d",
-            $id,
-            $user_id
+        // First, get the site
+        $site = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE id = %d",
+            $id
         ));
+
+        if (!$site) {
+            return null;
+        }
+
+        // If the current user is the owner, allow access
+        if ((int) $site->user_id === $current_user_id) {
+            return $site;
+        }
+
+        // Check if both users belong to the same account
+        // Use get_or_create_for_user to ensure member entry exists
+        if (class_exists('Peanut_Account_Service')) {
+            $current_user_account = Peanut_Account_Service::get_or_create_for_user($current_user_id);
+            $site_owner_account = Peanut_Account_Service::get_or_create_for_user((int) $site->user_id);
+
+            // If both users are in the same account, allow access
+            if ($current_user_account && $site_owner_account &&
+                $current_user_account['id'] === $site_owner_account['id']) {
+                return $site;
+            }
+        }
+
+        // No access
+        return null;
     }
 
     /**
@@ -406,16 +461,28 @@ class Monitor_Sites {
     }
 
     /**
-     * Get site count for user
+     * Get site count for user's account
      */
     public function get_count(?int $user_id = null): int {
         global $wpdb;
         $table = Monitor_Database::sites_table();
-        $user_id = $user_id ?? get_current_user_id();
+        $current_user_id = $user_id ?? get_current_user_id();
 
+        // Get all user IDs in the same account
+        // Use get_or_create_for_user to ensure member entry exists
+        $account_user_ids = [$current_user_id];
+        if (class_exists('Peanut_Account_Service')) {
+            $account = Peanut_Account_Service::get_or_create_for_user($current_user_id);
+            if ($account) {
+                $members = Peanut_Account_Service::get_members($account['id']);
+                $account_user_ids = array_map(fn($m) => $m['user_id'], $members);
+            }
+        }
+
+        $placeholders = implode(',', array_fill(0, count($account_user_ids), '%d'));
         return (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $table WHERE user_id = %d AND status = 'active'",
-            $user_id
+            "SELECT COUNT(*) FROM $table WHERE user_id IN ($placeholders) AND status = 'active'",
+            ...$account_user_ids
         ));
     }
 

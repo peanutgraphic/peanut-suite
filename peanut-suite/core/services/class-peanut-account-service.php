@@ -85,6 +85,22 @@ class Peanut_Account_Service {
         ), ARRAY_A);
 
         if ($account) {
+            // Ensure owner is in members table (fix for accounts created before members table)
+            $is_member = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $members_table WHERE account_id = %d AND user_id = %d",
+                $account['id'],
+                $user_id
+            ));
+
+            if (!$is_member) {
+                $wpdb->insert($members_table, [
+                    'account_id' => $account['id'],
+                    'user_id' => $user_id,
+                    'role' => self::ROLE_OWNER,
+                    'accepted_at' => current_time('mysql'),
+                ]);
+            }
+
             return self::prepare_account($account);
         }
 
