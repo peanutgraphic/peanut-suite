@@ -50,6 +50,10 @@ api.interceptors.response.use(
       if (!data.success) {
         return Promise.reject(new Error(data.message || 'Request failed'));
       }
+      // Preserve meta for paginated responses
+      if ('meta' in data) {
+        return { ...response, data: { data: data.data, meta: data.meta } };
+      }
       return { ...response, data: data.data };
     }
     return response;

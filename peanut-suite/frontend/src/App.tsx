@@ -24,6 +24,7 @@ import Keywords from './pages/Keywords';
 import WooCommerce from './pages/WooCommerce';
 import Performance from './pages/Performance';
 import Team from './pages/Team';
+import AuditLog from './pages/AuditLog';
 import { FeatureTour, WelcomeModal, ToastProvider, ErrorBoundary } from './components/common';
 
 export default function App() {
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/woocommerce" element={<WooCommerce />} />
         <Route path="/performance" element={<Performance />} />
         <Route path="/team" element={<Team />} />
+        <Route path="/audit-log" element={<AuditLog />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
 

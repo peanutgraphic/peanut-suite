@@ -673,6 +673,26 @@ export interface UTMAccess {
   assigned_at: string;
 }
 
+// Audit Log Types
+export type AuditLogAction = 'create' | 'update' | 'delete' | 'login' | 'logout' | 'invite' | 'revoke' | 'export' | 'access_denied' | 'rate_limited';
+export type AuditLogResource = 'account' | 'member' | 'api_key' | 'utm' | 'link' | 'contact' | 'popup' | 'settings' | 'audit_log';
+
+export interface AuditLogEntry {
+  id: number;
+  account_id: number;
+  user_id: number | null;
+  user_name: string | null;
+  user_email: string | null;
+  api_key_id: number | null;
+  action: AuditLogAction;
+  resource_type: AuditLogResource;
+  resource_id: number | null;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
 // =========================================
 // Plesk Server Monitoring Types
 // =========================================

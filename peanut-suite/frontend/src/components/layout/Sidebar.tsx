@@ -24,6 +24,7 @@ import {
   Info,
   Server,
   ClipboardCheck,
+  ScrollText,
 } from 'lucide-react';
 import { useAccountStore } from '../../store';
 
@@ -78,6 +79,7 @@ const navigation: NavItem[] = [
   { name: 'Servers', href: '/servers', icon: Server, tier: 'agency', feature: 'monitor', tourId: 'nav-servers' },
   { name: 'Health Reports', href: '/health-reports', icon: ClipboardCheck, tier: 'agency', feature: 'monitor', tourId: 'nav-health-reports' },
   { name: 'Team', href: '/team', icon: UsersRound, tier: 'pro', adminOnly: true, tourId: 'nav-team' },
+  { name: 'Audit Log', href: '/audit-log', icon: ScrollText, tier: 'pro', adminOnly: true, tourId: 'nav-audit-log' },
   { name: 'Settings', href: '/settings', icon: Settings, adminOnly: true, tourId: 'nav-settings' },
 ];
 

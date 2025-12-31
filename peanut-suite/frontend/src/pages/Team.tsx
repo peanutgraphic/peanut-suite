@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   LogIn,
+  KeyRound,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
 import { Card, Button, Input, Badge, Modal, SampleDataBanner } from '../components/common';
@@ -184,6 +185,18 @@ export default function Team() {
     }
   };
 
+  const handleResetPassword = async (userId: number, email: string) => {
+    if (!accountId) return;
+    if (!confirm(`Send password reset email to ${email}?`)) return;
+    try {
+      await accountsApi.resetMemberPassword(accountId, userId);
+      alert('Password reset email sent successfully!');
+    } catch (err) {
+      console.error('Failed to send password reset:', err);
+      alert('Failed to send password reset email. Please try again.');
+    }
+  };
+
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
 
   // Show loading state while initializing account
@@ -287,6 +300,7 @@ export default function Team() {
                   setOpenDropdown(null);
                 }}
                 onRemove={() => handleRemoveMember(member.user_id)}
+                onResetPassword={() => handleResetPassword(member.user_id, member.user_email)}
                 onRoleChange={(role) => handleUpdateRole(member.user_id, role)}
               />
             ))}
@@ -370,6 +384,7 @@ interface MemberRowProps {
   onToggleDropdown: () => void;
   onEdit: () => void;
   onRemove: () => void;
+  onResetPassword: () => void;
   onRoleChange: (role: AccountRole) => void;
 }
 
@@ -380,6 +395,7 @@ function MemberRow({
   onToggleDropdown,
   onEdit,
   onRemove,
+  onResetPassword,
 }: MemberRowProps) {
   const roleConfig = ROLE_CONFIG[member.role];
   const RoleIcon = roleConfig.icon;
@@ -446,6 +462,13 @@ function MemberRow({
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit Permissions
+                  </button>
+                  <button
+                    onClick={onResetPassword}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    Reset Password
                   </button>
                   <button
                     onClick={onRemove}

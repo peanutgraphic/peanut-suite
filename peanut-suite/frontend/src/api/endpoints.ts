@@ -44,6 +44,7 @@ import type {
   AccountMemberFormData,
   AccountRole,
   FeaturePermissions,
+  AuditLogEntry,
   // Plesk Server types
   PleskServer,
   ServerHealth,
@@ -1269,55 +1270,47 @@ export const authApi = {
 // ============================================
 export const accountsApi = {
   getAll: async () => {
-    const { data } = await api.get<{ success: boolean; data: Account[] }>('/accounts');
-    return data.data;
+    const { data } = await api.get<Account[]>('/accounts');
+    return data;
   },
 
   getById: async (id: number) => {
-    const { data } = await api.get<{ success: boolean; data: Account }>(`/accounts/${id}`);
-    return data.data;
+    const { data } = await api.get<Account>(`/accounts/${id}`);
+    return data;
   },
 
   update: async (id: number, accountData: { name?: string; settings?: Record<string, unknown> }) => {
-    const { data } = await api.put<{ success: boolean; data: Account }>(`/accounts/${id}`, accountData);
-    return data.data;
+    const { data } = await api.put<Account>(`/accounts/${id}`, accountData);
+    return data;
   },
 
   getStats: async (id: number) => {
     const { data } = await api.get<{
-      success: boolean;
-      data: {
-        members: number;
-        utms: number;
-        links: number;
-        contacts: number;
-      };
+      members: number;
+      utms: number;
+      links: number;
+      contacts: number;
     }>(`/accounts/${id}/stats`);
-    return data.data;
+    return data;
   },
 
   // Team Members
   getMembers: async (accountId: number) => {
-    const { data } = await api.get<{ success: boolean; data: AccountMember[] }>(
-      `/accounts/${accountId}/members`
-    );
-    return data.data;
+    const { data } = await api.get<AccountMember[]>(`/accounts/${accountId}/members`);
+    return data;
   },
 
   addMember: async (accountId: number, member: AccountMemberFormData) => {
-    const { data } = await api.post<{ success: boolean; data: AccountMember }>(
-      `/accounts/${accountId}/members`,
-      member
-    );
-    return data.data;
+    const { data } = await api.post<AccountMember>(`/accounts/${accountId}/members`, member);
+    return data;
   },
 
   updateMemberRole: async (accountId: number, userId: number, role: AccountRole) => {
-    const { data } = await api.put<{ success: boolean; data: AccountMember[] }>(
+    const { data } = await api.put<AccountMember[]>(
       `/accounts/${accountId}/members/${userId}`,
       { role }
     );
-    return data.data;
+    return data;
   },
 
   updateMemberPermissions: async (
@@ -1325,19 +1318,26 @@ export const accountsApi = {
     userId: number,
     permissions: FeaturePermissions
   ) => {
-    const { data } = await api.put<{ success: boolean; data: AccountMember[] }>(
+    const { data } = await api.put<AccountMember[]>(
       `/accounts/${accountId}/members/${userId}`,
       { permissions }
     );
-    return data.data;
+    return data;
   },
 
   removeMember: async (accountId: number, userId: number) => {
     await api.delete(`/accounts/${accountId}/members/${userId}`);
   },
 
+  resetMemberPassword: async (accountId: number, userId: number) => {
+    const { data } = await api.post<{ message: string }>(
+      `/accounts/${accountId}/members/${userId}/reset-password`
+    );
+    return data;
+  },
+
   transferOwnership: async (accountId: number, newOwnerId: number) => {
-    const { data } = await api.post<{ success: boolean; message: string }>(
+    const { data } = await api.post<{ message: string }>(
       `/accounts/${accountId}/transfer`,
       { new_owner_id: newOwnerId }
     );
@@ -1346,32 +1346,26 @@ export const accountsApi = {
 
   // Available features list
   getAvailableFeatures: async () => {
-    const { data } = await api.get<{
-      success: boolean;
-      data: Array<{
-        id: string;
-        name: string;
-        description: string;
-        tier: 'free' | 'pro' | 'agency';
-      }>;
-    }>('/accounts/features');
-    return data.data;
+    const { data } = await api.get<Array<{
+      id: string;
+      name: string;
+      description: string;
+      tier: 'free' | 'pro' | 'agency';
+    }>>('/accounts/features');
+    return data;
   },
 
   // Team Login Settings
   getLoginSettings: async (accountId: number) => {
     const { data } = await api.get<{
-      success: boolean;
-      data: {
-        login_page_id: number | null;
-        login_page_url: string | null;
-        logo_url: string;
-        title: string;
-        redirect_url: string;
-        shortcode: string;
-      };
+      login_page_id: number | null;
+      login_page_url: string | null;
+      logo_url: string;
+      title: string;
+      redirect_url: string;
+      shortcode: string;
     }>(`/accounts/${accountId}/login-settings`);
-    return data.data;
+    return data;
   },
 
   updateLoginSettings: async (accountId: number, settings: {
@@ -1382,17 +1376,66 @@ export const accountsApi = {
     redirect_url?: string;
   }) => {
     const { data } = await api.put<{
+      login_page_id: number | null;
+      login_page_url: string | null;
+      logo_url: string;
+      title: string;
+      redirect_url: string;
+      shortcode: string;
+    }>(`/accounts/${accountId}/login-settings`, settings);
+    return data;
+  },
+
+  // Audit Log
+  getAuditLog: async (accountId: number, params?: {
+    page?: number;
+    per_page?: number;
+    action?: string;
+    resource_type?: string;
+    user_id?: number;
+    date_from?: string;
+    date_to?: string;
+  }) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: AuditLogEntry[];
+      meta: {
+        total: number;
+        page: number;
+        per_page: number;
+        total_pages: number;
+        has_more: boolean;
+      };
+    }>(`/accounts/${accountId}/audit-log`, { params });
+    // Normalize response to consistent format
+    return {
+      items: data.data || [],
+      total: data.meta?.total || 0,
+      page: data.meta?.page || 1,
+      per_page: data.meta?.per_page || 20,
+      total_pages: data.meta?.total_pages || 1,
+    };
+  },
+
+  getAuditLogFilters: async () => {
+    const { data } = await api.get<{
       success: boolean;
       data: {
-        login_page_id: number | null;
-        login_page_url: string | null;
-        logo_url: string;
-        title: string;
-        redirect_url: string;
-        shortcode: string;
+        actions: string[];
+        resource_types: string[];
       };
-    }>(`/accounts/${accountId}/login-settings`, settings);
+    }>('/accounts/audit-log/filters');
     return data.data;
+  },
+
+  exportAuditLog: async (accountId: number, format: 'csv' | 'json' = 'csv') => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: AuditLogEntry[];
+    }>(`/accounts/${accountId}/audit-log/export`, {
+      params: { format },
+    });
+    return data.data || [];
   },
 };
 
@@ -1410,34 +1453,25 @@ export const serversApi = {
     order?: 'ASC' | 'DESC';
   }) => {
     const { data } = await api.get<{
-      success: boolean;
-      data: {
-        data: PleskServer[];
-        total: number;
-        page: number;
-        per_page: number;
-        total_pages: number;
-      };
+      data: PleskServer[];
+      total: number;
+      page: number;
+      per_page: number;
+      total_pages: number;
     }>('/monitor/servers', { params });
-    return data.data;
+    return data;
   },
 
   // Get overview stats
   getOverview: async () => {
-    const { data } = await api.get<{
-      success: boolean;
-      data: ServersOverview;
-    }>('/monitor/servers/overview');
-    return data.data;
+    const { data } = await api.get<ServersOverview>('/monitor/servers/overview');
+    return data;
   },
 
   // Get single server
   getServer: async (id: number) => {
-    const { data } = await api.get<{
-      success: boolean;
-      data: PleskServer;
-    }>(`/monitor/servers/${id}`);
-    return data.data;
+    const { data } = await api.get<PleskServer>(`/monitor/servers/${id}`);
+    return data;
   },
 
   // Add server
@@ -1485,38 +1519,29 @@ export const serversApi = {
   // Get health history
   getHealthHistory: async (id: number, days = 30) => {
     const { data } = await api.get<{
-      success: boolean;
-      data: {
-        server_id: number;
-        days: number;
-        history: ServerHealthHistory[];
-      };
+      server_id: number;
+      days: number;
+      history: ServerHealthHistory[];
     }>(`/monitor/servers/${id}/health`, { params: { days } });
-    return data.data;
+    return data;
   },
 
   // Get domains
   getDomains: async (id: number) => {
     const { data } = await api.get<{
-      success: boolean;
-      data: {
-        server_id: number;
-        domains: PleskDomain[];
-      };
+      server_id: number;
+      domains: PleskDomain[];
     }>(`/monitor/servers/${id}/domains`);
-    return data.data;
+    return data;
   },
 
   // Get services
   getServices: async (id: number) => {
     const { data } = await api.get<{
-      success: boolean;
-      data: {
-        server_id: number;
-        services: PleskService[];
-      };
+      server_id: number;
+      services: PleskService[];
     }>(`/monitor/servers/${id}/services`);
-    return data.data;
+    return data;
   },
 };
 

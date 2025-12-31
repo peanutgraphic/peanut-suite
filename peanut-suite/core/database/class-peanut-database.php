@@ -14,7 +14,7 @@ class Peanut_Database {
     /**
      * Database version
      */
-    private const DB_VERSION = '2.2.1';
+    private const DB_VERSION = '2.2.2';
 
     /**
      * Table names
