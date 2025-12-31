@@ -109,42 +109,37 @@ class Monitor_Sites {
      *
      * Checks access via account membership - all team members can access sites
      * created by anyone in the same account.
+     *
+     * Uses the same access control logic as get_all() for consistency:
+     * builds a list of allowed user IDs based on account membership.
      */
     public function get(int $id): ?object {
         global $wpdb;
         $table = Monitor_Database::sites_table();
         $current_user_id = get_current_user_id();
 
-        // First, get the site
-        $site = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table WHERE id = %d",
-            $id
-        ));
-
-        if (!$site) {
-            return null;
-        }
-
-        // If the current user is the owner, allow access
-        if ((int) $site->user_id === $current_user_id) {
-            return $site;
-        }
-
-        // Check if both users belong to the same account
-        // Use get_or_create_for_user to ensure member entry exists
+        // Build list of allowed user IDs (same logic as get_all)
+        $account_user_ids = [$current_user_id];
         if (class_exists('Peanut_Account_Service')) {
-            $current_user_account = Peanut_Account_Service::get_or_create_for_user($current_user_id);
-            $site_owner_account = Peanut_Account_Service::get_or_create_for_user((int) $site->user_id);
-
-            // If both users are in the same account, allow access
-            if ($current_user_account && $site_owner_account &&
-                $current_user_account['id'] === $site_owner_account['id']) {
-                return $site;
+            $account = Peanut_Account_Service::get_or_create_for_user($current_user_id);
+            if ($account) {
+                $members = Peanut_Account_Service::get_members($account['id']);
+                if (!empty($members)) {
+                    $account_user_ids = array_map(fn($m) => (int) $m['user_id'], $members);
+                }
             }
         }
 
-        // No access
-        return null;
+        // Build IN clause for allowed user IDs
+        $placeholders = implode(',', array_fill(0, count($account_user_ids), '%d'));
+
+        // Query with access control
+        $site = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE id = %d AND user_id IN ($placeholders)",
+            array_merge([$id], $account_user_ids)
+        ));
+
+        return $site ?: null;
     }
 
     /**
@@ -217,6 +212,9 @@ class Monitor_Sites {
         }
 
         $site_id = $wpdb->insert_id;
+
+        // Store encrypted site key for future authenticated requests
+        $this->store_site_key($site_id, $data['site_key']);
 
         do_action('peanut_monitor_site_connected', $site_id, $insert_data);
 

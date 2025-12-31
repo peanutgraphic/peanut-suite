@@ -375,8 +375,8 @@ export const monitorApi = {
   },
 
   getSite: async (id: number) => {
-    const { data } = await api.get<{ success: boolean; data: MonitorSite }>(`/monitor/sites/${id}`);
-    return data.data;
+    const { data } = await api.get<MonitorSite>(`/monitor/sites/${id}`);
+    return data;
   },
 
   addSite: async (site: { url: string; name?: string; site_key?: string }) => {
@@ -393,8 +393,8 @@ export const monitorApi = {
   },
 
   refreshSite: async (id: number) => {
-    const { data } = await api.post<{ success: boolean; data: MonitorSite }>(`/monitor/sites/${id}/check`);
-    return data.data;
+    const { data } = await api.post<MonitorSite>(`/monitor/sites/${id}/check`);
+    return data;
   },
 
   getSiteHealth: async (id: number) => {
