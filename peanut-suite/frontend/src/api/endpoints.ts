@@ -1526,93 +1526,66 @@ export const serversApi = {
 export const healthReportsApi = {
   // Get settings
   getSettings: async () => {
-    const { data } = await api.get<{
-      success: boolean;
-      data: HealthReportSettings;
-    }>('/health-reports/settings');
-    return data.data;
+    const { data } = await api.get<HealthReportSettings>('/health-reports/settings');
+    return data;
   },
 
   // Update settings
   updateSettings: async (settings: HealthReportSettingsFormData) => {
-    const { data } = await api.post<{
-      success: boolean;
-      data: HealthReportSettings;
-      message: string;
-    }>('/health-reports/settings', settings);
+    const { data } = await api.post<HealthReportSettings & { message?: string }>(
+      '/health-reports/settings',
+      settings
+    );
     return data;
   },
 
   // Get latest report
   getLatest: async () => {
-    const { data } = await api.get<{
-      success: boolean;
-      data: HealthReport | null;
-    }>('/health-reports/latest');
-    return data.data;
+    const { data } = await api.get<HealthReport | null>('/health-reports/latest');
+    return data;
   },
 
   // Get report history
   getHistory: async (params?: { page?: number; per_page?: number }) => {
-    const { data } = await api.get<{
-      success: boolean;
-      data: {
-        data: HealthReport[];
-        total: number;
-        page: number;
-        per_page: number;
-        total_pages: number;
-      };
-    }>('/health-reports/history', { params });
-    return data.data;
+    const { data } = await api.get<HealthReport[]>('/health-reports/history', { params });
+    return data;
   },
 
   // Get single report
   getReport: async (id: number) => {
-    const { data } = await api.get<{
-      success: boolean;
-      data: HealthReport;
-    }>(`/health-reports/${id}`);
-    return data.data;
+    const { data } = await api.get<HealthReport>(`/health-reports/${id}`);
+    return data;
   },
 
   // Generate preview (current state)
   preview: async () => {
-    const { data } = await api.get<{
-      success: boolean;
-      data: HealthReportPreview;
-    }>('/health-reports/preview');
-    return data.data;
+    const { data } = await api.get<HealthReportPreview>('/health-reports/preview');
+    return data;
   },
 
   // Generate and save new report
   generate: async () => {
-    const { data } = await api.post<{
-      success: boolean;
-      data: HealthReport;
-      message: string;
-    }>('/health-reports/generate');
+    const { data } = await api.post<HealthReport & { message?: string }>(
+      '/health-reports/generate'
+    );
     return data;
   },
 
   // Send report immediately
   send: async (id?: number) => {
-    const { data } = await api.post<{
-      success: boolean;
-      message: string;
-    }>('/health-reports/send', { report_id: id });
+    const { data } = await api.post<{ message: string }>(
+      '/health-reports/send',
+      { report_id: id }
+    );
     return data;
   },
 
   // Get available sites and servers for selection
   getAvailableItems: async () => {
     const { data } = await api.get<{
-      success: boolean;
-      data: {
-        sites: Array<{ id: number; name: string; url: string }>;
-        servers: Array<{ id: number; name: string; host: string }>;
-      };
+      sites: Array<{ id: number; name: string; url: string }>;
+      servers: Array<{ id: number; name: string; host: string }>;
     }>('/health-reports/available-items');
-    return data.data;
+    return data;
   },
 };

@@ -364,23 +364,38 @@ class Health_Reports_Controller {
 
         $user_id = get_current_user_id();
 
+        // Build list of allowed user IDs (same logic as Monitor_Sites::get_all)
+        $account_user_ids = [$user_id];
+        if (class_exists('Peanut_Account_Service')) {
+            $account = Peanut_Account_Service::get_or_create_for_user($user_id);
+            if ($account) {
+                $members = Peanut_Account_Service::get_members($account['id']);
+                if (!empty($members)) {
+                    $account_user_ids = array_map(fn($m) => (int) $m['user_id'], $members);
+                }
+            }
+        }
+
+        // Build IN clause for allowed user IDs
+        $placeholders = implode(',', array_fill(0, count($account_user_ids), '%d'));
+
         // Load Monitor_Database if not already loaded
         if (!class_exists('Monitor_Database')) {
             require_once PEANUT_PLUGIN_DIR . 'modules/monitor/class-monitor-database.php';
         }
 
-        // Get monitored sites (from Monitor module)
+        // Get monitored sites (from Monitor module) - using account-based access
         $sites_table = Monitor_Database::sites_table();
         $sites = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, site_name as name, site_url as url FROM {$sites_table} WHERE user_id = %d ORDER BY site_name ASC",
-            $user_id
+            "SELECT id, site_name as name, site_url as url FROM {$sites_table} WHERE user_id IN ($placeholders) ORDER BY site_name ASC",
+            ...$account_user_ids
         ), ARRAY_A);
 
-        // Get Plesk servers (from core database)
+        // Get Plesk servers (from core database) - using account-based access
         $servers_table = Peanut_Database::monitor_servers_table();
         $servers = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, server_name as name, server_host as host FROM {$servers_table} WHERE user_id = %d ORDER BY server_name ASC",
-            $user_id
+            "SELECT id, server_name as name, server_host as host FROM {$servers_table} WHERE user_id IN ($placeholders) ORDER BY server_name ASC",
+            ...$account_user_ids
         ), ARRAY_A);
 
         return new WP_REST_Response([

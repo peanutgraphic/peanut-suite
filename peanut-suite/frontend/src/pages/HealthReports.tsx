@@ -203,7 +203,7 @@ export default function HealthReports() {
   const hasNoRealData = !reportLoading && !latestReport;
   const displaySampleData = hasNoRealData && showSampleData;
   const report = displaySampleData ? sampleReport : latestReport;
-  const history = displaySampleData ? sampleHistory : (reportHistory?.data || []);
+  const history = displaySampleData ? sampleHistory : (reportHistory || []);
   const currentSettings = localSettings || (displaySampleData ? defaultSettings : settings);
 
   const tabs: { id: TabType; label: string; icon: typeof FileText }[] = [
