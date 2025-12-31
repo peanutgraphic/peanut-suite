@@ -461,20 +461,28 @@ class Peanut_Core {
     /**
      * Initialize tier modules for REST API context
      * These modules need to be loaded so their routes are registered
+     *
+     * Note: We use static variables to track initialization because class_exists()
+     * triggers the autoloader which loads the class, making the check unreliable.
      */
     private function init_tier_modules_for_rest(): void {
+        static $monitor_initialized = false;
+        static $health_reports_initialized = false;
+
         // Monitor module
-        if (!class_exists('Monitor_Module')) {
+        if (!$monitor_initialized) {
             require_once PEANUT_PLUGIN_DIR . 'modules/monitor/class-monitor-module.php';
             $monitor = new Monitor_Module();
             $monitor->init();
+            $monitor_initialized = true;
         }
 
         // Health Reports module
-        if (!class_exists('Health_Reports_Module')) {
+        if (!$health_reports_initialized) {
             require_once PEANUT_PLUGIN_DIR . 'modules/health-reports/class-health-reports-module.php';
             $health_reports = new Health_Reports_Module();
             $health_reports->init();
+            $health_reports_initialized = true;
         }
 
         // Popups module - directly register routes since action timing can be tricky
