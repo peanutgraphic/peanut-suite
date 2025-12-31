@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   UserPlus,
@@ -58,6 +60,7 @@ interface LoginSettings {
 }
 
 export default function Team() {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<AccountMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -302,6 +305,11 @@ export default function Team() {
                 onRemove={() => handleRemoveMember(member.user_id)}
                 onResetPassword={() => handleResetPassword(member.user_id, member.user_email)}
                 onRoleChange={(role) => handleUpdateRole(member.user_id, role)}
+                onNavigateToProfile={() => {
+                  if (!displaySampleData) {
+                    navigate(`/team/${member.user_id}`);
+                  }
+                }}
               />
             ))}
           </div>
@@ -386,6 +394,7 @@ interface MemberRowProps {
   onRemove: () => void;
   onResetPassword: () => void;
   onRoleChange: (role: AccountRole) => void;
+  onNavigateToProfile: () => void;
 }
 
 function MemberRow({
@@ -396,9 +405,12 @@ function MemberRow({
   onEdit,
   onRemove,
   onResetPassword,
+  onNavigateToProfile,
 }: MemberRowProps) {
   const roleConfig = ROLE_CONFIG[member.role];
   const RoleIcon = roleConfig.icon;
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
   const enabledFeatures = member.feature_permissions
     ? Object.entries(member.feature_permissions)
@@ -406,8 +418,22 @@ function MemberRow({
         .map(([k]) => k)
     : [];
 
+  // Calculate dropdown position when opened
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.right - 192, // 192px = w-48
+      });
+    }
+  }, [isOpen]);
+
   return (
-    <div className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+    <div
+      className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+      onClick={onNavigateToProfile}
+    >
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
           <span className="text-primary-700 font-medium">
@@ -447,38 +473,46 @@ function MemberRow({
         {canManage && (
           <div className="relative">
             <button
-              onClick={onToggleDropdown}
+              ref={buttonRef}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleDropdown();
+              }}
               className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
             >
               <MoreVertical className="w-4 h-4 text-slate-400" />
             </button>
-            {isOpen && (
+            {isOpen && createPortal(
               <>
-                <div className="fixed inset-0 z-10" onClick={onToggleDropdown} />
-                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
+                <div className="fixed inset-0 z-[100]" onClick={(e) => { e.stopPropagation(); onToggleDropdown(); }} />
+                <div
+                  className="fixed w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-[101]"
+                  style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+                >
                   <button
-                    onClick={onEdit}
+                    onClick={(e) => { e.stopPropagation(); onEdit(); }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit Permissions
                   </button>
                   <button
-                    onClick={onResetPassword}
+                    onClick={(e) => { e.stopPropagation(); onResetPassword(); }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                   >
                     <KeyRound className="w-4 h-4" />
                     Reset Password
                   </button>
                   <button
-                    onClick={onRemove}
+                    onClick={(e) => { e.stopPropagation(); onRemove(); }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4" />
                     Remove Member
                   </button>
                 </div>
-              </>
+              </>,
+              document.body
             )}
           </div>
         )}
