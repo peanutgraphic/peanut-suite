@@ -356,6 +356,7 @@ function NotificationToggle({
 function AdvancedSettings() {
   const { resetTour, startTour, hasCompletedTour } = useTourStore();
   const { dismissedGuides, resetAllGuides } = usePageGuideStore();
+  const safeDismissedGuides = Array.isArray(dismissedGuides) ? dismissedGuides : [];
 
   const handleRestartTour = () => {
     resetTour();
@@ -394,8 +395,8 @@ function AdvancedSettings() {
             <div>
               <p className="font-medium text-slate-900">Page Guides</p>
               <p className="text-sm text-slate-500">
-                {dismissedGuides.length > 0
-                  ? `You've dismissed ${dismissedGuides.length} page guide${dismissedGuides.length > 1 ? 's' : ''}. Reset to see them again.`
+                {safeDismissedGuides.length > 0
+                  ? `You've dismissed ${safeDismissedGuides.length} page guide${safeDismissedGuides.length > 1 ? 's' : ''}. Reset to see them again.`
                   : 'Step-by-step guides appear on each page to help you get started.'}
               </p>
             </div>
@@ -404,7 +405,7 @@ function AdvancedSettings() {
               size="sm"
               icon={<RotateCcw className="w-4 h-4" />}
               onClick={handleResetGuides}
-              disabled={dismissedGuides.length === 0}
+              disabled={safeDismissedGuides.length === 0}
             >
               Reset Guides
             </Button>

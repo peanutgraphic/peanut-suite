@@ -190,15 +190,22 @@ export default function PageGuide({ pageId }: PageGuideProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, dontShowAgain, pageId, dismissGuide, closeGuide]);
 
-  // Don't render if not open or wrong page
-  if (!isOpen) {
+  // Don't render if not open, wrong page, or missing guide data
+  if (!isOpen || !guide || !guide.steps || guide.steps.length === 0) {
     return null;
   }
 
   const totalSteps = guide.steps.length;
-  const step = guide.steps[currentStep];
-  const isFirstStep = currentStep === 0;
-  const isLastStep = currentStep === totalSteps - 1;
+  const safeCurrentStep = Math.min(currentStep, totalSteps - 1);
+  const step = guide.steps[safeCurrentStep];
+
+  // Safety check for step
+  if (!step) {
+    return null;
+  }
+
+  const isFirstStep = safeCurrentStep === 0;
+  const isLastStep = safeCurrentStep === totalSteps - 1;
   const StepIcon = getIcon(step.icon);
 
   const handleClose = () => {
@@ -261,7 +268,7 @@ export default function PageGuide({ pageId }: PageGuideProps) {
           {/* Step indicator */}
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-medium text-slate-500">
-              Step {currentStep + 1} of {totalSteps}
+              Step {safeCurrentStep + 1} of {totalSteps}
             </span>
             <div className="flex gap-1.5" role="tablist" aria-label="Guide steps">
               {guide.steps.map((s, index) => (
@@ -270,15 +277,15 @@ export default function PageGuide({ pageId }: PageGuideProps) {
                   onClick={() => goToStep(index)}
                   className={clsx(
                     'w-2 h-2 rounded-full transition-all',
-                    index === currentStep
+                    index === safeCurrentStep
                       ? 'bg-primary-600 w-4'
-                      : index < currentStep
+                      : index < safeCurrentStep
                       ? 'bg-primary-300'
                       : 'bg-slate-200 hover:bg-slate-300'
                   )}
                   role="tab"
-                  aria-selected={index === currentStep}
-                  aria-label={`Step ${index + 1}: ${s.title}${index === currentStep ? ' (current)' : ''}`}
+                  aria-selected={index === safeCurrentStep}
+                  aria-label={`Step ${index + 1}: ${s.title}${index === safeCurrentStep ? ' (current)' : ''}`}
                 />
               ))}
             </div>
@@ -289,7 +296,7 @@ export default function PageGuide({ pageId }: PageGuideProps) {
             id="page-guide-step-content"
             className="bg-slate-50 rounded-lg p-4 border border-slate-100"
             role="tabpanel"
-            aria-label={`Step ${currentStep + 1}: ${step.title}`}
+            aria-label={`Step ${safeCurrentStep + 1}: ${step.title}`}
           >
             <div className="flex items-start gap-3 mb-3">
               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-200 flex-shrink-0">
@@ -355,7 +362,7 @@ export default function PageGuide({ pageId }: PageGuideProps) {
               onClick={handlePrev}
               disabled={isFirstStep}
               className={clsx(isFirstStep && 'invisible')}
-              aria-label={`Previous step: ${currentStep > 0 ? guide.steps[currentStep - 1].title : ''}`}
+              aria-label={`Previous step: ${safeCurrentStep > 0 ? guide.steps[safeCurrentStep - 1]?.title : ''}`}
             >
               <ChevronLeft className="w-4 h-4 mr-1" aria-hidden="true" />
               Previous
@@ -364,7 +371,7 @@ export default function PageGuide({ pageId }: PageGuideProps) {
             <Button
               size="sm"
               onClick={handleNext}
-              aria-label={isLastStep ? 'Complete guide' : `Next step: ${guide.steps[currentStep + 1]?.title || ''}`}
+              aria-label={isLastStep ? 'Complete guide' : `Next step: ${guide.steps[safeCurrentStep + 1]?.title || ''}`}
             >
               {isLastStep ? 'Got it!' : 'Next'}
               {!isLastStep && <ChevronRight className="w-4 h-4 ml-1" aria-hidden="true" />}
@@ -378,7 +385,7 @@ export default function PageGuide({ pageId }: PageGuideProps) {
             aria-atomic="true"
             className="sr-only"
           >
-            Step {currentStep + 1} of {totalSteps}: {step.title}
+            Step {safeCurrentStep + 1} of {totalSteps}: {step.title}
           </div>
         </div>
       </div>
@@ -391,9 +398,10 @@ export default function PageGuide({ pageId }: PageGuideProps) {
 export function PageGuideButton({ pageId }: { pageId: string }) {
   const { dismissedGuides, openGuide } = usePageGuideStore();
   const guide = getPageGuide(pageId);
+  const safeDismissed = Array.isArray(dismissedGuides) ? dismissedGuides : [];
 
   // Don't show button if guide doesn't exist or was dismissed
-  if (!guide || dismissedGuides.includes(pageId)) {
+  if (!guide || safeDismissed.includes(pageId)) {
     return null;
   }
 

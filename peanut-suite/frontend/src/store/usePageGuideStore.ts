@@ -49,9 +49,10 @@ export const usePageGuideStore = create<PageGuideState>()(
 
       dismissGuide: (pageId: string) => {
         const { dismissedGuides } = get();
-        if (!dismissedGuides.includes(pageId)) {
+        const safeList = Array.isArray(dismissedGuides) ? dismissedGuides : [];
+        if (!safeList.includes(pageId)) {
           set({
-            dismissedGuides: [...dismissedGuides, pageId],
+            dismissedGuides: [...safeList, pageId],
             isGuideOpen: false,
             currentPageId: null,
             currentStep: 0,
@@ -94,14 +95,17 @@ export const usePageGuideStore = create<PageGuideState>()(
 
       markShownThisSession: (pageId: string) => {
         const { shownThisSession } = get();
-        if (!shownThisSession.includes(pageId)) {
-          set({ shownThisSession: [...shownThisSession, pageId] });
+        const safeList = Array.isArray(shownThisSession) ? shownThisSession : [];
+        if (!safeList.includes(pageId)) {
+          set({ shownThisSession: [...safeList, pageId] });
         }
       },
 
       shouldAutoShow: (pageId: string) => {
         const { dismissedGuides, shownThisSession } = get();
-        return !dismissedGuides.includes(pageId) && !shownThisSession.includes(pageId);
+        const safeDismissed = Array.isArray(dismissedGuides) ? dismissedGuides : [];
+        const safeShown = Array.isArray(shownThisSession) ? shownThisSession : [];
+        return !safeDismissed.includes(pageId) && !safeShown.includes(pageId);
       },
     }),
     {

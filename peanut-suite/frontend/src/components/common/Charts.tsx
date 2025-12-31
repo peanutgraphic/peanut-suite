@@ -279,7 +279,7 @@ export function Sparkline({ data, color = '#6366f1', width = 100, height = 30 }:
     // Clear
     ctx.clearRect(0, 0, width, height);
 
-    if (data.length < 2) return;
+    if (!data || !Array.isArray(data) || data.length < 2) return;
 
     const max = Math.max(...data);
     const min = Math.min(...data);

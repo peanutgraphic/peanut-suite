@@ -255,38 +255,38 @@ export default function Webhooks() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
         <Card className="p-4">
-          <div className="text-2xl font-bold">{displayStats?.total ?? 0}</div>
           <div className="text-sm text-slate-500 flex items-center gap-1">
             Total
             <InfoTooltip content={helpContent.webhooks.overview} />
           </div>
+          <div className="text-2xl font-bold">{displayStats?.total ?? 0}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-green-600">{displayStats?.processed ?? 0}</div>
           <div className="text-sm text-slate-500">Processed</div>
+          <div className="text-2xl font-bold text-green-600">{displayStats?.processed ?? 0}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-yellow-600">{displayStats?.pending ?? 0}</div>
           <div className="text-sm text-slate-500">Pending</div>
+          <div className="text-2xl font-bold text-yellow-600">{displayStats?.pending ?? 0}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-red-600">{displayStats?.failed ?? 0}</div>
           <div className="text-sm text-slate-500 flex items-center gap-1">
             Failed
             <InfoTooltip content={helpContent.webhooks.status} />
           </div>
+          <div className="text-2xl font-bold text-red-600">{displayStats?.failed ?? 0}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-2xl font-bold text-blue-600">{displayStats?.today ?? 0}</div>
           <div className="text-sm text-slate-500">Today</div>
+          <div className="text-2xl font-bold text-blue-600">{displayStats?.today ?? 0}</div>
         </Card>
         <Card className="p-4">
+          <div className="text-sm text-slate-500">Success Rate</div>
           <div className="text-2xl font-bold text-purple-600">
             {displayStats?.total && displayStats?.processed
               ? Math.round((displayStats.processed / displayStats.total) * 100)
               : 0}%
           </div>
-          <div className="text-sm text-slate-500">Success Rate</div>
         </Card>
       </div>
 

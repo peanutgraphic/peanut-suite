@@ -107,7 +107,7 @@ export default function Dashboard() {
 
   // Generate chart data from timeline or use sample data
   const chartData = useMemo(() => {
-    if (timeline && timeline.length > 0) {
+    if (timeline && Array.isArray(timeline) && timeline.length > 0) {
       return {
         labels: timeline.map(d => new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
         utmClicks: timeline.map(d => d.utm_clicks),
@@ -134,7 +134,7 @@ export default function Dashboard() {
 
   // Source breakdown for pie chart (sample data)
   const sourceData = useMemo(() => {
-    if (utmStats?.data && utmStats.data.length > 0) {
+    if (utmStats?.data && Array.isArray(utmStats.data) && utmStats.data.length > 0) {
       const sources: Record<string, number> = {};
       utmStats.data.forEach(utm => {
         sources[utm.utm_source] = (sources[utm.utm_source] || 0) + utm.click_count;
