@@ -144,6 +144,20 @@ class Peanut_Activator {
             Popups_Database::create_tables();
         }
 
+        // FormFlow module tables
+        $formflow_db = PEANUT_PLUGIN_DIR . 'modules/formflow/class-formflow-database.php';
+        if (file_exists($formflow_db)) {
+            require_once $formflow_db;
+            FormFlow_Database::create_tables();
+        }
+
+        // Invoicing module tables
+        $invoicing_db = PEANUT_PLUGIN_DIR . 'modules/invoicing/class-invoicing-database.php';
+        if (file_exists($invoicing_db)) {
+            require_once $invoicing_db;
+            Invoicing_Database::create_tables();
+        }
+
         // Security module tables
         $security_module = PEANUT_PLUGIN_DIR . 'modules/security/class-security-module.php';
         if (file_exists($security_module)) {

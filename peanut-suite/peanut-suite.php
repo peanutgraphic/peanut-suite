@@ -71,9 +71,16 @@ spl_autoload_register(function ($class) {
     }
 
     // Check for module classes (Module_Name_Class format)
-    if (preg_match('/^(UTM|Links|Contacts|Popups|Dashboard|Invoicing|Security|Reports|Backlinks)_(.+)$/', $class, $matches)) {
+    if (preg_match('/^(UTM|Links|Contacts|Popups|Dashboard|Invoicing|Security|Reports|Backlinks|Monitor|Webhooks|Analytics|Attribution|Visitors|FormFlow|Health)_(.+)$/', $class, $matches)) {
         $module = strtolower($matches[1]);
         $class_name = strtolower(str_replace('_', '-', $matches[2]));
+
+        // Handle special module directory names
+        if ($module === 'formflow') {
+            $module = 'formflow';
+        } elseif ($module === 'health') {
+            $module = 'health-reports';
+        }
 
         $directories = [
             PEANUT_PLUGIN_DIR . "modules/{$module}/",
