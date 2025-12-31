@@ -105,14 +105,27 @@ export default function Monitor() {
     createCheckboxColumn<MonitorSite>(),
     columnHelper.accessor('name', {
       header: 'Site',
-      cell: (info) => (
-        <Link to={`/monitor/sites/${info.row.original.id}`} className="block">
-          <p className="font-medium text-slate-900 hover:text-primary-600">
-            {info.getValue() || 'Unnamed Site'}
-          </p>
-          <p className="text-xs text-slate-500">{info.row.original.url}</p>
-        </Link>
-      ),
+      cell: (info) => {
+        // Don't link sample data - it doesn't exist in the database
+        if (displaySampleData) {
+          return (
+            <div className="block">
+              <p className="font-medium text-slate-900">
+                {info.getValue() || 'Unnamed Site'}
+              </p>
+              <p className="text-xs text-slate-500">{info.row.original.url}</p>
+            </div>
+          );
+        }
+        return (
+          <Link to={`/monitor/sites/${info.row.original.id}`} className="block">
+            <p className="font-medium text-slate-900 hover:text-primary-600">
+              {info.getValue() || 'Unnamed Site'}
+            </p>
+            <p className="text-xs text-slate-500">{info.row.original.url}</p>
+          </Link>
+        );
+      },
     }),
     columnHelper.accessor('health_score', {
       header: 'Health',
@@ -179,10 +192,10 @@ export default function Monitor() {
       cell: (info) => (
         <div className="flex items-center gap-1">
           <button
-            onClick={() => refreshMutation.mutate(info.row.original.id)}
-            className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-            title="Refresh"
-            disabled={refreshMutation.isPending}
+            onClick={() => !displaySampleData && refreshMutation.mutate(info.row.original.id)}
+            className={`p-1.5 rounded transition-colors ${displaySampleData ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-primary-600 hover:bg-primary-50'}`}
+            title={displaySampleData ? 'Sample data' : 'Refresh'}
+            disabled={displaySampleData || refreshMutation.isPending}
           >
             <RefreshCw className={`w-4 h-4 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
           </button>
@@ -196,9 +209,10 @@ export default function Monitor() {
             <ExternalLink className="w-4 h-4" />
           </a>
           <button
-            onClick={() => setDeleteId(info.row.original.id)}
-            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Remove"
+            onClick={() => !displaySampleData && setDeleteId(info.row.original.id)}
+            className={`p-1.5 rounded transition-colors ${displaySampleData ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
+            title={displaySampleData ? 'Sample data' : 'Remove'}
+            disabled={displaySampleData}
           >
             <Trash2 className="w-4 h-4" />
           </button>
