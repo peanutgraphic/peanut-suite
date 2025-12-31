@@ -39,6 +39,9 @@ class Peanut_Activator {
         // Create module-specific tables
         self::create_module_tables();
 
+        // Run migrations
+        self::run_migrations();
+
         // Set default options
         self::set_defaults();
 
@@ -84,6 +87,15 @@ class Peanut_Activator {
                 'anonymize_ip' => false,
             ]);
         }
+    }
+
+    /**
+     * Run database migrations
+     */
+    private static function run_migrations(): void {
+        // Migrate account max_users to tier-based values
+        require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-account-service.php';
+        Peanut_Account_Service::migrate_max_users();
     }
 
     /**

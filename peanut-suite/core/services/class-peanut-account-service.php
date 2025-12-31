@@ -37,6 +37,15 @@ class Peanut_Account_Service {
     ];
 
     /**
+     * Max users per tier
+     */
+    private const TIER_MAX_USERS = [
+        'free' => 3,
+        'pro' => 10,
+        'agency' => 50,
+    ];
+
+    /**
      * Available features with their tier requirements
      */
     public const FEATURES = [
@@ -88,12 +97,13 @@ class Peanut_Account_Service {
         $name = $user->display_name ?: $user->user_login;
         $slug = sanitize_title($name . '-' . $user_id);
 
+        $tier = 'free';
         $wpdb->insert($table, [
             'name' => $name . "'s Account",
             'slug' => $slug,
             'status' => self::STATUS_ACTIVE,
-            'tier' => 'free',
-            'max_users' => 1,
+            'tier' => $tier,
+            'max_users' => self::TIER_MAX_USERS[$tier] ?? 3,
             'owner_user_id' => $user_id,
         ]);
 
@@ -601,6 +611,48 @@ class Peanut_Account_Service {
             case self::ROLE_VIEWER:
             default:
                 return $free_access;
+        }
+    }
+
+    /**
+     * Get max users for a tier
+     */
+    public static function get_max_users_for_tier(string $tier): int {
+        return self::TIER_MAX_USERS[$tier] ?? 3;
+    }
+
+    /**
+     * Update account tier and max_users
+     */
+    public static function update_tier(int $account_id, string $new_tier): bool {
+        global $wpdb;
+        $table = Peanut_Database::accounts_table();
+
+        return (bool) $wpdb->update(
+            $table,
+            [
+                'tier' => $new_tier,
+                'max_users' => self::get_max_users_for_tier($new_tier),
+            ],
+            ['id' => $account_id]
+        );
+    }
+
+    /**
+     * Migrate accounts to use tier-based max_users (one-time fix)
+     */
+    public static function migrate_max_users(): void {
+        global $wpdb;
+        $table = Peanut_Database::accounts_table();
+
+        // Update accounts where max_users = 1 to use tier-based values
+        foreach (self::TIER_MAX_USERS as $tier => $max_users) {
+            $wpdb->query($wpdb->prepare(
+                "UPDATE $table SET max_users = %d WHERE tier = %s AND max_users < %d",
+                $max_users,
+                $tier,
+                $max_users
+            ));
         }
     }
 
