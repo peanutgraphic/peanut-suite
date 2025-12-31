@@ -670,3 +670,213 @@ export interface UTMAccess {
   assigned_by: number;
   assigned_at: string;
 }
+
+// =========================================
+// Plesk Server Monitoring Types
+// =========================================
+
+export type ServerStatus = 'active' | 'disconnected' | 'error';
+export type ServerHealthStatus = 'healthy' | 'warning' | 'critical' | 'offline';
+export type HealthGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+
+export interface PleskServer {
+  id: number;
+  user_id: number;
+  server_name: string;
+  server_host: string;
+  server_port: number;
+  status: ServerStatus;
+  last_check: string | null;
+  last_health: ServerHealth | null;
+  plesk_version: string | null;
+  os_info: string | null;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ServerHealthCheck {
+  value: number;
+  status: 'ok' | 'warning' | 'critical';
+  message: string;
+  total?: number;
+  used?: number;
+  free?: number;
+}
+
+export interface ServerServicesCheck {
+  stopped: string[];
+  stopped_count: number;
+  status: 'ok' | 'critical';
+  message: string;
+}
+
+export interface ServerSSLCheck {
+  issues: string[];
+  issue_count: number;
+  status: 'ok' | 'warning';
+  message: string;
+}
+
+export interface ServerHealth {
+  score: number;
+  grade: HealthGrade;
+  status: ServerHealthStatus;
+  checks: {
+    cpu_usage?: ServerHealthCheck;
+    ram_usage?: ServerHealthCheck;
+    disk_usage?: ServerHealthCheck;
+    load_average?: ServerHealthCheck;
+    services?: ServerServicesCheck;
+    ssl_certs?: ServerSSLCheck;
+    plesk_updates?: {
+      version: string | null;
+      available: boolean;
+      status: 'ok' | 'warning';
+      message: string;
+    };
+  };
+  domains?: PleskDomain[];
+  uptime?: number;
+}
+
+export interface ServerHealthHistory {
+  id: number;
+  server_id: number;
+  status: ServerHealthStatus;
+  score: number;
+  grade: HealthGrade;
+  checks: ServerHealth['checks'];
+  checked_at: string;
+}
+
+export interface PleskDomain {
+  id?: number;
+  name: string;
+  status: string;
+  hosting?: string;
+  ssl: boolean;
+  ssl_expiry?: string | null;
+  created_at?: string | null;
+}
+
+export interface PleskService {
+  id: string;
+  name: string;
+  running: boolean;
+  status: string;
+}
+
+export interface ServerFormData {
+  server_name?: string;
+  server_host: string;
+  server_port?: number;
+  api_key: string;
+}
+
+export interface ServersOverview {
+  total_servers: number;
+  active_servers: number;
+  servers_with_errors: number;
+  servers_needing_attention: number;
+}
+
+// =========================================
+// Health Reports Types
+// =========================================
+
+export type ReportFrequency = 'weekly' | 'monthly';
+export type RecommendationPriority = 'critical' | 'high' | 'medium' | 'low';
+
+export interface HealthReportSettings {
+  id: number;
+  user_id: number;
+  enabled: boolean;
+  frequency: ReportFrequency;
+  day_of_week: number;
+  send_time: string;
+  recipients: string[];
+  include_sites: boolean;
+  include_servers: boolean;
+  include_recommendations: boolean;
+  selected_site_ids: number[];
+  selected_server_ids: number[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface HealthReportSettingsFormData {
+  enabled?: boolean;
+  frequency?: ReportFrequency;
+  day_of_week?: number;
+  send_time?: string;
+  recipients?: string[];
+  include_sites?: boolean;
+  include_servers?: boolean;
+  include_recommendations?: boolean;
+  selected_site_ids?: number[];
+  selected_server_ids?: number[];
+}
+
+export interface HealthReportItem {
+  id?: number;
+  name: string;
+  grade: HealthGrade;
+  score: number;
+  issues: string[];
+  url?: string;
+}
+
+export interface HealthReportSection {
+  summary: {
+    total: number;
+    healthy: number;
+    warning: number;
+    critical: number;
+  };
+  items: HealthReportItem[];
+}
+
+export interface HealthReportRecommendation {
+  priority: RecommendationPriority;
+  message: string;
+  resource_type?: 'site' | 'server';
+  resource_id?: number;
+  resource_name?: string;
+}
+
+export interface HealthReportTrends {
+  this_week: number;
+  last_week: number;
+  change: string;
+}
+
+export interface HealthReport {
+  id: number;
+  user_id: number;
+  report_type: ReportFrequency;
+  period_start: string;
+  period_end: string;
+  overall_grade: HealthGrade;
+  overall_score: number;
+  sites_data: HealthReportSection | null;
+  servers_data: HealthReportSection | null;
+  recommendations: HealthReportRecommendation[];
+  trends?: HealthReportTrends;
+  sent_at: string | null;
+  created_at: string;
+}
+
+export interface HealthReportPreview {
+  period: {
+    start: string;
+    end: string;
+  };
+  overall: {
+    grade: HealthGrade;
+    score: number;
+  };
+  sites: HealthReportSection | null;
+  servers: HealthReportSection | null;
+  recommendations: HealthReportRecommendation[];
+  trends: HealthReportTrends;
+}

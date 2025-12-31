@@ -44,6 +44,175 @@ class Peanut_Admin {
             add_action('admin_init', [$this, 'maybe_redirect_to_app']);
             add_action('admin_head', [$this, 'inject_fullscreen_styles']);
         }
+
+        // Team member restrictions (hide WP admin elements)
+        add_action('admin_init', [$this, 'maybe_restrict_team_member']);
+        add_action('admin_menu', [$this, 'hide_admin_menus_for_team'], 999);
+        add_filter('show_admin_bar', [$this, 'maybe_hide_admin_bar']);
+        add_action('admin_head', [$this, 'inject_team_member_styles']);
+
+        // Grant Peanut Suite access to team members
+        add_filter('user_has_cap', [$this, 'grant_peanut_access_to_team'], 10, 4);
+    }
+
+    /**
+     * Grant peanut_access capability to team members
+     */
+    public function grant_peanut_access_to_team(array $allcaps, array $caps, array $args, $user): array {
+        // Check if we're checking for peanut_access capability
+        if (!in_array('peanut_access', $caps, true)) {
+            return $allcaps;
+        }
+
+        // If user already has it, return
+        if (!empty($allcaps['peanut_access'])) {
+            return $allcaps;
+        }
+
+        // Admins always have access
+        if (!empty($allcaps['manage_options'])) {
+            $allcaps['peanut_access'] = true;
+            return $allcaps;
+        }
+
+        // Check if user is a Peanut team member
+        if (class_exists('Peanut_Account_Service')) {
+            $user_id = $user->ID ?? get_current_user_id();
+            $account = Peanut_Account_Service::get_user_account($user_id);
+            if ($account) {
+                $allcaps['peanut_access'] = true;
+            }
+        }
+
+        return $allcaps;
+    }
+
+    /**
+     * Check if current user is a team member (not owner/admin)
+     */
+    private function is_team_member(): bool {
+        if (!is_user_logged_in()) {
+            return false;
+        }
+
+        $user_id = get_current_user_id();
+
+        // Skip check if user is a WordPress administrator
+        if (current_user_can('manage_options')) {
+            return false;
+        }
+
+        // Check if user has a Peanut account and their role
+        if (!class_exists('Peanut_Account_Service')) {
+            return false;
+        }
+
+        $account = Peanut_Account_Service::get_user_account($user_id);
+        if (!$account) {
+            return false;
+        }
+
+        $member = Peanut_Account_Service::get_member($account['id'], $user_id);
+        if (!$member) {
+            return false;
+        }
+
+        // Owner and admin can see everything, members and viewers are restricted
+        return in_array($member['role'], ['member', 'viewer'], true);
+    }
+
+    /**
+     * Restrict team members to Peanut Suite only
+     */
+    public function maybe_restrict_team_member(): void {
+        if (!$this->is_team_member()) {
+            return;
+        }
+
+        // Get current page
+        $page = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : '';
+
+        // If not on Peanut Suite page, redirect to it
+        if (!in_array($page, ['peanut-app', 'peanut-suite'], true)) {
+            // Check if this is a Peanut-related page (legacy redirects)
+            if (strpos($page, 'peanut-') !== 0) {
+                wp_safe_redirect(admin_url('admin.php?page=peanut-app'));
+                exit;
+            }
+        }
+    }
+
+    /**
+     * Hide WordPress admin menus for team members
+     */
+    public function hide_admin_menus_for_team(): void {
+        if (!$this->is_team_member()) {
+            return;
+        }
+
+        global $menu, $submenu;
+
+        // Keep only Peanut Suite menu
+        if (is_array($menu)) {
+            foreach ($menu as $key => $item) {
+                // Keep Peanut Suite menu, hide everything else
+                if (!isset($item[2]) || $item[2] !== 'peanut-app') {
+                    remove_menu_page($item[2]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Hide admin bar for team members
+     */
+    public function maybe_hide_admin_bar(bool $show): bool {
+        if ($this->is_team_member()) {
+            return false;
+        }
+        return $show;
+    }
+
+    /**
+     * Inject CSS to hide admin bar for team members
+     */
+    public function inject_team_member_styles(): void {
+        if (!$this->is_team_member()) {
+            return;
+        }
+
+        ?>
+        <style>
+            /* Hide WordPress admin bar and chrome for team members */
+            html.wp-toolbar {
+                padding-top: 0 !important;
+            }
+            #wpadminbar {
+                display: none !important;
+            }
+            #adminmenumain,
+            #adminmenuback,
+            #adminmenuwrap {
+                display: none !important;
+            }
+            #wpcontent,
+            #wpfooter {
+                margin-left: 0 !important;
+            }
+            #wpbody-content {
+                padding-bottom: 0 !important;
+            }
+            .update-nag,
+            .updated,
+            .notice:not(.peanut-notice),
+            .error:not(.peanut-error) {
+                display: none !important;
+            }
+            #wpfooter {
+                display: none !important;
+            }
+        </style>
+        <?php
     }
 
     /**
@@ -98,13 +267,28 @@ class Peanut_Admin {
     }
 
     /**
+     * Check if current user is a WordPress admin
+     */
+    private function is_wp_admin(): bool {
+        return current_user_can('manage_options');
+    }
+
+    /**
      * Inject CSS to hide WordPress chrome in fullscreen mode
+     * Admins see WP sidebar, non-admins get fullscreen experience
      */
     public function inject_fullscreen_styles(): void {
         if (!isset($_GET['page']) || $_GET['page'] !== 'peanut-app') {
             return;
         }
 
+        // Admins get WordPress nav visible
+        if ($this->is_wp_admin()) {
+            $this->inject_admin_styles();
+            return;
+        }
+
+        // Non-admins (team members) get fullscreen mode
         ?>
         <style>
             /* Hide WordPress admin chrome for fullscreen React app */
@@ -221,6 +405,161 @@ class Peanut_Admin {
     }
 
     /**
+     * Inject styles for admins - WP nav visible alongside Peanut Suite
+     */
+    private function inject_admin_styles(): void {
+        ?>
+        <style>
+            /* Admin mode: Keep WP sidebar and admin bar visible */
+
+            /* Ensure WP admin bar stays on top */
+            #wpadminbar {
+                z-index: 100000 !important;
+            }
+
+            /* Ensure WP admin menu stays visible */
+            #adminmenumain,
+            #adminmenuback,
+            #adminmenuwrap {
+                z-index: 99998 !important;
+            }
+
+            /* Position Peanut app alongside WP nav */
+            .peanut-fullscreen-app {
+                position: fixed;
+                top: 32px; /* Below WP admin bar */
+                left: 160px; /* Next to WP menu (collapsed width) */
+                right: 0;
+                bottom: 0;
+                z-index: 9999; /* Below WP admin elements */
+                background: #f8fafc;
+                overflow: hidden;
+            }
+
+            /* WP menu expanded (default on large screens) */
+            @media screen and (min-width: 961px) {
+                .peanut-fullscreen-app {
+                    left: 160px;
+                }
+                body.folded .peanut-fullscreen-app {
+                    left: 36px;
+                }
+            }
+
+            /* WP menu auto-folded on medium screens */
+            @media screen and (max-width: 960px) and (min-width: 783px) {
+                .peanut-fullscreen-app {
+                    left: 36px;
+                }
+                body:not(.auto-fold) .peanut-fullscreen-app {
+                    left: 160px;
+                }
+            }
+
+            /* Mobile - full width */
+            @media screen and (max-width: 782px) {
+                .peanut-fullscreen-app {
+                    top: 46px;
+                    left: 0;
+                }
+            }
+
+            #peanut-app {
+                height: 100%;
+                width: 100%;
+                overflow: auto;
+            }
+
+            /* Hide WordPress footer and notices */
+            #wpfooter {
+                display: none !important;
+            }
+            .update-nag,
+            .updated,
+            .notice,
+            .error:not(.peanut-error) {
+                display: none !important;
+            }
+
+            /* ===== CSS ISOLATION FOR TAILWIND ===== */
+            #peanut-app .hidden {
+                display: none;
+            }
+            @media (min-width: 768px) {
+                #peanut-app .md\:block {
+                    display: block !important;
+                }
+                #peanut-app .md\:hidden {
+                    display: none !important;
+                }
+                #peanut-app .md\:flex {
+                    display: flex !important;
+                }
+                #peanut-app .md\:ml-56 {
+                    margin-left: 14rem !important;
+                }
+                #peanut-app .md\:ml-16 {
+                    margin-left: 4rem !important;
+                }
+            }
+            #peanut-app .fixed {
+                position: fixed;
+            }
+            /* Offset React sidebar by WP menu width */
+            #peanut-app aside.fixed {
+                z-index: 100;
+                left: 160px !important;
+                top: 32px !important;
+            }
+            body.folded #peanut-app aside.fixed {
+                left: 36px !important;
+            }
+            @media screen and (max-width: 960px) and (min-width: 783px) {
+                #peanut-app aside.fixed {
+                    left: 36px !important;
+                }
+            }
+            @media screen and (max-width: 782px) {
+                #peanut-app aside.fixed {
+                    left: 0 !important;
+                    top: 46px !important;
+                }
+            }
+            #peanut-app button {
+                background-color: transparent;
+                border: none;
+                box-shadow: none;
+                text-shadow: none;
+            }
+            #peanut-app input[type="text"],
+            #peanut-app input[type="email"],
+            #peanut-app input[type="url"],
+            #peanut-app input[type="password"],
+            #peanut-app input[type="search"],
+            #peanut-app input[type="number"],
+            #peanut-app textarea,
+            #peanut-app select {
+                background-color: white;
+                border: 1px solid #e2e8f0;
+                box-shadow: none;
+                border-radius: 0.375rem;
+            }
+            #peanut-app a {
+                color: inherit;
+                text-decoration: none;
+            }
+            #peanut-app a:hover {
+                color: inherit;
+            }
+            #peanut-app a:focus {
+                box-shadow: none;
+                outline: none;
+            }
+        </style>
+        <?php
+    }
+
+    /**
      * Add admin menu
      */
     public function add_admin_menu(): void {
@@ -230,7 +569,7 @@ class Peanut_Admin {
             add_menu_page(
                 __('Peanut Suite', 'peanut-suite'),
                 __('Peanut Suite', 'peanut-suite'),
-                'manage_options',
+                'peanut_access',
                 'peanut-app',
                 [$this, 'render_react_app'],
                 $this->get_menu_icon(),
@@ -271,7 +610,7 @@ class Peanut_Admin {
         add_menu_page(
             __('Peanut Suite', 'peanut-suite'),
             __('Peanut Suite', 'peanut-suite'),
-            'manage_options',
+            'peanut_access',
             'peanut-suite',
             [$this, 'render_dashboard'],
             $this->get_menu_icon(),

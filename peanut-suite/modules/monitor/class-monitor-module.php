@@ -47,6 +47,7 @@ class Monitor_Module {
         add_action('peanut_monitor_health_check', [$this, 'run_scheduled_health_checks']);
         add_action('peanut_monitor_uptime_check', [$this, 'run_uptime_checks']);
         add_action('peanut_monitor_webvitals_check', [$this, 'run_webvitals_checks']);
+        add_action('peanut_monitor_server_health_check', [$this, 'run_server_health_checks']);
 
         // AJAX handlers
         add_action('wp_ajax_peanut_add_monitor_site', [$this, 'ajax_add_site']);
@@ -95,6 +96,11 @@ class Monitor_Module {
         if (!wp_next_scheduled('peanut_monitor_webvitals_check')) {
             wp_schedule_event(time(), 'daily', 'peanut_monitor_webvitals_check');
         }
+
+        // Plesk server health check - hourly
+        if (!wp_next_scheduled('peanut_monitor_server_health_check')) {
+            wp_schedule_event(time(), 'hourly', 'peanut_monitor_server_health_check');
+        }
     }
 
     /**
@@ -131,6 +137,31 @@ class Monitor_Module {
             // Small delay between checks to avoid rate limiting
             sleep(2);
         }
+    }
+
+    /**
+     * Run health checks on all Plesk servers
+     */
+    public function run_server_health_checks(): void {
+        global $wpdb;
+
+        $table = Peanut_Database::monitor_servers_table();
+
+        // Get all active servers
+        $servers = $wpdb->get_results(
+            "SELECT id FROM {$table} WHERE status = 'active'",
+            ARRAY_A
+        );
+
+        foreach ($servers as $server) {
+            Monitor_Plesk::check_health($server['id']);
+
+            // Small delay between checks to avoid overwhelming servers
+            sleep(2);
+        }
+
+        // Cleanup old health history (keep 90 days)
+        Monitor_Plesk::cleanup_old_history(90);
     }
 
     /**

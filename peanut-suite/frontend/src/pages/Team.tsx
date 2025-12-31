@@ -11,10 +11,18 @@ import {
   Check,
   X,
   AlertCircle,
+  Loader2,
+  Settings,
+  Copy,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  LogIn,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
 import { Card, Button, Input, Badge, Modal, SampleDataBanner } from '../components/common';
 import { accountsApi } from '../api/endpoints';
+import { useAccountStore } from '../store/useAccountStore';
 import type { AccountMember, AccountRole, FeaturePermissions } from '../types';
 import { sampleTeamMembers } from '../constants';
 
@@ -39,6 +47,15 @@ const FEATURES = [
 
 type FeatureId = typeof FEATURES[number]['id'];
 
+interface LoginSettings {
+  login_page_id: number | null;
+  login_page_url: string | null;
+  logo_url: string;
+  title: string;
+  redirect_url: string;
+  shortcode: string;
+}
+
 export default function Team() {
   const [members, setMembers] = useState<AccountMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,35 +65,81 @@ export default function Team() {
   const [selectedMember, setSelectedMember] = useState<AccountMember | null>(null);
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
   const [showSampleData, setShowSampleData] = useState(true);
+  const [showLoginSettings, setShowLoginSettings] = useState(false);
+  const [loginSettings, setLoginSettings] = useState<LoginSettings | null>(null);
+  const [loginSettingsLoading, setLoginSettingsLoading] = useState(false);
 
-  // TODO: Get from account context when implemented
-  const accountId = 1;
-  const currentUserRole: AccountRole = 'owner';
+  // Get account context from store
+  const { account, isInitialized, fetchCurrentUser } = useAccountStore();
+  const accountId = account?.id ?? null;
+  const currentUserRole: AccountRole = account?.role ?? 'owner';
 
   // Determine if we should show sample data
-  const hasNoRealData = !loading && members.length === 0;
+  const safeMembers = Array.isArray(members) ? members : [];
+  const hasNoRealData = !loading && safeMembers.length === 0;
   const displaySampleData = hasNoRealData && showSampleData;
-  const displayMembers = displaySampleData ? sampleTeamMembers as AccountMember[] : members;
+  const displayMembers = displaySampleData ? sampleTeamMembers as AccountMember[] : safeMembers;
 
+  // Fetch account data if not initialized
   useEffect(() => {
-    loadMembers();
-  }, []);
+    if (!isInitialized) {
+      fetchCurrentUser();
+    }
+  }, [isInitialized, fetchCurrentUser]);
+
+  // Load members when account is available
+  useEffect(() => {
+    if (isInitialized && accountId) {
+      loadMembers();
+    } else if (isInitialized && !accountId) {
+      // No account, stop loading
+      setLoading(false);
+    }
+  }, [isInitialized, accountId]);
 
   const loadMembers = async () => {
+    if (!accountId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const data = await accountsApi.getMembers(accountId);
-      setMembers(data);
+      setMembers(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {
       setError('Failed to load team members');
+      setMembers([]);
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadLoginSettings = async () => {
+    if (!accountId) return;
+
+    try {
+      setLoginSettingsLoading(true);
+      const data = await accountsApi.getLoginSettings(accountId);
+      setLoginSettings(data);
+    } catch (err) {
+      console.error('Failed to load login settings:', err);
+    } finally {
+      setLoginSettingsLoading(false);
+    }
+  };
+
+  // Load login settings when section is expanded
+  useEffect(() => {
+    if (showLoginSettings && !loginSettings && accountId) {
+      loadLoginSettings();
+    }
+  }, [showLoginSettings, accountId]);
+
   const handleAddMember = async (email: string, role: AccountRole, permissions: FeaturePermissions) => {
+    if (!accountId) return;
     try {
       await accountsApi.addMember(accountId, { email, role, feature_permissions: permissions });
       await loadMembers();
@@ -88,6 +151,7 @@ export default function Team() {
   };
 
   const handleUpdatePermissions = async (userId: number, permissions: FeaturePermissions) => {
+    if (!accountId) return;
     try {
       await accountsApi.updateMemberPermissions(accountId, userId, permissions);
       await loadMembers();
@@ -100,6 +164,7 @@ export default function Team() {
   };
 
   const handleUpdateRole = async (userId: number, role: AccountRole) => {
+    if (!accountId) return;
     try {
       await accountsApi.updateMemberRole(accountId, userId, role);
       await loadMembers();
@@ -109,6 +174,7 @@ export default function Team() {
   };
 
   const handleRemoveMember = async (userId: number) => {
+    if (!accountId) return;
     if (!confirm('Are you sure you want to remove this team member?')) return;
     try {
       await accountsApi.removeMember(accountId, userId);
@@ -119,6 +185,45 @@ export default function Team() {
   };
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
+
+  // Show loading state while initializing account
+  if (!isInitialized) {
+    return (
+      <Layout
+        title="Team"
+        description="Manage your team members and their permissions"
+        pageGuideId="team"
+      >
+        <Card>
+          <div className="py-12 text-center">
+            <Loader2 className="w-8 h-8 text-primary-500 mx-auto mb-4 animate-spin" />
+            <p className="text-slate-500">Loading account...</p>
+          </div>
+        </Card>
+      </Layout>
+    );
+  }
+
+  // Show message when no account is available
+  if (!accountId) {
+    return (
+      <Layout
+        title="Team"
+        description="Manage your team members and their permissions"
+        pageGuideId="team"
+      >
+        <Card>
+          <div className="py-12 text-center">
+            <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-500 mb-2">No account found</p>
+            <p className="text-sm text-slate-400">
+              Team management requires an account. Please contact your administrator.
+            </p>
+          </div>
+        </Card>
+      </Layout>
+    );
+  }
 
   return (
     <Layout
@@ -140,7 +245,7 @@ export default function Team() {
         </div>
       )}
 
-      {error && (
+      {error && !displaySampleData && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-500" />
           <span className="text-red-700">{error}</span>
@@ -188,6 +293,52 @@ export default function Team() {
           </div>
         )}
       </Card>
+
+      {/* Login Page Settings */}
+      {canManageMembers && (
+        <Card className="mt-6">
+          <button
+            onClick={() => setShowLoginSettings(!showLoginSettings)}
+            className="w-full flex items-center justify-between p-4 text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary-100 rounded-lg">
+                <LogIn className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <h3 className="font-medium text-slate-900">Team Login Page</h3>
+                <p className="text-sm text-slate-500">Configure the login page for team members</p>
+              </div>
+            </div>
+            {showLoginSettings ? (
+              <ChevronUp className="w-5 h-5 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-slate-400" />
+            )}
+          </button>
+
+          {showLoginSettings && (
+            <div className="border-t border-slate-200 p-4">
+              {loginSettingsLoading ? (
+                <div className="py-8 text-center">
+                  <Loader2 className="w-6 h-6 text-primary-500 mx-auto animate-spin" />
+                  <p className="text-sm text-slate-500 mt-2">Loading settings...</p>
+                </div>
+              ) : loginSettings ? (
+                <LoginPageSettingsForm
+                  settings={loginSettings}
+                  accountId={accountId!}
+                  onUpdate={(updated) => setLoginSettings(updated)}
+                />
+              ) : (
+                <p className="text-sm text-slate-500 text-center py-4">
+                  Unable to load login settings
+                </p>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Add Member Modal */}
       <AddMemberModal
@@ -595,5 +746,151 @@ function EditPermissionsModal({ isOpen, onClose, member, onSubmit }: EditPermiss
         </div>
       </div>
     </Modal>
+  );
+}
+
+interface LoginPageSettingsFormProps {
+  settings: LoginSettings;
+  accountId: number;
+  onUpdate: (settings: LoginSettings) => void;
+}
+
+function LoginPageSettingsForm({ settings, accountId, onUpdate }: LoginPageSettingsFormProps) {
+  const [logoUrl, setLogoUrl] = useState(settings.logo_url);
+  const [title, setTitle] = useState(settings.title);
+  const [redirectUrl, setRedirectUrl] = useState(settings.redirect_url);
+  const [loginPageUrl, setLoginPageUrl] = useState(settings.login_page_url || '');
+  const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSuccess(false);
+    try {
+      const updated = await accountsApi.updateLoginSettings(accountId, {
+        logo_url: logoUrl,
+        title,
+        redirect_url: redirectUrl,
+        login_page_url: loginPageUrl || null,
+      });
+      onUpdate(updated);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to save login settings:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyShortcode = () => {
+    navigator.clipboard.writeText(settings.shortcode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Instructions */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="font-medium text-blue-800 mb-2">How to set up the login page</h4>
+        <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+          <li>Create a new page in WordPress (e.g., "Team Login")</li>
+          <li>Copy the shortcode below and paste it into the page</li>
+          <li>Publish the page and share the URL with your team members</li>
+        </ol>
+      </div>
+
+      {/* Shortcode */}
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          Login Shortcode
+        </label>
+        <div className="flex gap-2">
+          <code className="flex-1 bg-slate-100 px-4 py-3 rounded-lg text-sm font-mono text-slate-700 overflow-x-auto">
+            {settings.shortcode}
+          </code>
+          <Button
+            variant="outline"
+            onClick={copyShortcode}
+            icon={copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+          >
+            {copied ? 'Copied!' : 'Copy'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Login Page URL (optional) */}
+      <Input
+        label="Login Page URL (optional)"
+        type="url"
+        value={loginPageUrl}
+        onChange={(e) => setLoginPageUrl(e.target.value)}
+        placeholder="https://yoursite.com/team-login"
+        helper="Enter the URL where you placed the shortcode. This helps team members find the login page."
+      />
+
+      {/* Customization */}
+      <div className="border-t border-slate-200 pt-6">
+        <h4 className="font-medium text-slate-900 mb-4 flex items-center gap-2">
+          <Settings className="w-4 h-4" />
+          Customize Login Form
+        </h4>
+
+        <div className="space-y-4">
+          <Input
+            label="Logo URL (optional)"
+            type="url"
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+            placeholder="https://yoursite.com/logo.png"
+            helper="URL to your company logo (recommended: 200px width max)"
+          />
+
+          <Input
+            label="Login Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Team Login"
+          />
+
+          <Input
+            label="Redirect URL"
+            type="url"
+            value={redirectUrl}
+            onChange={(e) => setRedirectUrl(e.target.value)}
+            placeholder="/wp-admin/admin.php?page=peanut-app"
+            helper="Where to redirect users after successful login"
+          />
+        </div>
+      </div>
+
+      {/* Save button */}
+      <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+        <div>
+          {success && (
+            <span className="text-sm text-green-600 flex items-center gap-1">
+              <Check className="w-4 h-4" />
+              Settings saved successfully
+            </span>
+          )}
+        </div>
+        <div className="flex gap-3">
+          {loginPageUrl && (
+            <Button
+              variant="outline"
+              onClick={() => window.open(loginPageUrl, '_blank')}
+              icon={<ExternalLink className="w-4 h-4" />}
+            >
+              Preview
+            </Button>
+          )}
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

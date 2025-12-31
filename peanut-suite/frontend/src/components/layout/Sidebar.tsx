@@ -22,6 +22,8 @@ import {
   ShoppingCart,
   Gauge,
   Info,
+  Server,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAccountStore } from '../../store';
 
@@ -73,6 +75,8 @@ const navigation: NavItem[] = [
   { name: 'Performance', href: '/performance', icon: Gauge, tier: 'pro', feature: 'performance', tourId: 'nav-performance' },
   { name: 'Security', href: '/security', icon: Shield, tier: 'pro', feature: 'security', tourId: 'nav-security' },
   { name: 'Monitor', href: '/monitor', icon: Activity, tier: 'agency', feature: 'monitor', tourId: 'nav-monitor' },
+  { name: 'Servers', href: '/servers', icon: Server, tier: 'agency', feature: 'monitor', tourId: 'nav-servers' },
+  { name: 'Health Reports', href: '/health-reports', icon: ClipboardCheck, tier: 'agency', feature: 'monitor', tourId: 'nav-health-reports' },
   { name: 'Team', href: '/team', icon: UsersRound, tier: 'pro', adminOnly: true, tourId: 'nav-team' },
   { name: 'Settings', href: '/settings', icon: Settings, adminOnly: true, tourId: 'nav-settings' },
 ];

@@ -168,6 +168,20 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
             ],
         ]);
 
+        // Team Login Settings routes
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<account_id>\d+)/login-settings', [
+            [
+                'methods' => WP_REST_Server::READABLE,
+                'callback' => [$this, 'get_login_settings'],
+                'permission_callback' => [$this, 'permission_callback'],
+            ],
+            [
+                'methods' => WP_REST_Server::EDITABLE,
+                'callback' => [$this, 'update_login_settings'],
+                'permission_callback' => [$this, 'permission_callback'],
+            ],
+        ]);
+
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<account_id>\d+)/my-permissions', [
             [
                 'methods' => WP_REST_Server::READABLE,
@@ -732,6 +746,120 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
             'role' => $role,
             'permissions' => $permissions,
             'available_features' => $available_features,
+        ]);
+    }
+
+    // ===============================
+    // Team Login Settings Methods
+    // ===============================
+
+    /**
+     * Get team login page settings
+     */
+    public function get_login_settings(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $account_id = (int) $request->get_param('account_id');
+        $user_id = get_current_user_id();
+
+        if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
+            return $this->error('Admin access required', 'forbidden', 403);
+        }
+
+        $account = Peanut_Account_Service::get_by_id($account_id);
+        if (!$account) {
+            return $this->not_found('Account not found');
+        }
+
+        $settings = $account['settings'] ?? [];
+        $login_settings = $settings['team_login'] ?? [];
+
+        // Get default shortcode
+        $shortcode = '[peanut_team_login';
+        if (!empty($login_settings['logo_url'])) {
+            $shortcode .= ' logo="' . esc_attr($login_settings['logo_url']) . '"';
+        }
+        if (!empty($login_settings['title'])) {
+            $shortcode .= ' title="' . esc_attr($login_settings['title']) . '"';
+        }
+        if (!empty($login_settings['redirect_url'])) {
+            $shortcode .= ' redirect="' . esc_attr($login_settings['redirect_url']) . '"';
+        }
+        $shortcode .= ']';
+
+        return $this->success([
+            'login_page_id' => $login_settings['page_id'] ?? null,
+            'login_page_url' => $login_settings['page_url'] ?? null,
+            'logo_url' => $login_settings['logo_url'] ?? '',
+            'title' => $login_settings['title'] ?? __('Team Login', 'peanut-suite'),
+            'redirect_url' => $login_settings['redirect_url'] ?? admin_url('admin.php?page=peanut-app'),
+            'shortcode' => $shortcode,
+        ]);
+    }
+
+    /**
+     * Update team login page settings
+     */
+    public function update_login_settings(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $account_id = (int) $request->get_param('account_id');
+        $user_id = get_current_user_id();
+
+        if (!$this->user_has_account_role($account_id, $user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'update_login_settings', Peanut_Audit_Log_Service::RESOURCE_ACCOUNT, $account_id);
+            return $this->error('Admin access required', 'forbidden', 403);
+        }
+
+        $account = Peanut_Account_Service::get_by_id($account_id);
+        if (!$account) {
+            return $this->not_found('Account not found');
+        }
+
+        // Get existing settings
+        $settings = $account['settings'] ?? [];
+        $login_settings = $settings['team_login'] ?? [];
+
+        // Update login settings
+        $new_login_settings = [
+            'page_id' => $request->has_param('login_page_id') ? absint($request->get_param('login_page_id')) : ($login_settings['page_id'] ?? null),
+            'page_url' => $request->has_param('login_page_url') ? esc_url_raw($request->get_param('login_page_url')) : ($login_settings['page_url'] ?? null),
+            'logo_url' => $request->has_param('logo_url') ? esc_url_raw($request->get_param('logo_url')) : ($login_settings['logo_url'] ?? ''),
+            'title' => $request->has_param('title') ? sanitize_text_field($request->get_param('title')) : ($login_settings['title'] ?? __('Team Login', 'peanut-suite')),
+            'redirect_url' => $request->has_param('redirect_url') ? esc_url_raw($request->get_param('redirect_url')) : ($login_settings['redirect_url'] ?? admin_url('admin.php?page=peanut-app')),
+        ];
+
+        $settings['team_login'] = $new_login_settings;
+
+        // Update account settings
+        $result = Peanut_Account_Service::update($account_id, ['settings' => $settings]);
+
+        if ($result) {
+            Peanut_Audit_Log_Service::log(
+                $account_id,
+                Peanut_Audit_Log_Service::ACTION_UPDATE,
+                Peanut_Audit_Log_Service::RESOURCE_ACCOUNT,
+                $account_id,
+                ['fields' => ['team_login_settings']]
+            );
+        }
+
+        // Generate updated shortcode
+        $shortcode = '[peanut_team_login';
+        if (!empty($new_login_settings['logo_url'])) {
+            $shortcode .= ' logo="' . esc_attr($new_login_settings['logo_url']) . '"';
+        }
+        if (!empty($new_login_settings['title'])) {
+            $shortcode .= ' title="' . esc_attr($new_login_settings['title']) . '"';
+        }
+        if (!empty($new_login_settings['redirect_url'])) {
+            $shortcode .= ' redirect="' . esc_attr($new_login_settings['redirect_url']) . '"';
+        }
+        $shortcode .= ']';
+
+        return $this->success([
+            'login_page_id' => $new_login_settings['page_id'],
+            'login_page_url' => $new_login_settings['page_url'],
+            'logo_url' => $new_login_settings['logo_url'],
+            'title' => $new_login_settings['title'],
+            'redirect_url' => $new_login_settings['redirect_url'],
+            'shortcode' => $shortcode,
         ]);
     }
 

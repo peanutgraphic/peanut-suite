@@ -14,7 +14,7 @@ class Peanut_Database {
     /**
      * Database version
      */
-    private const DB_VERSION = '2.1.0';
+    private const DB_VERSION = '2.2.0';
 
     /**
      * Table names
@@ -40,6 +40,14 @@ class Peanut_Database {
     public static function api_keys_table(): string { return self::table('api_keys'); }
     public static function audit_log_table(): string { return self::table('audit_log'); }
     public static function utm_access_table(): string { return self::table('utm_access'); }
+
+    // Plesk monitoring tables
+    public static function monitor_servers_table(): string { return self::table('monitor_servers'); }
+    public static function monitor_server_health_table(): string { return self::table('monitor_server_health'); }
+
+    // Health reports tables
+    public static function health_reports_table(): string { return self::table('health_reports'); }
+    public static function health_report_settings_table(): string { return self::table('health_report_settings'); }
 
     /**
      * Create all tables
@@ -311,6 +319,90 @@ class Peanut_Database {
         ) $charset;";
         dbDelta($sql);
 
+        // ===== Plesk Server Monitoring Tables =====
+
+        // Monitor servers table (Plesk servers)
+        $sql = "CREATE TABLE " . self::monitor_servers_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            server_name varchar(255) NOT NULL,
+            server_host varchar(255) NOT NULL,
+            server_port int DEFAULT 8443,
+            api_key_encrypted text DEFAULT NULL,
+            status varchar(20) DEFAULT 'active',
+            last_check datetime DEFAULT NULL,
+            last_health longtext DEFAULT NULL,
+            plesk_version varchar(50) DEFAULT NULL,
+            os_info varchar(255) DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_host (user_id, server_host),
+            KEY user_id (user_id),
+            KEY status (status)
+        ) $charset;";
+        dbDelta($sql);
+
+        // Monitor server health history
+        $sql = "CREATE TABLE " . self::monitor_server_health_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            server_id bigint(20) UNSIGNED NOT NULL,
+            status varchar(20) NOT NULL,
+            score tinyint UNSIGNED DEFAULT NULL,
+            grade char(1) DEFAULT NULL,
+            checks longtext DEFAULT NULL,
+            checked_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY server_id (server_id),
+            KEY checked_at (checked_at),
+            KEY status (status)
+        ) $charset;";
+        dbDelta($sql);
+
+        // ===== Health Reports Tables =====
+
+        // Health reports table
+        $sql = "CREATE TABLE " . self::health_reports_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            report_type varchar(20) DEFAULT 'weekly',
+            period_start date NOT NULL,
+            period_end date NOT NULL,
+            overall_grade char(1) DEFAULT NULL,
+            overall_score tinyint UNSIGNED DEFAULT NULL,
+            sites_data longtext DEFAULT NULL,
+            servers_data longtext DEFAULT NULL,
+            recommendations longtext DEFAULT NULL,
+            sent_at datetime DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY user_id (user_id),
+            KEY period_start (period_start),
+            KEY report_type (report_type)
+        ) $charset;";
+        dbDelta($sql);
+
+        // Health report settings table
+        $sql = "CREATE TABLE " . self::health_report_settings_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            enabled tinyint(1) DEFAULT 1,
+            frequency varchar(20) DEFAULT 'weekly',
+            day_of_week tinyint DEFAULT 1,
+            send_time varchar(5) DEFAULT '08:00',
+            recipients text DEFAULT NULL,
+            include_sites tinyint(1) DEFAULT 1,
+            include_servers tinyint(1) DEFAULT 1,
+            include_recommendations tinyint(1) DEFAULT 1,
+            selected_site_ids text DEFAULT NULL,
+            selected_server_ids text DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_id (user_id)
+        ) $charset;";
+        dbDelta($sql);
+
         // Run migrations for existing data
         self::run_migrations();
 
@@ -338,6 +430,12 @@ class Peanut_Database {
             self::api_keys_table(),
             self::account_members_table(),
             self::accounts_table(),
+            // Plesk monitoring tables
+            self::monitor_server_health_table(),
+            self::monitor_servers_table(),
+            // Health reports tables
+            self::health_reports_table(),
+            self::health_report_settings_table(),
         ];
 
         foreach ($tables as $table) {

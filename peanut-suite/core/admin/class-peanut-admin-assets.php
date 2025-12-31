@@ -121,13 +121,20 @@ class Peanut_Admin_Assets {
                     'tier' => $tier,
                 ]);
 
-                // Localize for Sidebar (Sidebar.tsx expects peanutData)
+                // Get user and account context
+                $user_context = $this->get_user_context();
+
+                // Localize for Sidebar and Account context (peanutData)
                 wp_localize_script('peanut-react-app', 'peanutData', [
                     'version' => PEANUT_VERSION,
+                    'brandName' => apply_filters('peanut_brand_name', 'Marketing Suite'),
                     'license' => [
                         'tier' => $tier,
                         'isPro' => peanut_is_pro(),
                     ],
+                    'user' => $user_context['user'],
+                    'account' => $user_context['account'],
+                    'logoutUrl' => wp_logout_url(home_url('/team-login/')),
                 ]);
             }
             return; // Don't load legacy scripts for React app
@@ -276,6 +283,58 @@ class Peanut_Admin_Assets {
         return [
             'primary' => $colors[1] ?? '#0073aa',
             'primary_hover' => $colors[0] ?? '#005177',
+        ];
+    }
+
+    /**
+     * Get current user and account context for React
+     */
+    private function get_user_context(): array {
+        $user_id = get_current_user_id();
+        $current_user = wp_get_current_user();
+
+        $user_data = null;
+        $account_data = null;
+
+        if ($user_id) {
+            $user_data = [
+                'id' => $user_id,
+                'name' => $current_user->display_name,
+                'email' => $current_user->user_email,
+                'avatar' => get_avatar_url($user_id, ['size' => 96]),
+            ];
+
+            // Get account context if service is available
+            if (class_exists('Peanut_Account_Service')) {
+                $account = Peanut_Account_Service::get_user_account($user_id);
+
+                if ($account) {
+                    $member = Peanut_Account_Service::get_member($account['id'], $user_id);
+                    $permissions = null;
+                    $available_features = [];
+
+                    if ($member) {
+                        $permissions = Peanut_Account_Service::get_member_permissions($account['id'], $user_id);
+                    }
+
+                    $available_features = Peanut_Account_Service::get_available_features($account['tier'] ?? 'free');
+
+                    $account_data = [
+                        'id' => $account['id'],
+                        'name' => $account['name'],
+                        'slug' => $account['slug'] ?? '',
+                        'tier' => $account['tier'] ?? 'free',
+                        'role' => $member['role'] ?? 'owner',
+                        'permissions' => $permissions,
+                        'available_features' => $available_features,
+                    ];
+                }
+            }
+        }
+
+        return [
+            'user' => $user_data,
+            'account' => $account_data,
         ];
     }
 }

@@ -49,10 +49,18 @@ class Peanut_Core {
         require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-rest-controller.php';
         require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-settings-controller.php';
         require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-accounts-controller.php';
+        require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-auth-controller.php';
+        require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-plesk-controller.php';
+
+        // Plesk monitoring (loaded here since it's part of Monitor module)
+        require_once PEANUT_PLUGIN_DIR . 'modules/monitor/class-monitor-plesk.php';
 
         // Admin
         require_once PEANUT_PLUGIN_DIR . 'core/admin/class-peanut-admin.php';
         require_once PEANUT_PLUGIN_DIR . 'core/admin/class-peanut-module-manager.php';
+
+        // Public (frontend)
+        require_once PEANUT_PLUGIN_DIR . 'core/public/class-peanut-public-login.php';
     }
 
     /**
@@ -73,6 +81,9 @@ class Peanut_Core {
 
         // Initialize integrations manager
         Peanut_Integrations::instance();
+
+        // Initialize public login (shortcode)
+        Peanut_Public_Login::instance();
 
         // Setup hooks
         $this->define_admin_hooks();
@@ -100,6 +111,13 @@ class Peanut_Core {
             require_once PEANUT_PLUGIN_DIR . 'modules/monitor/class-monitor-module.php';
             $monitor = new Monitor_Module();
             $monitor->init();
+        }
+
+        // Always initialize Health Reports module in admin context
+        if (!$this->module_manager->get_instance('health-reports')) {
+            require_once PEANUT_PLUGIN_DIR . 'modules/health-reports/class-health-reports-module.php';
+            $health_reports = new Health_Reports_Module();
+            $health_reports->init();
         }
     }
 
@@ -213,6 +231,18 @@ class Peanut_Core {
             'icon' => 'monitor',
             'file' => PEANUT_PLUGIN_DIR . 'modules/monitor/class-monitor-module.php',
             'class' => 'Monitor_Module',
+            'default' => false,
+            'pro' => true,
+            'tier' => 'agency',
+        ]);
+
+        // Health Reports Module (Agency)
+        $this->module_manager->register('health-reports', [
+            'name' => __('Health Reports', 'peanut-suite'),
+            'description' => __('Generate weekly/monthly health reports with grades for WordPress sites and Plesk servers.', 'peanut-suite'),
+            'icon' => 'clipboard-check',
+            'file' => PEANUT_PLUGIN_DIR . 'modules/health-reports/class-health-reports-module.php',
+            'class' => 'Health_Reports_Module',
             'default' => false,
             'pro' => true,
             'tier' => 'agency',
@@ -413,8 +443,32 @@ class Peanut_Core {
         $accounts_controller = new Peanut_Accounts_Controller();
         $accounts_controller->register_routes();
 
+        // Auth API (team login)
+        $auth_controller = new Peanut_Auth_Controller();
+        $auth_controller->register_routes();
+
+        // Plesk Server Monitoring API
+        $plesk_controller = new Peanut_Plesk_Controller();
+        $plesk_controller->register_routes();
+
+        // Initialize tier modules for REST context (they check permissions themselves)
+        $this->init_tier_modules_for_rest();
+
         // Let modules register their routes
         do_action('peanut_register_routes');
+    }
+
+    /**
+     * Initialize tier modules for REST API context
+     * These modules need to be loaded so their routes are registered
+     */
+    private function init_tier_modules_for_rest(): void {
+        // Health Reports module
+        if (!class_exists('Health_Reports_Module')) {
+            require_once PEANUT_PLUGIN_DIR . 'modules/health-reports/class-health-reports-module.php';
+            $health_reports = new Health_Reports_Module();
+            $health_reports->init();
+        }
     }
 
     /**

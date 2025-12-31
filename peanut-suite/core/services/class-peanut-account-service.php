@@ -114,6 +114,29 @@ class Peanut_Account_Service {
     }
 
     /**
+     * Get user's primary account (first account they belong to)
+     */
+    public static function get_user_account(int $user_id): ?array {
+        global $wpdb;
+        $table = Peanut_Database::accounts_table();
+        $members_table = Peanut_Database::account_members_table();
+
+        // Get the first account the user belongs to
+        $account = $wpdb->get_row($wpdb->prepare(
+            "SELECT a.*, m.role
+             FROM $table a
+             JOIN $members_table m ON a.id = m.account_id
+             WHERE m.user_id = %d AND a.status = %s
+             ORDER BY a.id ASC
+             LIMIT 1",
+            $user_id,
+            self::STATUS_ACTIVE
+        ), ARRAY_A);
+
+        return $account ? self::prepare_account($account) : null;
+    }
+
+    /**
      * Get account by ID
      */
     public static function get_by_id(int $id): ?array {
@@ -281,6 +304,44 @@ class Peanut_Account_Service {
                 'created_at' => $member['created_at'],
             ];
         }, $members);
+    }
+
+    /**
+     * Get a single member from account
+     */
+    public static function get_member(int $account_id, int $user_id): ?array {
+        global $wpdb;
+        $members_table = Peanut_Database::account_members_table();
+
+        $member = $wpdb->get_row($wpdb->prepare(
+            "SELECT m.*, u.user_login, u.user_email, u.display_name
+             FROM $members_table m
+             JOIN {$wpdb->users} u ON m.user_id = u.ID
+             WHERE m.account_id = %d AND m.user_id = %d",
+            $account_id,
+            $user_id
+        ), ARRAY_A);
+
+        if (!$member) {
+            return null;
+        }
+
+        $permissions = null;
+        if (!empty($member['feature_permissions'])) {
+            $permissions = json_decode($member['feature_permissions'], true);
+        }
+
+        return [
+            'user_id' => (int) $member['user_id'],
+            'user_login' => $member['user_login'],
+            'user_email' => $member['user_email'],
+            'display_name' => $member['display_name'],
+            'role' => $member['role'],
+            'feature_permissions' => $permissions,
+            'invited_at' => $member['invited_at'],
+            'accepted_at' => $member['accepted_at'],
+            'created_at' => $member['created_at'],
+        ];
     }
 
     /**

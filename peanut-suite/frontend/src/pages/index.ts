@@ -7,5 +7,8 @@ export { default as Popups } from './Popups';
 export { default as PopupBuilder } from './PopupBuilder';
 export { default as Monitor } from './Monitor';
 export { default as SiteDetail } from './SiteDetail';
+export { default as Servers } from './Servers';
+export { default as ServerDetail } from './ServerDetail';
+export { default as HealthReports } from './HealthReports';
 export { default as Settings } from './Settings';
 export { default as Team } from './Team';

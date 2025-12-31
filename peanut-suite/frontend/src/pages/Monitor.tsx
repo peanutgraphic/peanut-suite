@@ -54,7 +54,7 @@ export default function Monitor() {
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [newSite, setNewSite] = useState({ url: '', name: '' });
+  const [newSite, setNewSite] = useState({ url: '', name: '', site_key: '' });
   const [showSampleData, setShowSampleData] = useState(true);
 
   const { data, isLoading } = useQuery({
@@ -72,7 +72,7 @@ export default function Monitor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['monitor-sites'] });
       setAddModalOpen(false);
-      setNewSite({ url: '', name: '' });
+      setNewSite({ url: '', name: '', site_key: '' });
     },
   });
 
@@ -367,6 +367,8 @@ export default function Monitor() {
           <Input
             label="Site Key"
             placeholder="xxxx-xxxx-xxxx-xxxx"
+            value={newSite.site_key}
+            onChange={(e) => setNewSite({ ...newSite, site_key: e.target.value })}
             helper="Get this from the Peanut Connect plugin on the target site"
           />
         </div>

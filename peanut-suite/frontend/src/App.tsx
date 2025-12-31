@@ -13,6 +13,9 @@ import Popups from './pages/Popups';
 import PopupBuilder from './pages/PopupBuilder';
 import Monitor from './pages/Monitor';
 import SiteDetail from './pages/SiteDetail';
+import Servers from './pages/Servers';
+import ServerDetail from './pages/ServerDetail';
+import HealthReports from './pages/HealthReports';
 import Settings from './pages/Settings';
 import Security from './pages/Security';
 import Backlinks from './pages/Backlinks';
@@ -21,12 +24,13 @@ import Keywords from './pages/Keywords';
 import WooCommerce from './pages/WooCommerce';
 import Performance from './pages/Performance';
 import Team from './pages/Team';
-import { FeatureTour, WelcomeModal, ToastProvider } from './components/common';
+import { FeatureTour, WelcomeModal, ToastProvider, ErrorBoundary } from './components/common';
 
 export default function App() {
   return (
-    <ToastProvider>
-      <Routes>
+    <ErrorBoundary>
+      <ToastProvider>
+        <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/utm" element={<UTMBuilder />} />
         <Route path="/utm/library" element={<UTMLibrary />} />
@@ -42,6 +46,9 @@ export default function App() {
         <Route path="/popups/:id/edit" element={<PopupBuilder />} />
         <Route path="/monitor" element={<Monitor />} />
         <Route path="/monitor/sites/:id" element={<SiteDetail />} />
+        <Route path="/servers" element={<Servers />} />
+        <Route path="/servers/:id" element={<ServerDetail />} />
+        <Route path="/health-reports" element={<HealthReports />} />
         <Route path="/security" element={<Security />} />
         <Route path="/backlinks" element={<Backlinks />} />
         <Route path="/sequences" element={<Sequences />} />
@@ -52,9 +59,10 @@ export default function App() {
         <Route path="/settings" element={<Settings />} />
       </Routes>
 
-      {/* Feature Tour */}
-      <WelcomeModal />
-      <FeatureTour />
-    </ToastProvider>
+        {/* Feature Tour */}
+        <WelcomeModal />
+        <FeatureTour />
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }

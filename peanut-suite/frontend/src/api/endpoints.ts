@@ -39,6 +39,24 @@ import type {
   License,
   Tag,
   PaginatedResponse,
+  Account,
+  AccountMember,
+  AccountMemberFormData,
+  AccountRole,
+  FeaturePermissions,
+  // Plesk Server types
+  PleskServer,
+  ServerHealth,
+  ServerHealthHistory,
+  PleskDomain,
+  PleskService,
+  ServerFormData,
+  ServersOverview,
+  // Health Report types
+  HealthReportSettings,
+  HealthReportSettingsFormData,
+  HealthReport,
+  HealthReportPreview,
 } from '../types';
 
 // Pagination params
@@ -1207,5 +1225,390 @@ export const performanceApi = {
   deleteUrl: async (id: number) => {
     const { data } = await api.delete<{ success: boolean; urls: string[] }>(`/performance/urls/${id}`);
     return data;
+  },
+};
+
+// ============================================
+// Auth Endpoints
+// ============================================
+export const authApi = {
+  getCurrentUser: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      user: {
+        id: number;
+        name: string;
+        email: string;
+        avatar: string;
+      };
+      account: {
+        id: number;
+        name: string;
+        slug: string;
+        tier: 'free' | 'pro' | 'agency';
+        role: 'owner' | 'admin' | 'member' | 'viewer';
+        permissions: Record<string, { access: boolean }> | null;
+        available_features: Record<string, { name: string; tier: string; available: boolean }>;
+      } | null;
+    }>('/auth/me');
+    return data;
+  },
+
+  logout: async () => {
+    const { data } = await api.post<{ success: boolean; redirect_url: string }>('/auth/logout');
+    return data;
+  },
+};
+
+// ============================================
+// Accounts & Team Endpoints
+// ============================================
+export const accountsApi = {
+  getAll: async () => {
+    const { data } = await api.get<{ success: boolean; data: Account[] }>('/accounts');
+    return data.data;
+  },
+
+  getById: async (id: number) => {
+    const { data } = await api.get<{ success: boolean; data: Account }>(`/accounts/${id}`);
+    return data.data;
+  },
+
+  update: async (id: number, accountData: { name?: string; settings?: Record<string, unknown> }) => {
+    const { data } = await api.put<{ success: boolean; data: Account }>(`/accounts/${id}`, accountData);
+    return data.data;
+  },
+
+  getStats: async (id: number) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        members: number;
+        utms: number;
+        links: number;
+        contacts: number;
+      };
+    }>(`/accounts/${id}/stats`);
+    return data.data;
+  },
+
+  // Team Members
+  getMembers: async (accountId: number) => {
+    const { data } = await api.get<{ success: boolean; data: AccountMember[] }>(
+      `/accounts/${accountId}/members`
+    );
+    return data.data;
+  },
+
+  addMember: async (accountId: number, member: AccountMemberFormData) => {
+    const { data } = await api.post<{ success: boolean; data: AccountMember }>(
+      `/accounts/${accountId}/members`,
+      member
+    );
+    return data.data;
+  },
+
+  updateMemberRole: async (accountId: number, userId: number, role: AccountRole) => {
+    const { data } = await api.put<{ success: boolean; data: AccountMember[] }>(
+      `/accounts/${accountId}/members/${userId}`,
+      { role }
+    );
+    return data.data;
+  },
+
+  updateMemberPermissions: async (
+    accountId: number,
+    userId: number,
+    permissions: FeaturePermissions
+  ) => {
+    const { data } = await api.put<{ success: boolean; data: AccountMember[] }>(
+      `/accounts/${accountId}/members/${userId}`,
+      { permissions }
+    );
+    return data.data;
+  },
+
+  removeMember: async (accountId: number, userId: number) => {
+    await api.delete(`/accounts/${accountId}/members/${userId}`);
+  },
+
+  transferOwnership: async (accountId: number, newOwnerId: number) => {
+    const { data } = await api.post<{ success: boolean; message: string }>(
+      `/accounts/${accountId}/transfer`,
+      { new_owner_id: newOwnerId }
+    );
+    return data;
+  },
+
+  // Available features list
+  getAvailableFeatures: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        name: string;
+        description: string;
+        tier: 'free' | 'pro' | 'agency';
+      }>;
+    }>('/accounts/features');
+    return data.data;
+  },
+
+  // Team Login Settings
+  getLoginSettings: async (accountId: number) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        login_page_id: number | null;
+        login_page_url: string | null;
+        logo_url: string;
+        title: string;
+        redirect_url: string;
+        shortcode: string;
+      };
+    }>(`/accounts/${accountId}/login-settings`);
+    return data.data;
+  },
+
+  updateLoginSettings: async (accountId: number, settings: {
+    login_page_id?: number | null;
+    login_page_url?: string | null;
+    logo_url?: string;
+    title?: string;
+    redirect_url?: string;
+  }) => {
+    const { data } = await api.put<{
+      success: boolean;
+      data: {
+        login_page_id: number | null;
+        login_page_url: string | null;
+        logo_url: string;
+        title: string;
+        redirect_url: string;
+        shortcode: string;
+      };
+    }>(`/accounts/${accountId}/login-settings`, settings);
+    return data.data;
+  },
+};
+
+// ============================================
+// Plesk Server Monitoring Endpoints
+// ============================================
+export const serversApi = {
+  // List servers
+  getServers: async (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    status?: 'active' | 'disconnected' | 'error';
+    orderby?: string;
+    order?: 'ASC' | 'DESC';
+  }) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        data: PleskServer[];
+        total: number;
+        page: number;
+        per_page: number;
+        total_pages: number;
+      };
+    }>('/monitor/servers', { params });
+    return data.data;
+  },
+
+  // Get overview stats
+  getOverview: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: ServersOverview;
+    }>('/monitor/servers/overview');
+    return data.data;
+  },
+
+  // Get single server
+  getServer: async (id: number) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: PleskServer;
+    }>(`/monitor/servers/${id}`);
+    return data.data;
+  },
+
+  // Add server
+  addServer: async (serverData: ServerFormData) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: PleskServer;
+      message: string;
+    }>('/monitor/servers', serverData);
+    return data;
+  },
+
+  // Update server
+  updateServer: async (id: number, serverData: Partial<ServerFormData>) => {
+    const { data } = await api.put<{
+      success: boolean;
+      data: PleskServer;
+      message: string;
+    }>(`/monitor/servers/${id}`, serverData);
+    return data;
+  },
+
+  // Delete server
+  deleteServer: async (id: number) => {
+    const { data } = await api.delete<{
+      success: boolean;
+      message: string;
+    }>(`/monitor/servers/${id}`);
+    return data;
+  },
+
+  // Force health check
+  checkHealth: async (id: number) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: {
+        server: PleskServer;
+        health: ServerHealth;
+      };
+      message: string;
+    }>(`/monitor/servers/${id}/check`);
+    return data;
+  },
+
+  // Get health history
+  getHealthHistory: async (id: number, days = 30) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        server_id: number;
+        days: number;
+        history: ServerHealthHistory[];
+      };
+    }>(`/monitor/servers/${id}/health`, { params: { days } });
+    return data.data;
+  },
+
+  // Get domains
+  getDomains: async (id: number) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        server_id: number;
+        domains: PleskDomain[];
+      };
+    }>(`/monitor/servers/${id}/domains`);
+    return data.data;
+  },
+
+  // Get services
+  getServices: async (id: number) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        server_id: number;
+        services: PleskService[];
+      };
+    }>(`/monitor/servers/${id}/services`);
+    return data.data;
+  },
+};
+
+// ============================================
+// Health Reports Endpoints
+// ============================================
+export const healthReportsApi = {
+  // Get settings
+  getSettings: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: HealthReportSettings;
+    }>('/health-reports/settings');
+    return data.data;
+  },
+
+  // Update settings
+  updateSettings: async (settings: HealthReportSettingsFormData) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: HealthReportSettings;
+      message: string;
+    }>('/health-reports/settings', settings);
+    return data;
+  },
+
+  // Get latest report
+  getLatest: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: HealthReport | null;
+    }>('/health-reports/latest');
+    return data.data;
+  },
+
+  // Get report history
+  getHistory: async (params?: { page?: number; per_page?: number }) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        data: HealthReport[];
+        total: number;
+        page: number;
+        per_page: number;
+        total_pages: number;
+      };
+    }>('/health-reports/history', { params });
+    return data.data;
+  },
+
+  // Get single report
+  getReport: async (id: number) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: HealthReport;
+    }>(`/health-reports/${id}`);
+    return data.data;
+  },
+
+  // Generate preview (current state)
+  preview: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: HealthReportPreview;
+    }>('/health-reports/preview');
+    return data.data;
+  },
+
+  // Generate and save new report
+  generate: async () => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: HealthReport;
+      message: string;
+    }>('/health-reports/generate');
+    return data;
+  },
+
+  // Send report immediately
+  send: async (id?: number) => {
+    const { data } = await api.post<{
+      success: boolean;
+      message: string;
+    }>('/health-reports/send', { report_id: id });
+    return data;
+  },
+
+  // Get available sites and servers for selection
+  getAvailableItems: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        sites: Array<{ id: number; name: string; url: string }>;
+        servers: Array<{ id: number; name: string; host: string }>;
+      };
+    }>('/health-reports/available-items');
+    return data.data;
   },
 };
