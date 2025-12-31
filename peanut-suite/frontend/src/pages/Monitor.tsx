@@ -18,7 +18,6 @@ import {
 import { Layout } from '../components/layout';
 import {
   Card,
-  Button,
   Input,
   Table,
   Pagination,
@@ -372,17 +371,22 @@ export default function Monitor() {
             helper="Get this from the Peanut Connect plugin on the target site"
           />
         </div>
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
-          <Button variant="outline" onClick={() => setAddModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => addMutation.mutate(newSite)}
-            loading={addMutation.isPending}
-            disabled={!newSite.url}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+          <button
+            type="button"
+            onClick={() => setAddModalOpen(false)}
+            style={{ padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', cursor: 'pointer' }}
           >
-            Add Site
-          </Button>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => addMutation.mutate(newSite)}
+            disabled={!newSite.url || addMutation.isPending}
+            style={{ padding: '8px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: !newSite.url ? 0.5 : 1 }}
+          >
+            {addMutation.isPending ? 'Adding...' : 'Add Site'}
+          </button>
         </div>
       </Modal>
 
