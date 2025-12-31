@@ -96,6 +96,14 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
             ],
         ]);
 
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<account_id>\d+)/members/(?P<user_id>\d+)/set-password', [
+            [
+                'methods' => WP_REST_Server::CREATABLE,
+                'callback' => [$this, 'set_member_password'],
+                'permission_callback' => [$this, 'permission_callback'],
+            ],
+        ]);
+
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<account_id>\d+)/transfer-ownership', [
             [
                 'methods' => WP_REST_Server::CREATABLE,
@@ -518,6 +526,60 @@ class Peanut_Accounts_Controller extends Peanut_REST_Controller {
 
         return $this->success([
             'message' => sprintf('Password reset email sent to %s', $user->user_email),
+        ]);
+    }
+
+    /**
+     * Set password directly for team member
+     */
+    public function set_member_password(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $account_id = (int) $request->get_param('account_id');
+        $target_user_id = (int) $request->get_param('user_id');
+        $new_password = $request->get_param('password');
+        $current_user_id = get_current_user_id();
+
+        // Validate password
+        if (empty($new_password) || strlen($new_password) < 8) {
+            return $this->error('invalid_password', 'Password must be at least 8 characters', 400);
+        }
+
+        // Only admins can set passwords for other users
+        if (!$this->user_has_account_role($account_id, $current_user_id, 'admin')) {
+            $this->log_access_denied($account_id, 'set_member_password', Peanut_Audit_Log_Service::RESOURCE_MEMBER, $target_user_id);
+            return $this->error('forbidden', 'Admin access required', 403);
+        }
+
+        // Verify target user is a member of this account
+        $member_role = Peanut_Account_Service::get_user_role($account_id, $target_user_id);
+        if (!$member_role) {
+            return $this->not_found('Member not found in this account');
+        }
+
+        // Cannot set owner's password unless you are the owner
+        if ($member_role === 'owner' && !$this->user_has_account_role($account_id, $current_user_id, 'owner')) {
+            return $this->error('forbidden', 'Cannot set owner password', 403);
+        }
+
+        // Get user data
+        $user = get_user_by('ID', $target_user_id);
+        if (!$user) {
+            return $this->not_found('User not found');
+        }
+
+        // Set the new password
+        wp_set_password($new_password, $target_user_id);
+
+        // Log the action
+        Peanut_Audit_Log_Service::log(
+            $account_id,
+            Peanut_Audit_Log_Service::ACTION_UPDATE,
+            Peanut_Audit_Log_Service::RESOURCE_MEMBER,
+            $target_user_id,
+            ['action' => 'password_set', 'email' => $user->user_email]
+        );
+
+        return $this->success([
+            'message' => sprintf('Password updated for %s', $user->user_email),
         ]);
     }
 

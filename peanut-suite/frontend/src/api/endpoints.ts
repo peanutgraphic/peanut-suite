@@ -1336,6 +1336,14 @@ export const accountsApi = {
     return data;
   },
 
+  setMemberPassword: async (accountId: number, userId: number, password: string) => {
+    const { data } = await api.post<{ message: string }>(
+      `/accounts/${accountId}/members/${userId}/set-password`,
+      { password }
+    );
+    return data;
+  },
+
   transferOwnership: async (accountId: number, newOwnerId: number) => {
     const { data } = await api.post<{ message: string }>(
       `/accounts/${accountId}/transfer`,

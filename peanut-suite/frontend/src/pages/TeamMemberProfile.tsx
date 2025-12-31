@@ -11,6 +11,7 @@ import {
   Loader2,
   AlertCircle,
   KeyRound,
+  Lock,
   Trash2,
   Calendar,
   Mail,
@@ -54,6 +55,10 @@ export default function TeamMemberProfile() {
   const [permissions, setPermissions] = useState<FeaturePermissions>({});
   const [selectedRole, setSelectedRole] = useState<AccountRole>('member');
   const [hasChanges, setHasChanges] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [settingPassword, setSettingPassword] = useState(false);
 
   // Get account context from store
   const { account, isInitialized, fetchCurrentUser } = useAccountStore();
@@ -190,6 +195,37 @@ export default function TeamMemberProfile() {
     }
   };
 
+  const handleSetPassword = async () => {
+    if (!accountId || !member) return;
+
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setSettingPassword(true);
+    setError(null);
+
+    try {
+      await accountsApi.setMemberPassword(accountId, member.user_id, newPassword);
+      setSuccessMessage('Password updated successfully');
+      setShowPasswordModal(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      setError('Failed to set password');
+      console.error(err);
+    } finally {
+      setSettingPassword(false);
+    }
+  };
+
   const enabledCount = Object.values(permissions).filter((p) => p?.access).length;
 
   // Loading state
@@ -306,6 +342,14 @@ export default function TeamMemberProfile() {
                 <Button
                   variant="outline"
                   className="w-full justify-start"
+                  onClick={() => setShowPasswordModal(true)}
+                  icon={<Lock className="w-4 h-4" />}
+                >
+                  Set New Password
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
                   onClick={handleResetPassword}
                   icon={<KeyRound className="w-4 h-4" />}
                 >
@@ -360,70 +404,75 @@ export default function TeamMemberProfile() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium text-slate-900">Feature Access</h3>
-              <span className="text-sm text-slate-500">{enabledCount} of {FEATURES.length} enabled</span>
+              <span className="text-sm text-slate-500">
+                {selectedRole === 'admin' || member.role === 'owner'
+                  ? `${FEATURES.length} of ${FEATURES.length} enabled`
+                  : `${enabledCount} of ${FEATURES.length} enabled`}
+              </span>
             </div>
 
-            {selectedRole === 'admin' ? (
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-700">
-                Admins have full access to all features. Individual permissions cannot be customized.
-              </div>
-            ) : member.role === 'owner' ? (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
-                Owners have full access to all features and settings.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {FEATURES.map((feature) => {
-                  const isEnabled = permissions[feature.id as FeatureId]?.access;
-                  return (
-                    <div
-                      key={feature.id}
-                      className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                        isEnabled ? 'border-green-200 bg-green-50/50' : 'border-slate-200 hover:bg-slate-50'
-                      } ${!canManage ? 'cursor-default' : 'cursor-pointer'}`}
-                      onClick={() => canManage && togglePermission(feature.id as FeatureId)}
-                    >
-                      <div className="flex items-center gap-3">
-                        {isEnabled ? (
-                          <Check className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <X className="w-5 h-5 text-slate-300" />
-                        )}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-slate-700">{feature.name}</span>
-                            {feature.tier !== 'free' && (
-                              <Badge variant="default" size="sm">
-                                {feature.tier}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500 mt-0.5">{feature.description}</p>
-                        </div>
-                      </div>
-                      {canManage && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            togglePermission(feature.id as FeatureId);
-                          }}
-                          className={`w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-                            isEnabled ? 'bg-green-500' : 'bg-slate-200'
-                          }`}
-                        >
-                          <span
-                            className={`block w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                              isEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'
-                            }`}
-                          />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* Info message for admin/owner */}
+            {(selectedRole === 'admin' || member.role === 'owner') && (
+              <div className={`p-4 mb-4 rounded-lg text-sm ${
+                member.role === 'owner'
+                  ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                  : 'bg-purple-50 border border-purple-200 text-purple-700'
+              }`}>
+                {member.role === 'owner'
+                  ? 'Owners have full access to all features and settings.'
+                  : 'Admins have full access to all features. Individual permissions cannot be customized.'}
               </div>
             )}
+
+            <div className="space-y-2">
+              {FEATURES.map((feature) => {
+                // For admin/owner, all features are enabled
+                const isAdminOrOwner = selectedRole === 'admin' || member.role === 'owner';
+                const isEnabled = isAdminOrOwner ? true : permissions[feature.id as FeatureId]?.access;
+                const canToggle = canManage && !isAdminOrOwner && member.role !== 'owner';
+
+                return (
+                  <div
+                    key={feature.id}
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                      isEnabled ? 'border-green-200 bg-green-50/50' : 'border-slate-200 hover:bg-slate-50'
+                    } ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
+                    onClick={() => canToggle && togglePermission(feature.id as FeatureId)}
+                  >
+                    <div className="flex items-center gap-3">
+                      {isEnabled ? (
+                        <Check className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <X className="w-5 h-5 text-slate-300" />
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-slate-700">{feature.name}</span>
+                          {feature.tier !== 'free' && (
+                            <Badge variant="default" size="sm">
+                              {feature.tier}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">{feature.description}</p>
+                      </div>
+                    </div>
+                    {/* Toggle switch - disabled for admin/owner */}
+                    <div
+                      className={`w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                        isEnabled ? 'bg-green-500' : 'bg-slate-200'
+                      } ${isAdminOrOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <span
+                        className={`block w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                          isEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </Card>
 
           {/* Save Button */}
@@ -440,6 +489,74 @@ export default function TeamMemberProfile() {
           )}
         </div>
       </div>
+
+      {/* Set Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              Set New Password
+            </h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Set a new password for {member?.display_name || member?.user_email}
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Enter new password"
+                  minLength={8}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Confirm new password"
+                  minLength={8}
+                />
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Password must be at least 8 characters long.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSetPassword}
+                disabled={settingPassword || !newPassword || !confirmPassword}
+                icon={settingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+              >
+                {settingPassword ? 'Setting...' : 'Set Password'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
