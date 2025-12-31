@@ -1429,13 +1429,12 @@ export const accountsApi = {
   },
 
   exportAuditLog: async (accountId: number, format: 'csv' | 'json' = 'csv') => {
-    const { data } = await api.get<{
-      success: boolean;
-      data: AuditLogEntry[];
-    }>(`/accounts/${accountId}/audit-log/export`, {
-      params: { format },
-    });
-    return data.data || [];
+    const { data } = await api.get<AuditLogEntry[]>(
+      `/accounts/${accountId}/audit-log/export`,
+      { params: { format } }
+    );
+    // After interceptor unwrap, data is the array directly
+    return Array.isArray(data) ? data : [];
   },
 };
 
