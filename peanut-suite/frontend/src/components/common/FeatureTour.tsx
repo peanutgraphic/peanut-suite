@@ -29,6 +29,7 @@ export default function FeatureTour() {
     prevStep,
     skipTour,
     endTour,
+    hasSeenWelcome,
   } = useTourStore();
 
   const [spotlight, setSpotlight] = useState<SpotlightPosition | null>(null);
@@ -161,7 +162,8 @@ export default function FeatureTour() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isActive, nextStep, prevStep, skipTour]);
 
-  if (!isActive || !step) return null;
+  // Don't render if tour isn't active, no step, or welcome modal hasn't been dismissed yet
+  if (!isActive || !step || !hasSeenWelcome) return null;
 
   const progress = ((currentStep + 1) / tourSteps.length) * 100;
 
@@ -312,7 +314,10 @@ export function WelcomeModal() {
   const handleStartTour = () => {
     setIsOpen(false);
     setHasSeenWelcome(true);
-    startTour();
+    // Delay tour start to let welcome modal fully close first
+    setTimeout(() => {
+      startTour();
+    }, 350);
   };
 
   const handleSkip = () => {
