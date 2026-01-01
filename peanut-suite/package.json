@@ -10,7 +10,11 @@
     "install:frontend": "cd frontend && npm install",
     "clean": "rm -rf dist peanut-suite.zip",
     "package": "npm run build:production && bash scripts/package.sh",
-    "release": "npm run clean && npm run package"
+    "release": "npm run clean && npm run package",
+    "bump": "bash scripts/bump-version.sh",
+    "bump:patch": "bash scripts/bump-version.sh patch",
+    "bump:minor": "bash scripts/bump-version.sh minor",
+    "bump:major": "bash scripts/bump-version.sh major"
   },
   "keywords": [
     "wordpress",
