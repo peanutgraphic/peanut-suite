@@ -109,6 +109,13 @@ class Peanut_Settings_Controller extends Peanut_REST_Controller {
             'callback' => [$this, 'delete_all_data'],
             'permission_callback' => [$this, 'admin_permission_callback'],
         ]);
+
+        // OpenAPI documentation (public endpoint)
+        register_rest_route($this->namespace, '/openapi', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => [$this, 'get_openapi_spec'],
+            'permission_callback' => '__return_true',
+        ]);
     }
 
     /**
@@ -505,6 +512,46 @@ class Peanut_Settings_Controller extends Peanut_REST_Controller {
 
         return $this->success([
             'message' => __('All plugin data has been deleted', 'peanut-suite'),
+        ]);
+    }
+
+    /**
+     * Get OpenAPI specification
+     */
+    public function get_openapi_spec(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $spec_file = PEANUT_PLUGIN_DIR . 'docs/openapi.yaml';
+
+        if (!file_exists($spec_file)) {
+            return $this->error(
+                __('OpenAPI specification not found', 'peanut-suite'),
+                'spec_not_found',
+                404
+            );
+        }
+
+        $content = file_get_contents($spec_file);
+        if ($content === false) {
+            return $this->error(
+                __('Failed to read OpenAPI specification', 'peanut-suite'),
+                'read_error',
+                500
+            );
+        }
+
+        // Check if YAML extension is available for proper parsing
+        if (function_exists('yaml_parse')) {
+            $spec = yaml_parse($content);
+        } else {
+            // Return raw YAML if extension not available
+            return new WP_REST_Response([
+                'format' => 'yaml',
+                'spec' => $content,
+            ], 200);
+        }
+
+        return $this->success([
+            'format' => 'json',
+            'spec' => $spec,
         ]);
     }
 }
