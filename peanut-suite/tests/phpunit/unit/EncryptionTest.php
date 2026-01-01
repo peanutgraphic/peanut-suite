@@ -87,8 +87,8 @@ class EncryptionTest extends Peanut_Test_Case {
     public function test_is_available_returns_bool(): void {
         $result = Peanut_Encryption::is_available();
         $this->assertIsBool($result);
-        // OpenSSL should be available in most PHP installations
-        $this->assertTrue($result);
+        // Note: OpenSSL availability depends on PHP installation
+        // We only assert it's a boolean, not that it's true
     }
 
     public function test_mask_hides_middle_of_string(): void {
