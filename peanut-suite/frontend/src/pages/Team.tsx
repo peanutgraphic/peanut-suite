@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { getPortalRoot } from '../utils/portalRoot';
 import {
   Users,
   UserPlus,
@@ -492,7 +493,7 @@ function MemberRow({
                   </button>
                 </div>
               </>,
-              document.body
+              getPortalRoot()
             )}
           </div>
         )}

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getPortalRoot } from '../../utils/portalRoot';
 import { X, ChevronLeft, ChevronRight, SkipForward } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTourStore, tourSteps } from '../../store/useTourStore';
@@ -291,7 +292,7 @@ export default function FeatureTour() {
         </div>
       </div>
     </div>,
-    document.body
+    getPortalRoot()
   );
 }
 
@@ -387,7 +388,7 @@ export function WelcomeModal() {
         </div>
       </div>
     </div>,
-    document.body
+    getPortalRoot()
   );
 }
 

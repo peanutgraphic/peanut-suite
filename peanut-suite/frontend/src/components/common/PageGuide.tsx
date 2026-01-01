@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { getPortalRoot } from '../../utils/portalRoot';
 import {
   X,
   ChevronLeft,
@@ -390,7 +391,7 @@ export default function PageGuide({ pageId }: PageGuideProps) {
         </div>
       </div>
     </div>,
-    document.body
+    getPortalRoot()
   );
 }
 
