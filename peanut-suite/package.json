@@ -14,7 +14,8 @@
     "bump": "bash scripts/bump-version.sh",
     "bump:patch": "bash scripts/bump-version.sh patch",
     "bump:minor": "bash scripts/bump-version.sh minor",
-    "bump:major": "bash scripts/bump-version.sh major"
+    "bump:major": "bash scripts/bump-version.sh major",
+    "deploy": "rsync -avz --delete --exclude='.git' --exclude='node_modules' --exclude='.env' --exclude='dist' ./ peanutgraphic:~/public_html/wp-content/plugins/peanut-suite/"
   },
   "keywords": [
     "wordpress",
