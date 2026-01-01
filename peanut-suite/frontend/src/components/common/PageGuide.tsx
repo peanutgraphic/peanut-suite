@@ -55,6 +55,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { usePageGuideStore } from '../../store/usePageGuideStore';
+import { useTourStore } from '../../store/useTourStore';
 import { getPageGuide } from '../../constants/pageGuides';
 import Button from './Button';
 
@@ -421,15 +422,17 @@ export function PageGuideButton({ pageId }: { pageId: string }) {
 // Hook for auto-showing guide on first visit
 export function useAutoShowGuide(pageId: string) {
   const { shouldAutoShow, openGuide } = usePageGuideStore();
+  const { hasSeenWelcome } = useTourStore();
   const guide = getPageGuide(pageId);
 
   useEffect(() => {
-    if (guide && shouldAutoShow(pageId)) {
+    // Don't auto-show guides if the welcome modal hasn't been dismissed yet
+    if (guide && shouldAutoShow(pageId) && hasSeenWelcome) {
       // Small delay for page to render
       const timer = setTimeout(() => {
         openGuide(pageId);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [pageId, guide, shouldAutoShow, openGuide]);
+  }, [pageId, guide, shouldAutoShow, openGuide, hasSeenWelcome]);
 }
