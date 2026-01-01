@@ -18,29 +18,44 @@ export default function Tooltip({
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const [actualPosition, setActualPosition] = useState(position);
   const triggerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isVisible && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const tooltipWidth = 200; // max-w-[200px]
+      const estimatedTooltipHeight = 150; // Estimate for auto-flip check
       const gap = 8;
+      const padding = 8;
+
+      // Determine best position (auto-flip if needed)
+      let bestPosition = position;
+
+      if (position === 'top' && rect.top < estimatedTooltipHeight + gap + padding) {
+        bestPosition = 'bottom';
+      } else if (position === 'bottom' && window.innerHeight - rect.bottom < estimatedTooltipHeight + gap + padding) {
+        bestPosition = 'top';
+      }
+
+      setActualPosition(bestPosition);
 
       let top = 0;
       let left = 0;
 
-      switch (position) {
+      switch (bestPosition) {
         case 'top':
           top = rect.top - gap;
-          left = rect.left + rect.width / 2 - tooltipWidth / 2;
+          left = rect.left + rect.width / 2;
           break;
         case 'bottom':
           top = rect.bottom + gap;
-          left = rect.left + rect.width / 2 - tooltipWidth / 2;
+          left = rect.left + rect.width / 2;
           break;
         case 'left':
           top = rect.top + rect.height / 2;
-          left = rect.left - tooltipWidth - gap;
+          left = rect.left - gap;
           break;
         case 'right':
           top = rect.top + rect.height / 2;
@@ -49,10 +64,10 @@ export default function Tooltip({
       }
 
       // Keep tooltip within viewport horizontally
-      const padding = 8;
-      if (left < padding) left = padding;
-      if (left + tooltipWidth > window.innerWidth - padding) {
-        left = window.innerWidth - tooltipWidth - padding;
+      const halfWidth = tooltipWidth / 2;
+      if (left - halfWidth < padding) left = halfWidth + padding;
+      if (left + halfWidth > window.innerWidth - padding) {
+        left = window.innerWidth - halfWidth - padding;
       }
 
       setCoords({ top, left });
@@ -69,7 +84,7 @@ export default function Tooltip({
   const transformClasses = {
     top: '-translate-x-1/2 -translate-y-full',
     bottom: '-translate-x-1/2',
-    left: '-translate-y-1/2',
+    left: '-translate-x-full -translate-y-1/2',
     right: '-translate-y-1/2',
   };
 
@@ -83,9 +98,10 @@ export default function Tooltip({
       {children}
       {isVisible && createPortal(
         <div
+          ref={tooltipRef}
           className={clsx(
-            'fixed z-[99999] px-3 py-2 text-sm text-white bg-slate-800 rounded-lg shadow-lg max-w-[200px] pointer-events-none',
-            transformClasses[position],
+            'fixed z-[999999] px-3 py-2 text-sm text-white bg-slate-800 rounded-lg shadow-lg max-w-[200px] pointer-events-none',
+            transformClasses[actualPosition],
             className
           )}
           style={{ top: coords.top, left: coords.left }}
@@ -94,7 +110,7 @@ export default function Tooltip({
           <div
             className={clsx(
               'absolute w-0 h-0 border-4',
-              arrowClasses[position]
+              arrowClasses[actualPosition]
             )}
           />
         </div>,

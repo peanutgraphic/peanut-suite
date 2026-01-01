@@ -14,16 +14,18 @@ export function getPortalRoot(): HTMLElement {
     portalRoot = document.getElementById('peanut-portal-root');
 
     if (!portalRoot) {
-      // Create the portal container inside the React app root
-      // This prevents conflicts with WordPress admin scripts that manipulate document.body
-      const appRoot = document.getElementById('peanut-app');
-      const parent = appRoot || document.body;
-
+      // Create portal container directly on document.body to escape all stacking contexts
+      // This ensures tooltips/modals appear above WordPress admin bar and all other elements
       portalRoot = document.createElement('div');
       portalRoot.id = 'peanut-portal-root';
-      portalRoot.style.position = 'relative';
-      portalRoot.style.zIndex = '99999';
-      parent.appendChild(portalRoot);
+      portalRoot.style.position = 'fixed';
+      portalRoot.style.top = '0';
+      portalRoot.style.left = '0';
+      portalRoot.style.width = '0';
+      portalRoot.style.height = '0';
+      portalRoot.style.zIndex = '999999';
+      portalRoot.style.pointerEvents = 'none';
+      document.body.appendChild(portalRoot);
     }
   }
 
