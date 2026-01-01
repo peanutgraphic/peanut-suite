@@ -498,6 +498,27 @@ Peanut Connect exposes endpoints that allow the main Peanut Suite installation t
 | Peanut Landing | Landing page builder | Planned |
 | Peanut Nurture | Email sequences & automation | Planned |
 
+## Future Improvements
+
+Technical debt and enhancements to consider:
+
+### Database
+- [ ] Add transaction rollbacks for bulk operations (bulk delete, bulk update)
+- [ ] Add database migration versioning system
+
+### Testing
+- [ ] Increase PHPUnit test coverage for API controllers
+- [ ] Add integration tests for module interactions
+- [ ] Add E2E tests with Playwright
+
+### Performance
+- [ ] Add Redis/object caching layer for frequently accessed data
+- [ ] Implement query result caching for dashboard stats
+
+### Documentation
+- [ ] Add inline PHPDoc blocks to remaining classes
+- [ ] Create developer guide for custom module creation
+
 ## Contributing
 
 1. Fork the repository
