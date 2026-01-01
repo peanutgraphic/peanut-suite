@@ -122,7 +122,7 @@ export const tourSteps: TourStep[] = [
   {
     id: 'tour-complete',
     target: '[data-tour="sidebar"]',
-    title: 'You\'re All Set! 🎉',
+    title: 'You\'re All Set!',
     content: 'That\'s the basics! Explore each section to discover more features. You can restart this tour anytime from Settings.',
     placement: 'right',
     route: '/',
