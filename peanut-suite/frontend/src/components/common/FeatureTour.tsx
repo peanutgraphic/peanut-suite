@@ -64,13 +64,40 @@ export default function FeatureTour() {
 
     // Calculate tooltip position based on placement
     const tooltipWidth = 320;
-    const tooltipHeight = 180; // Approximate
+    const tooltipHeight = 240; // Increased to account for actual tooltip content
     const offset = 16;
+    const viewportPadding = 24; // Padding from viewport edges
 
     let top = 0;
     let left = 0;
 
-    switch (step.placement) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Determine best placement - auto-flip if not enough space
+    let placement = step.placement || 'bottom';
+
+    // Check if there's enough space for the preferred placement
+    const spaceAbove = rect.top;
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceLeft = rect.left;
+    const spaceRight = viewportWidth - rect.right;
+
+    // Auto-flip vertical placements
+    if (placement === 'bottom' && spaceBelow < tooltipHeight + offset + viewportPadding) {
+      if (spaceAbove > spaceBelow) placement = 'top';
+    } else if (placement === 'top' && spaceAbove < tooltipHeight + offset + viewportPadding) {
+      if (spaceBelow > spaceAbove) placement = 'bottom';
+    }
+
+    // Auto-flip horizontal placements
+    if (placement === 'right' && spaceRight < tooltipWidth + offset + viewportPadding) {
+      if (spaceLeft > spaceRight) placement = 'left';
+    } else if (placement === 'left' && spaceLeft < tooltipWidth + offset + viewportPadding) {
+      if (spaceRight > spaceLeft) placement = 'right';
+    }
+
+    switch (placement) {
       case 'right':
         top = rect.top + rect.height / 2 - tooltipHeight / 2;
         left = rect.right + offset;
@@ -90,14 +117,15 @@ export default function FeatureTour() {
         break;
     }
 
-    // Keep tooltip in viewport
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    if (left < 16) left = 16;
-    if (left + tooltipWidth > viewportWidth - 16) left = viewportWidth - tooltipWidth - 16;
-    if (top < 16) top = 16;
-    if (top + tooltipHeight > viewportHeight - 16) top = viewportHeight - tooltipHeight - 16;
+    // Keep tooltip in viewport with padding
+    if (left < viewportPadding) left = viewportPadding;
+    if (left + tooltipWidth > viewportWidth - viewportPadding) {
+      left = viewportWidth - tooltipWidth - viewportPadding;
+    }
+    if (top < viewportPadding) top = viewportPadding;
+    if (top + tooltipHeight > viewportHeight - viewportPadding) {
+      top = viewportHeight - tooltipHeight - viewportPadding;
+    }
 
     setTooltipPos({ top, left });
   }, [step]);
