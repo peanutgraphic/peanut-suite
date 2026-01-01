@@ -88,6 +88,36 @@ if (!function_exists('delete_option')) {
     }
 }
 
+// Transient functions
+if (!function_exists('get_transient')) {
+    function get_transient($transient) {
+        global $wp_transients;
+        if (!isset($wp_transients)) {
+            $wp_transients = [];
+        }
+        return $wp_transients[$transient] ?? false;
+    }
+}
+
+if (!function_exists('set_transient')) {
+    function set_transient($transient, $value, $expiration = 0) {
+        global $wp_transients;
+        if (!isset($wp_transients)) {
+            $wp_transients = [];
+        }
+        $wp_transients[$transient] = $value;
+        return true;
+    }
+}
+
+if (!function_exists('delete_transient')) {
+    function delete_transient($transient) {
+        global $wp_transients;
+        unset($wp_transients[$transient]);
+        return true;
+    }
+}
+
 if (!function_exists('get_current_user_id')) {
     function get_current_user_id() {
         return 1;
@@ -114,7 +144,11 @@ if (!function_exists('sanitize_text_field')) {
 
 if (!function_exists('sanitize_email')) {
     function sanitize_email($email) {
-        return filter_var($email, FILTER_SANITIZE_EMAIL);
+        // WordPress sanitize_email strips whitespace first
+        $email = trim($email);
+        $sanitized = filter_var($email, FILTER_SANITIZE_EMAIL);
+        // Validate and return empty if invalid
+        return filter_var($sanitized, FILTER_VALIDATE_EMAIL) ? $sanitized : '';
     }
 }
 
@@ -163,6 +197,65 @@ if (!function_exists('esc_attr')) {
 if (!function_exists('esc_url')) {
     function esc_url($url) {
         return filter_var($url, FILTER_SANITIZE_URL);
+    }
+}
+
+if (!function_exists('esc_url_raw')) {
+    function esc_url_raw($url, $protocols = null) {
+        // Simple implementation - just validate it's a URL
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            return $url;
+        }
+        return '';
+    }
+}
+
+if (!function_exists('wp_unslash')) {
+    function wp_unslash($value) {
+        return is_string($value) ? stripslashes($value) : $value;
+    }
+}
+
+if (!function_exists('wp_parse_args')) {
+    function wp_parse_args($args, $defaults = []) {
+        if (is_object($args)) {
+            $args = get_object_vars($args);
+        }
+        if (!is_array($args)) {
+            parse_str($args, $args);
+        }
+        return array_merge($defaults, $args);
+    }
+}
+
+if (!function_exists('wp_verify_nonce')) {
+    function wp_verify_nonce($nonce, $action = -1) {
+        // In tests, accept any non-empty nonce as valid
+        return !empty($nonce) ? 1 : false;
+    }
+}
+
+if (!function_exists('wp_create_nonce')) {
+    function wp_create_nonce($action = -1) {
+        return 'test_nonce_' . $action;
+    }
+}
+
+if (!function_exists('current_time')) {
+    function current_time($type, $gmt = 0) {
+        if ($type === 'timestamp' || $type === 'U') {
+            return time();
+        }
+        if ($type === 'mysql') {
+            return gmdate('Y-m-d H:i:s');
+        }
+        return date($type);
+    }
+}
+
+if (!function_exists('wp_parse_url')) {
+    function wp_parse_url($url, $component = -1) {
+        return parse_url($url, $component);
     }
 }
 
@@ -334,3 +427,6 @@ if (!defined('ARRAY_A')) {
 if (!defined('ARRAY_N')) {
     define('ARRAY_N', 'ARRAY_N');
 }
+
+// Load namespaced mocks
+require_once __DIR__ . '/namespace-mocks.php';
