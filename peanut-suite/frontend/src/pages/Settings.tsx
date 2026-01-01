@@ -37,7 +37,7 @@ export default function Settings() {
   ];
 
   return (
-    <Layout title="Settings" description="Configure your Peanut Suite" pageGuideId="settings">
+    <Layout title="Settings" description="Configure your Marketing Suite" pageGuideId="settings">
       <div className="flex gap-6">
         {/* Sidebar */}
         <div className="w-56 flex-shrink-0">
@@ -627,7 +627,7 @@ function AdvancedSettings() {
               <p className="text-sm text-slate-500">
                 {hasCompletedTour
                   ? 'You\'ve completed the tour. Restart anytime to refresh your memory.'
-                  : 'Take a guided tour of all Peanut Suite features.'}
+                  : 'Take a guided tour of all Marketing Suite features.'}
               </p>
             </div>
             <Button
@@ -754,7 +754,7 @@ function AdvancedSettings() {
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-600">
-            Select a JSON file exported from Peanut Suite to import your data.
+            Select a JSON file exported from Marketing Suite to import your data.
           </p>
           <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
             <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />

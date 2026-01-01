@@ -188,7 +188,7 @@ class Peanut_Help {
 
     private function get_dashboard_help(): string {
         return '
-            <h3>' . __('Welcome to Peanut Suite', 'peanut-suite') . '</h3>
+            <h3>' . __('Welcome to Marketing Suite', 'peanut-suite') . '</h3>
             <p>' . __('The dashboard gives you a quick overview of your marketing performance. Here you can see:', 'peanut-suite') . '</p>
             <ul>
                 <li><strong>' . __('Stats Cards', 'peanut-suite') . '</strong> - ' . __('Key metrics at a glance including total UTM campaigns, links, contacts, and popups.', 'peanut-suite') . '</li>
@@ -366,7 +366,7 @@ class Peanut_Help {
             <h3>' . __('Understanding Webhooks', 'peanut-suite') . '</h3>
             <p>' . __('Webhooks are automated messages sent from one application to another when an event occurs.', 'peanut-suite') . '</p>
 
-            <p>' . __('Peanut Suite receives webhooks from FormFlow and other sources to:', 'peanut-suite') . '</p>
+            <p>' . __('Marketing Suite receives webhooks from FormFlow and other sources to:', 'peanut-suite') . '</p>
             <ul>
                 <li>' . __('Create contacts from form submissions', 'peanut-suite') . '</li>
                 <li>' . __('Track conversions for attribution', 'peanut-suite') . '</li>

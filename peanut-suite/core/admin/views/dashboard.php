@@ -17,7 +17,7 @@ $stats = $this->get_dashboard_stats();
 <?php if (get_option('peanut_show_welcome', true)): ?>
 <div class="peanut-card peanut-welcome-card">
     <h3>
-        <?php esc_html_e('Welcome to Peanut Suite!', 'peanut-suite'); ?>
+        <?php esc_html_e('Welcome to Marketing Suite!', 'peanut-suite'); ?>
         <button type="button" class="peanut-dismiss-card" data-dismiss-welcome aria-label="<?php esc_attr_e('Dismiss', 'peanut-suite'); ?>">
             <span class="dashicons dashicons-no-alt"></span>
         </button>
@@ -238,7 +238,7 @@ $stats = $this->get_dashboard_stats();
             </ul>
             <?php else: ?>
             <div class="peanut-empty-state" style="padding: 40px 20px;">
-                <p><?php esc_html_e('No recent activity. Start using Peanut Suite to see your activity here.', 'peanut-suite'); ?></p>
+                <p><?php esc_html_e('No recent activity. Start using Marketing Suite to see your activity here.', 'peanut-suite'); ?></p>
             </div>
             <?php endif; ?>
         </div>

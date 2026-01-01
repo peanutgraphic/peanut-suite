@@ -109,7 +109,7 @@ export const pageGuides: Record<string, PageGuide> = {
       {
         icon: 'Plus',
         title: 'Create Your First Link',
-        description: 'Click "Add Link" and paste a long URL. Peanut Suite will generate a short, trackable version you can share anywhere.',
+        description: 'Click "Add Link" and paste a long URL. Marketing Suite will generate a short, trackable version you can share anywhere.',
         expected: 'A modal opens with fields for your destination URL and optional custom slug.',
         troubleshoot: 'If you can\'t create links, check your license status in Settings.',
       },
@@ -440,7 +440,7 @@ export const pageGuides: Record<string, PageGuide> = {
       {
         icon: 'UserPlus',
         title: 'Invite a Team Member',
-        description: 'Click "Add Member" and enter their email. They\'ll receive an invitation to join your Peanut Suite account.',
+        description: 'Click "Add Member" and enter their email. They\'ll receive an invitation to join your Marketing Suite account.',
         expected: 'The invitation is sent immediately. They\'ll appear as "pending" until they accept.',
         troubleshoot: 'If they don\'t receive the email, check spam folders or resend the invitation.',
       },
@@ -471,7 +471,7 @@ export const pageGuides: Record<string, PageGuide> = {
   settings: {
     id: 'settings',
     title: 'Welcome to Settings',
-    subtitle: 'Configure your Peanut Suite installation, license, and integrations.',
+    subtitle: 'Configure your Marketing Suite installation, license, and integrations.',
     steps: [
       {
         icon: 'Settings',

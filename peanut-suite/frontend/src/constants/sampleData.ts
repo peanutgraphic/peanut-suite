@@ -580,7 +580,7 @@ export const sampleBacklinks = [
     source_url: 'https://wpbeginner.com/plugins/best-marketing-plugins',
     source_domain: 'wpbeginner.com',
     target_url: 'https://example.com/',
-    anchor_text: 'Peanut Suite',
+    anchor_text: 'Marketing Suite',
     link_type: 'dofollow' as const,
     status: 'active' as const,
     first_seen: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
@@ -883,7 +883,7 @@ export const sampleSequenceDetail = {
     {
       id: 1,
       sequence_id: 1,
-      subject: 'Welcome to Peanut Suite!',
+      subject: 'Welcome to Marketing Suite!',
       body: '<p>Thank you for signing up! Here\'s what you need to know to get started...</p>',
       delay_days: 0,
       delay_hours: 0,

@@ -156,7 +156,7 @@ export const helpContent = {
 
     timezone: 'Used for analytics and scheduled features. Set to your primary audience\'s timezone.',
 
-    license: 'Your Peanut Suite license key. Enter to unlock Pro or Agency features.',
+    license: 'Your Marketing Suite license key. Enter to unlock Pro or Agency features.',
 
     integrations: 'Connect third-party services like Google Analytics, Mailchimp, or ConvertKit.',
 

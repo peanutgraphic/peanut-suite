@@ -320,7 +320,7 @@ export const pageDescriptions: Record<string, PageDescription> = {
 
   settings: {
     title: 'Settings',
-    subtitle: 'Configure Peanut Suite to fit your workflow',
+    subtitle: 'Configure Marketing Suite to fit your workflow',
     description: 'Customize domains, integrations, tracking, and more. Set up everything once and let the automation do the rest.',
     howTo: {
       title: 'Essential Settings to Configure',

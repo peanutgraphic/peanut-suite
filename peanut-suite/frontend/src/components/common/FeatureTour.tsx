@@ -338,7 +338,7 @@ export function WelcomeModal() {
             <span className="text-5xl">🥜</span>
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">
-            Welcome to Peanut Suite!
+            Welcome to Marketing Suite!
           </h2>
           <p className="text-primary-100">
             Your all-in-one marketing toolkit

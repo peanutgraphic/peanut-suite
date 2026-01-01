@@ -211,7 +211,7 @@ class WhiteLabel_Module {
         $settings = $this->get_branding_settings();
 
         return array_merge($branding, [
-            'company_name' => $settings['company_name'] ?: $branding['company_name'] ?? 'Peanut Suite',
+            'company_name' => $settings['company_name'] ?: $branding['company_name'] ?? 'Marketing Suite',
             'logo_url' => $settings['logo_url'] ?: $branding['logo_url'] ?? '',
             'primary_color' => $settings['primary_color'],
             'secondary_color' => $settings['secondary_color'],
@@ -283,13 +283,19 @@ class WhiteLabel_Module {
             ";
         }
 
-        // Custom CSS
+        // Custom CSS - strip any script tags or PHP for security
         if (!empty($settings['custom_css'])) {
-            $css .= $settings['custom_css'];
+            $custom_css = wp_strip_all_tags($settings['custom_css']);
+            // Remove any potential CSS injection attempts
+            $custom_css = preg_replace('/expression\s*\(/i', '', $custom_css);
+            $custom_css = preg_replace('/javascript\s*:/i', '', $custom_css);
+            $custom_css = preg_replace('/behavior\s*:/i', '', $custom_css);
+            $css .= $custom_css;
         }
 
         $css .= "</style>";
 
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS is sanitized above, colors validated on save
         echo $css;
     }
 
@@ -315,7 +321,7 @@ class WhiteLabel_Module {
     public static function get_report_branding(): array {
         $instance = self::instance();
         $default = [
-            'company_name' => 'Peanut Suite',
+            'company_name' => 'Marketing Suite',
             'logo_url' => '',
             'primary_color' => '#2271b1',
             'footer_text' => '',

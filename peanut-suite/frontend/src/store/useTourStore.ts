@@ -16,7 +16,7 @@ export const tourSteps: TourStep[] = [
   {
     id: 'welcome',
     target: '[data-tour="sidebar"]',
-    title: 'Welcome to Peanut Suite! 🥜',
+    title: 'Welcome to Marketing Suite!',
     content: 'Your all-in-one marketing toolkit. Let\'s take a quick tour of the key features.',
     placement: 'right',
     route: '/',

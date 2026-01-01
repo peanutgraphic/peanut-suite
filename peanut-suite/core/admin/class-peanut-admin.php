@@ -369,10 +369,27 @@ class Peanut_Admin {
             }
             /* Reset WordPress button styles inside the app */
             #peanut-app button {
-                background-color: transparent;
-                border: none;
                 box-shadow: none;
                 text-shadow: none;
+            }
+            /* Ensure Tailwind button colors override WordPress admin */
+            #peanut-app .bg-primary-600 {
+                background-color: var(--color-primary-600, #2563eb) !important;
+            }
+            #peanut-app .bg-primary-700 {
+                background-color: var(--color-primary-700, #1d4ed8) !important;
+            }
+            #peanut-app .text-white {
+                color: #ffffff !important;
+            }
+            #peanut-app .bg-red-600 {
+                background-color: #dc2626 !important;
+            }
+            #peanut-app .bg-green-600 {
+                background-color: #16a34a !important;
+            }
+            #peanut-app .bg-slate-100 {
+                background-color: #f1f5f9 !important;
             }
             /* Reset WordPress form field styles */
             #peanut-app input[type="text"],
@@ -526,10 +543,27 @@ class Peanut_Admin {
                 }
             }
             #peanut-app button {
-                background-color: transparent;
-                border: none;
                 box-shadow: none;
                 text-shadow: none;
+            }
+            /* Ensure Tailwind button colors override WordPress admin */
+            #peanut-app .bg-primary-600 {
+                background-color: var(--color-primary-600, #2563eb) !important;
+            }
+            #peanut-app .bg-primary-700 {
+                background-color: var(--color-primary-700, #1d4ed8) !important;
+            }
+            #peanut-app .text-white {
+                color: #ffffff !important;
+            }
+            #peanut-app .bg-red-600 {
+                background-color: #dc2626 !important;
+            }
+            #peanut-app .bg-green-600 {
+                background-color: #16a34a !important;
+            }
+            #peanut-app .bg-slate-100 {
+                background-color: #f1f5f9 !important;
             }
             #peanut-app input[type="text"],
             #peanut-app input[type="email"],
