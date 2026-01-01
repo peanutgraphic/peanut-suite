@@ -5,6 +5,15 @@ All notable changes to Peanut Suite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.33] - 2025-01-01
+
+### Fixed
+- Code-split chunks loading from wrong URL path (404 errors)
+- React error #321 caused by missing chunk files
+
+### Changed
+- Added Vite `base` path configuration for WordPress plugin structure
+
 ## [4.2.32] - 2025-01-01
 
 ### Fixed

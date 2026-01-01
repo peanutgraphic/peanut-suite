@@ -5,6 +5,8 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Base path for WordPress plugin - chunks load from this URL
+  base: '/wp-content/plugins/peanut-suite/assets/dist/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
