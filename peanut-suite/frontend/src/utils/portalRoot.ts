@@ -23,7 +23,7 @@ export function getPortalRoot(): HTMLElement {
       portalRoot.style.left = '0';
       portalRoot.style.width = '0';
       portalRoot.style.height = '0';
-      portalRoot.style.zIndex = '999999';
+      portalRoot.style.zIndex = '2147483647';
       portalRoot.style.pointerEvents = 'none';
       document.body.appendChild(portalRoot);
     }

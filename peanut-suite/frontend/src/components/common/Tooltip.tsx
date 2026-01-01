@@ -100,7 +100,7 @@ export default function Tooltip({
         <div
           ref={tooltipRef}
           className={clsx(
-            'fixed z-[999999] px-3 py-2 text-sm text-white bg-slate-800 rounded-lg shadow-lg max-w-[200px] pointer-events-none',
+            'fixed z-[2147483647] px-3 py-2 text-sm text-white bg-slate-800 rounded-lg shadow-lg max-w-[200px] pointer-events-none',
             transformClasses[actualPosition],
             className
           )}
