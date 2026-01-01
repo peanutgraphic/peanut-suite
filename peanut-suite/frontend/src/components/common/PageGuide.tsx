@@ -422,17 +422,19 @@ export function PageGuideButton({ pageId }: { pageId: string }) {
 // Hook for auto-showing guide on first visit
 export function useAutoShowGuide(pageId: string) {
   const { shouldAutoShow, openGuide } = usePageGuideStore();
-  const { hasSeenWelcome } = useTourStore();
+  const { hasSeenWelcome, isActive: isTourActive } = useTourStore();
   const guide = getPageGuide(pageId);
 
   useEffect(() => {
-    // Don't auto-show guides if the welcome modal hasn't been dismissed yet
-    if (guide && shouldAutoShow(pageId) && hasSeenWelcome) {
+    // Don't auto-show guides if:
+    // - Welcome modal hasn't been dismissed yet
+    // - Feature tour is currently active
+    if (guide && shouldAutoShow(pageId) && hasSeenWelcome && !isTourActive) {
       // Small delay for page to render
       const timer = setTimeout(() => {
         openGuide(pageId);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [pageId, guide, shouldAutoShow, openGuide, hasSeenWelcome]);
+  }, [pageId, guide, shouldAutoShow, openGuide, hasSeenWelcome, isTourActive]);
 }
