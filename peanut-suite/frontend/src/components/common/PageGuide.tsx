@@ -232,7 +232,7 @@ export default function PageGuide({ pageId }: PageGuideProps) {
   return createPortal(
     <div
       ref={dialogRef}
-      className="fixed bottom-6 right-6 z-[2147483647] w-[380px] max-w-[calc(100vw-48px)] animate-in slide-in-from-bottom-4 fade-in duration-300"
+      className="fixed bottom-6 right-6 z-[2147483647] w-[380px] max-w-[calc(100vw-48px)] animate-in slide-in-from-bottom-4 fade-in duration-300 pointer-events-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="page-guide-title"
