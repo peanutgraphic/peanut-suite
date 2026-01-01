@@ -166,7 +166,7 @@ export default function FeatureTour() {
   const progress = ((currentStep + 1) / tourSteps.length) * 100;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999]" aria-modal="true" role="dialog">
+    <div className="fixed inset-0 z-[999999]" aria-modal="true" role="dialog">
       {/* Overlay with spotlight cutout */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -323,7 +323,7 @@ export function WelcomeModal() {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
