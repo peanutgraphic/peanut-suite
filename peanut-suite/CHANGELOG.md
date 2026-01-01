@@ -5,6 +5,14 @@ All notable changes to Peanut Suite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.38] - 2026-01-01
+
+### Fixed
+- Reconnect button in error banner now has visible red styling
+- Reconnect modal z-index increased to appear above WordPress navigation
+- Reconnect modal buttons now properly visible with explicit styling
+- Modal has max-height constraint with scroll for smaller screens
+
 ## [4.2.36] - 2026-01-01
 
 ### Added

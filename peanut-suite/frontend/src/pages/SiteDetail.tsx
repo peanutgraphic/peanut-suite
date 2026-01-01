@@ -157,23 +157,22 @@ export default function SiteDetail() {
             <p className="text-sm text-red-600 mt-1">
               Unable to connect to this site. The site key may have changed or the Peanut Connect plugin may need to be reconfigured.
             </p>
-            <Button
-              size="sm"
-              className="mt-3"
+            <button
+              className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
               onClick={() => setShowReconnectModal(true)}
-              icon={<Key className="w-4 h-4" />}
             >
+              <Key className="w-4 h-4" />
               Reconnect Site
-            </Button>
+            </button>
           </div>
         </div>
       )}
 
       {/* Reconnect Modal */}
       {showReconnectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="flex items-center justify-between p-4 border-b">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-slate-900">Reconnect Site</h3>
               <button
                 onClick={() => {
@@ -196,7 +195,7 @@ export default function SiteDetail() {
                   {reconnectError}
                 </div>
               )}
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Site Key
               </label>
               <input
@@ -204,11 +203,11 @@ export default function SiteDetail() {
                 value={siteKey}
                 onChange={(e) => setSiteKey(e.target.value)}
                 placeholder="Enter site key..."
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
+              <div className="flex justify-end gap-3 pb-2">
+                <button
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
                   onClick={() => {
                     setShowReconnectModal(false);
                     setSiteKey('');
@@ -216,15 +215,15 @@ export default function SiteDetail() {
                   }}
                 >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => reconnectMutation.mutate(siteKey)}
-                  loading={reconnectMutation.isPending}
-                  disabled={!siteKey.trim()}
-                  icon={<Key className="w-4 h-4" />}
+                  disabled={!siteKey.trim() || reconnectMutation.isPending}
                 >
-                  Reconnect
-                </Button>
+                  <Key className="w-4 h-4" />
+                  {reconnectMutation.isPending ? 'Reconnecting...' : 'Reconnect'}
+                </button>
               </div>
             </div>
           </div>
