@@ -361,15 +361,17 @@ class WooCommerce_Module {
             $where .= $wpdb->prepare(" AND utm_campaign = %s", $campaign_filter);
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where is built with $wpdb->prepare()
         $total = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE $where");
 
-        $orders = $wpdb->get_results("
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where is built with $wpdb->prepare()
+        $orders = $wpdb->get_results($wpdb->prepare("
             SELECT *
             FROM $table
             WHERE $where
             ORDER BY created_at DESC
-            LIMIT $per_page OFFSET $offset
-        ", ARRAY_A);
+            LIMIT %d OFFSET %d
+        ", $per_page, $offset), ARRAY_A);
 
         return new \WP_REST_Response([
             'orders' => $orders,

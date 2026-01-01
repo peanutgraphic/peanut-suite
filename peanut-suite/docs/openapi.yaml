@@ -34,7 +34,7 @@ info:
     - `X-RateLimit-Remaining`
     - `X-RateLimit-Reset`
 
-  version: 4.2.38
+  version: 4.2.39
   contact:
     name: Peanut Suite Support
     url: https://peanutgraphic.com
