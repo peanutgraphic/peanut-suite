@@ -508,15 +508,7 @@ Peanut Connect exposes endpoints that allow the main Peanut Suite installation t
 
 ## Changelog
 
-### 1.0.0 (Initial Release)
-- UTM Builder module with create/edit/export
-- Short Links module with click tracking
-- Contacts module with status pipeline
-- Popups module with 7 trigger types (Pro)
-- Monitor module with health checks (Agency)
-- React dashboard with Tailwind CSS
-- License system with tier-based features
-- Full REST API
+See [CHANGELOG.md](CHANGELOG.md) for a detailed version history.
 
 ## License
 
