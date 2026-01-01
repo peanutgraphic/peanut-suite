@@ -93,18 +93,36 @@ class Peanut_Admin_Assets {
             $react_js = PEANUT_PLUGIN_DIR . 'assets/dist/js/main.js';
             if (file_exists($react_js)) {
                 // Load React app as ES module
+                // Dependencies include wp-element to ensure WordPress's React is loaded first
+                // Our bundle uses WordPress's React via externals to prevent duplicate instances
                 wp_enqueue_script(
                     'peanut-react-app',
                     PEANUT_PLUGIN_URL . 'assets/dist/js/main.js',
-                    [],
+                    ['wp-element'], // Ensures WordPress React is loaded before our app
                     PEANUT_VERSION,
                     true
                 );
 
-                // Add module type for ES modules
+                // Add module type and import map for ES modules
                 add_filter('script_loader_tag', function($tag, $handle) {
                     if ($handle === 'peanut-react-app' && is_string($tag)) {
+                        // Add type="module" to the script tag
                         $tag = str_replace(' src=', ' type="module" src=', $tag);
+
+                        // Inject import map before the module to resolve bare specifiers
+                        // This maps react/react-dom to WordPress's bundled versions
+                        $import_map = '<script type="importmap">
+{
+    "imports": {
+        "react": "data:text/javascript,export default window.React;export const Children=window.React.Children;export const Component=window.React.Component;export const Fragment=window.React.Fragment;export const Profiler=window.React.Profiler;export const PureComponent=window.React.PureComponent;export const StrictMode=window.React.StrictMode;export const Suspense=window.React.Suspense;export const cloneElement=window.React.cloneElement;export const createContext=window.React.createContext;export const createElement=window.React.createElement;export const createFactory=window.React.createFactory;export const createRef=window.React.createRef;export const forwardRef=window.React.forwardRef;export const isValidElement=window.React.isValidElement;export const lazy=window.React.lazy;export const memo=window.React.memo;export const startTransition=window.React.startTransition;export const useCallback=window.React.useCallback;export const useContext=window.React.useContext;export const useDebugValue=window.React.useDebugValue;export const useDeferredValue=window.React.useDeferredValue;export const useEffect=window.React.useEffect;export const useId=window.React.useId;export const useImperativeHandle=window.React.useImperativeHandle;export const useInsertionEffect=window.React.useInsertionEffect;export const useLayoutEffect=window.React.useLayoutEffect;export const useMemo=window.React.useMemo;export const useReducer=window.React.useReducer;export const useRef=window.React.useRef;export const useState=window.React.useState;export const useSyncExternalStore=window.React.useSyncExternalStore;export const useTransition=window.React.useTransition;export const version=window.React.version;",
+        "react-dom": "data:text/javascript,export default window.ReactDOM;export const createPortal=window.ReactDOM.createPortal;export const flushSync=window.ReactDOM.flushSync;export const render=window.ReactDOM.render;export const hydrate=window.ReactDOM.hydrate;export const unmountComponentAtNode=window.ReactDOM.unmountComponentAtNode;export const findDOMNode=window.ReactDOM.findDOMNode;export const version=window.ReactDOM.version;",
+        "react-dom/client": "data:text/javascript,export const createRoot=window.ReactDOM.createRoot;export const hydrateRoot=window.ReactDOM.hydrateRoot;export default window.ReactDOM;",
+        "react/jsx-runtime": "data:text/javascript,const e=window.React;export const jsx=e.createElement;export const jsxs=e.createElement;export const Fragment=e.Fragment;export const jsxDEV=e.createElement;"
+    }
+}
+</script>
+';
+                        $tag = $import_map . $tag;
                     }
                     return $tag ?? '';
                 }, 10, 2);

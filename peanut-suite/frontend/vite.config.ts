@@ -1,10 +1,40 @@
-import { defineConfig } from 'vite';
+import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
+/**
+ * Plugin to externalize React and use WordPress's bundled version.
+ * This prevents "Invalid hook call" errors caused by multiple React instances.
+ *
+ * The import map is injected by PHP (class-peanut-admin-assets.php) to resolve
+ * bare module specifiers to data: URLs that re-export from window.React/ReactDOM.
+ */
+function wordpressReactExternals(): Plugin {
+  return {
+    name: 'wordpress-react-externals',
+    config() {
+      return {
+        build: {
+          rollupOptions: {
+            // Mark React packages as external so they're not bundled
+            external: ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client'],
+          },
+        },
+      };
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react({
+      // Use the classic runtime since we're externalizing React
+      jsxRuntime: 'classic',
+    }),
+    tailwindcss(),
+    wordpressReactExternals(),
+  ],
   // Base path for WordPress plugin - chunks load from this URL
   base: '/wp-content/plugins/peanut-suite/assets/dist/',
   resolve: {
@@ -29,6 +59,11 @@ export default defineConfig({
             return 'css/[name][extname]';
           }
           return 'assets/[name]-[hash][extname]';
+        },
+        // Keep libraries that use React context in single chunks to prevent
+        // context issues when code-splitting creates multiple module instances
+        manualChunks: {
+          'vendor-react': ['@tanstack/react-query', 'react-router-dom'],
         },
       },
     },
