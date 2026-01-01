@@ -8,7 +8,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 PLUGIN_NAME="peanut-suite"
-VERSION=$(grep -o '"version": *"[^"]*"' "$ROOT_DIR/package.json" | sed 's/"version": *"\([^"]*\)"/\1/')
+# Get version from main plugin file (e.g., "Version: 4.2.27")
+VERSION=$(grep -m1 "Version:" "$ROOT_DIR/peanut-suite.php" | sed 's/.*Version: *\([0-9.]*\).*/\1/')
 
 echo ""
 echo "📦 Packaging $PLUGIN_NAME v$VERSION..."
