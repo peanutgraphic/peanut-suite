@@ -253,8 +253,8 @@ export default function Links() {
           <Button
             variant="outline"
             icon={<Download className="w-4 h-4" />}
-            onClick={() => data?.data && exportToCSV(data.data, linksExportColumns, 'links')}
-            disabled={!data?.data?.length}
+            onClick={() => displayData.length > 0 && exportToCSV(displayData, linksExportColumns, 'links')}
+            disabled={displayData.length === 0}
           >
             Export CSV
           </Button>

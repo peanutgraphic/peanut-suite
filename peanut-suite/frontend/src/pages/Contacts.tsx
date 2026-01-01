@@ -359,8 +359,8 @@ export default function Contacts() {
             variant="outline"
             size="sm"
             icon={<Download className="w-4 h-4" />}
-            onClick={() => data?.data && exportToCSV(data.data, contactsExportColumns, 'contacts')}
-            disabled={!data?.data?.length}
+            onClick={() => displayData.length > 0 && exportToCSV(displayData, contactsExportColumns, 'contacts')}
+            disabled={displayData.length === 0}
           >
             Export CSV
           </Button>

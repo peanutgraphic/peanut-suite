@@ -189,8 +189,8 @@ export default function UTMLibrary() {
             variant="outline"
             size="sm"
             icon={<Download className="w-4 h-4" />}
-            onClick={() => data?.data && exportToCSV(data.data, utmExportColumns, 'utm-codes')}
-            disabled={!data?.data?.length}
+            onClick={() => displayData.length > 0 && exportToCSV(displayData, utmExportColumns, 'utm-codes')}
+            disabled={displayData.length === 0}
           >
             Export CSV
           </Button>
