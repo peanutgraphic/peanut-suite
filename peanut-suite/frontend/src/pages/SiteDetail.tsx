@@ -34,12 +34,6 @@ export default function SiteDetail() {
     queryFn: () => monitorApi.getSite(Number(id)),
   });
 
-  const { data: health } = useQuery({
-    queryKey: ['monitor-site-health', id],
-    queryFn: () => monitorApi.getSiteHealth(Number(id)),
-    enabled: !!id,
-  });
-
   const { data: uptime } = useQuery({
     queryKey: ['monitor-site-uptime', id],
     queryFn: () => monitorApi.getSiteUptime(Number(id)),
@@ -50,7 +44,6 @@ export default function SiteDetail() {
     mutationFn: () => monitorApi.refreshSite(Number(id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['monitor-site', id] });
-      queryClient.invalidateQueries({ queryKey: ['monitor-site-health', id] });
     },
   });
 
@@ -87,6 +80,24 @@ export default function SiteDetail() {
   }
 
   const healthScore = site.health_score || 0;
+
+  // Extract health checks from nested structure
+  const checks = site.health?.checks || {};
+  const healthData = {
+    ssl_enabled: checks.ssl?.enabled ?? false,
+    debug_mode: checks.debug_mode ?? false,
+    disk_used: checks.disk_space?.used_formatted || '-',
+    disk_free: checks.disk_space?.free_formatted || '-',
+    disk_percent: checks.disk_space?.used_percent || 0,
+    plugins_active: checks.plugins?.active || 0,
+    plugins_inactive: checks.plugins?.inactive || 0,
+    plugins_updates: checks.plugins?.updates_available || 0,
+    memory_limit: checks.server?.memory_limit || '-',
+    max_execution_time: checks.server?.max_execution_time || '-',
+    last_backup: checks.backup?.last_backup || null,
+    mysql_version: checks.database?.mysql_version || '-',
+    plugin_updates: checks.plugins?.needing_update || [],
+  };
 
   return (
     <Layout
@@ -214,7 +225,7 @@ export default function SiteDetail() {
               </div>
               <div className="flex justify-between">
                 <dt className="text-slate-500">MySQL</dt>
-                <dd className="font-medium text-slate-900">{health?.mysql_version || '-'}</dd>
+                <dd className="font-medium text-slate-900">{healthData.mysql_version}</dd>
               </div>
             </dl>
           </Card>
@@ -230,7 +241,7 @@ export default function SiteDetail() {
               <div className="flex justify-between items-center">
                 <dt className="text-slate-500">SSL Certificate</dt>
                 <dd>
-                  {site.ssl_enabled ? (
+                  {healthData.ssl_enabled ? (
                     <Badge variant="success">Active</Badge>
                   ) : (
                     <Badge variant="danger">Not Found</Badge>
@@ -240,7 +251,7 @@ export default function SiteDetail() {
               <div className="flex justify-between items-center">
                 <dt className="text-slate-500">Debug Mode</dt>
                 <dd>
-                  {health?.debug_mode ? (
+                  {healthData.debug_mode ? (
                     <Badge variant="warning">Enabled</Badge>
                   ) : (
                     <Badge variant="success">Disabled</Badge>
@@ -260,16 +271,16 @@ export default function SiteDetail() {
             <dl className="space-y-3">
               <div className="flex justify-between">
                 <dt className="text-slate-500">Disk Used</dt>
-                <dd className="font-medium text-slate-900">{health?.disk_used || '-'}</dd>
+                <dd className="font-medium text-slate-900">{healthData.disk_used}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-slate-500">Disk Free</dt>
-                <dd className="font-medium text-slate-900">{health?.disk_free || '-'}</dd>
+                <dd className="font-medium text-slate-900">{healthData.disk_free}</dd>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
                 <div
                   className="bg-amber-500 h-2 rounded-full"
-                  style={{ width: `${health?.disk_percent || 0}%` }}
+                  style={{ width: `${healthData.disk_percent}%` }}
                 />
               </div>
             </dl>
@@ -285,15 +296,15 @@ export default function SiteDetail() {
             <dl className="space-y-3">
               <div className="flex justify-between">
                 <dt className="text-slate-500">Active</dt>
-                <dd className="font-medium text-slate-900">{health?.plugins_active || 0}</dd>
+                <dd className="font-medium text-slate-900">{healthData.plugins_active}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-slate-500">Inactive</dt>
-                <dd className="font-medium text-slate-900">{health?.plugins_inactive || 0}</dd>
+                <dd className="font-medium text-slate-900">{healthData.plugins_inactive}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-slate-500">Updates</dt>
-                <dd className="font-medium text-slate-900">{health?.plugins_updates || 0}</dd>
+                <dd className="font-medium text-slate-900">{healthData.plugins_updates}</dd>
               </div>
             </dl>
           </Card>
@@ -308,11 +319,11 @@ export default function SiteDetail() {
             <dl className="space-y-3">
               <div className="flex justify-between">
                 <dt className="text-slate-500">Memory Limit</dt>
-                <dd className="font-medium text-slate-900">{health?.memory_limit || '-'}</dd>
+                <dd className="font-medium text-slate-900">{healthData.memory_limit}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-slate-500">Max Execution</dt>
-                <dd className="font-medium text-slate-900">{health?.max_execution_time || '-'}s</dd>
+                <dd className="font-medium text-slate-900">{healthData.max_execution_time}s</dd>
               </div>
             </dl>
           </Card>
@@ -325,8 +336,8 @@ export default function SiteDetail() {
               <h3 className="font-semibold text-slate-900">Last Backup</h3>
             </div>
             <p className="text-slate-600">
-              {health?.last_backup
-                ? new Date(health.last_backup).toLocaleString()
+              {healthData.last_backup
+                ? new Date(healthData.last_backup).toLocaleString()
                 : 'No backup detected'}
             </p>
           </Card>
@@ -346,14 +357,14 @@ export default function SiteDetail() {
               Update All
             </Button>
           </div>
-          {health?.plugin_updates?.length ? (
+          {healthData.plugin_updates?.length ? (
             <div className="space-y-3">
-              {health.plugin_updates.map((plugin: { slug: string; name: string; current: string; new: string }) => (
+              {healthData.plugin_updates.map((plugin: { slug: string; name: string; version: string; new_version: string }) => (
                 <div key={plugin.slug} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div>
                     <p className="font-medium text-slate-900">{plugin.name}</p>
                     <p className="text-sm text-slate-500">
-                      {plugin.current} → {plugin.new}
+                      {plugin.version} → {plugin.new_version}
                     </p>
                   </div>
                   <Button

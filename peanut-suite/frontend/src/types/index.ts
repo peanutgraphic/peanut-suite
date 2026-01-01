@@ -299,6 +299,32 @@ export interface Tag {
 }
 
 // Monitor Types (Agency)
+export interface MonitorSiteHealthChecks {
+  ssl?: { enabled: boolean };
+  debug_mode?: boolean;
+  disk_space?: {
+    used_formatted: string;
+    free_formatted: string;
+    used_percent: number;
+  };
+  plugins?: {
+    active: number;
+    inactive: number;
+    updates_available: number;
+    needing_update?: { slug: string; name: string; version: string; new_version: string }[];
+  };
+  server?: {
+    memory_limit: string;
+    max_execution_time: string | number;
+  };
+  backup?: {
+    last_backup: string | null;
+  };
+  database?: {
+    mysql_version: string;
+  };
+}
+
 export interface MonitorSite {
   id: number;
   url: string;
@@ -313,6 +339,9 @@ export interface MonitorSite {
   last_checked?: string;
   created_at: string;
   updated_at: string;
+  health?: {
+    checks?: MonitorSiteHealthChecks;
+  };
 }
 
 export interface MonitorHealth {

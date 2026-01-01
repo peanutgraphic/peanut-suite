@@ -5,6 +5,17 @@ All notable changes to Peanut Suite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.35] - 2026-01-01
+
+### Fixed
+- Monitor site detail page not displaying health data correctly
+- Frontend now reads from correct nested `site.health.checks.*` structure
+- Plugin updates field names corrected to match Peanut Connect format
+
+### Changed
+- Added `MonitorSiteHealthChecks` TypeScript interface for proper typing
+- Removed unused `getSiteHealth` query from SiteDetail page
+
 ## [4.2.34] - 2025-01-01
 
 ### Fixed
