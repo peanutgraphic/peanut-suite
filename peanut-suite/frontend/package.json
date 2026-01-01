@@ -1,6 +1,6 @@
 {
   "name": "peanut-suite-frontend",
-  "version": "4.2.42",
+  "version": "4.2.43",
   "private": true,
   "type": "module",
   "scripts": {

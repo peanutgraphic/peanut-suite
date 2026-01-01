@@ -103,25 +103,38 @@ class Peanut_Admin_Assets {
 
                 // Add module type for ES modules
                 add_filter('script_loader_tag', function($tag, $handle) {
-                    if ($handle === 'peanut-react-app') {
+                    if ($handle === 'peanut-react-app' && is_string($tag)) {
                         $tag = str_replace(' src=', ' type="module" src=', $tag);
                     }
-                    return $tag;
+                    return $tag ?? '';
                 }, 10, 2);
 
-                // Localize React app config
-                wp_localize_script('peanut-react-app', 'peanutConfig', [
+                $license = peanut_get_license();
+                $tier = $license['tier'] ?? 'free';
+
+                // Localize for API client (client.ts expects peanutSuite)
+                wp_localize_script('peanut-react-app', 'peanutSuite', [
                     'apiUrl' => rest_url(PEANUT_API_NAMESPACE),
                     'nonce' => wp_create_nonce('wp_rest'),
-                    'adminUrl' => admin_url(),
-                    'pluginUrl' => PEANUT_PLUGIN_URL,
                     'version' => PEANUT_VERSION,
+                    'isPro' => peanut_is_pro(),
+                    'tier' => $tier,
+                ]);
+
+                // Get user and account context
+                $user_context = $this->get_user_context();
+
+                // Localize for Sidebar and Account context (peanutData)
+                wp_localize_script('peanut-react-app', 'peanutData', [
+                    'version' => PEANUT_VERSION,
+                    'brandName' => apply_filters('peanut_brand_name', 'Marketing Suite'),
                     'license' => [
-                        'status' => peanut_get_license()['status'] ?? 'inactive',
-                        'tier' => peanut_get_license()['tier'] ?? 'free',
+                        'tier' => $tier,
                         'isPro' => peanut_is_pro(),
-                        'isAgency' => peanut_is_agency(),
                     ],
+                    'user' => $user_context['user'],
+                    'account' => $user_context['account'],
+                    'logoutUrl' => wp_logout_url(home_url('/team-login/')),
                 ]);
             }
             return; // Don't load legacy scripts for React app
@@ -270,6 +283,58 @@ class Peanut_Admin_Assets {
         return [
             'primary' => $colors[1] ?? '#0073aa',
             'primary_hover' => $colors[0] ?? '#005177',
+        ];
+    }
+
+    /**
+     * Get current user and account context for React
+     */
+    private function get_user_context(): array {
+        $user_id = get_current_user_id();
+        $current_user = wp_get_current_user();
+
+        $user_data = null;
+        $account_data = null;
+
+        if ($user_id) {
+            $user_data = [
+                'id' => $user_id,
+                'name' => $current_user->display_name,
+                'email' => $current_user->user_email,
+                'avatar' => get_avatar_url($user_id, ['size' => 96]),
+            ];
+
+            // Get or create account context if service is available
+            if (class_exists('Peanut_Account_Service')) {
+                $account = Peanut_Account_Service::get_or_create_for_user($user_id);
+
+                if ($account) {
+                    $member = Peanut_Account_Service::get_member($account['id'], $user_id);
+                    $permissions = null;
+                    $available_features = [];
+
+                    if ($member) {
+                        $permissions = Peanut_Account_Service::get_member_permissions($account['id'], $user_id);
+                    }
+
+                    $available_features = Peanut_Account_Service::get_available_features($account['tier'] ?? 'free');
+
+                    $account_data = [
+                        'id' => $account['id'],
+                        'name' => $account['name'],
+                        'slug' => $account['slug'] ?? '',
+                        'tier' => $account['tier'] ?? 'free',
+                        'role' => $member['role'] ?? 'owner',
+                        'permissions' => $permissions,
+                        'available_features' => $available_features,
+                    ];
+                }
+            }
+        }
+
+        return [
+            'user' => $user_data,
+            'account' => $account_data,
         ];
     }
 }
