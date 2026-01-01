@@ -1,5 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { clsx } from 'clsx';
+import { getPortalRoot } from '../../utils/portalRoot';
 
 interface TooltipProps {
   content: ReactNode;
@@ -15,13 +17,47 @@ export default function Tooltip({
   className,
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
 
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
-  };
+  useEffect(() => {
+    if (isVisible && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const tooltipWidth = 200; // max-w-[200px]
+      const gap = 8;
+
+      let top = 0;
+      let left = 0;
+
+      switch (position) {
+        case 'top':
+          top = rect.top - gap;
+          left = rect.left + rect.width / 2 - tooltipWidth / 2;
+          break;
+        case 'bottom':
+          top = rect.bottom + gap;
+          left = rect.left + rect.width / 2 - tooltipWidth / 2;
+          break;
+        case 'left':
+          top = rect.top + rect.height / 2;
+          left = rect.left - tooltipWidth - gap;
+          break;
+        case 'right':
+          top = rect.top + rect.height / 2;
+          left = rect.right + gap;
+          break;
+      }
+
+      // Keep tooltip within viewport horizontally
+      const padding = 8;
+      if (left < padding) left = padding;
+      if (left + tooltipWidth > window.innerWidth - padding) {
+        left = window.innerWidth - tooltipWidth - padding;
+      }
+
+      setCoords({ top, left });
+    }
+  }, [isVisible, position]);
 
   const arrowClasses = {
     top: 'top-full left-1/2 -translate-x-1/2 border-t-slate-800 border-x-transparent border-b-transparent',
@@ -30,20 +66,29 @@ export default function Tooltip({
     right: 'right-full top-1/2 -translate-y-1/2 border-r-slate-800 border-y-transparent border-l-transparent',
   };
 
+  const transformClasses = {
+    top: '-translate-x-1/2 -translate-y-full',
+    bottom: '-translate-x-1/2',
+    left: '-translate-y-1/2',
+    right: '-translate-y-1/2',
+  };
+
   return (
     <div
+      ref={triggerRef}
       className="relative inline-flex"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
     >
       {children}
-      {isVisible && (
+      {isVisible && createPortal(
         <div
           className={clsx(
-            'absolute z-50 px-3 py-2 text-sm text-white bg-slate-800 rounded-lg shadow-lg max-w-[200px]',
-            positionClasses[position],
+            'fixed z-[99999] px-3 py-2 text-sm text-white bg-slate-800 rounded-lg shadow-lg max-w-[200px] pointer-events-none',
+            transformClasses[position],
             className
           )}
+          style={{ top: coords.top, left: coords.left }}
         >
           {content}
           <div
@@ -52,7 +97,8 @@ export default function Tooltip({
               arrowClasses[position]
             )}
           />
-        </div>
+        </div>,
+        getPortalRoot()
       )}
     </div>
   );
