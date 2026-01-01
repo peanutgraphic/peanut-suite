@@ -238,7 +238,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-[2147483647]">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
@@ -246,7 +246,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       />
 
       {/* Modal */}
-      <div className="absolute left-1/2 top-[20%] -translate-x-1/2 w-full max-w-xl">
+      <div className="absolute left-1/2 top-[20%] -translate-x-1/2 w-full max-w-xl px-4">
         <div className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
           {/* Search Input */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200">
