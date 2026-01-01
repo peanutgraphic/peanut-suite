@@ -902,3 +902,42 @@ export interface HealthReportPreview {
   recommendations: HealthReportRecommendation[];
   trends: HealthReportTrends;
 }
+
+// ============================================
+// API Keys Types
+// ============================================
+export type ApiKeyScope =
+  | 'links:read'
+  | 'links:write'
+  | 'utms:read'
+  | 'utms:write'
+  | 'contacts:read'
+  | 'contacts:write'
+  | 'analytics:read';
+
+export interface ApiKey {
+  id: number;
+  account_id: number;
+  key_id: string;
+  key_preview: string;
+  name: string;
+  scopes: ApiKeyScope[];
+  created_by: number;
+  created_by_name: string | null;
+  last_used_at: string | null;
+  last_used_ip: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
+  revoked_by: number | null;
+  created_at: string;
+}
+
+export interface ApiKeyWithSecret extends ApiKey {
+  key: string; // Full key, only shown once on creation
+}
+
+export interface ApiKeyFormData {
+  name: string;
+  scopes: ApiKeyScope[];
+  expires_at?: string | null;
+}

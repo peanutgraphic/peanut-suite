@@ -1,4 +1,4 @@
-import api from './client';
+import api, { getAsPost } from './client';
 import type {
   UTM,
   UTMFormData,
@@ -58,6 +58,11 @@ import type {
   HealthReportSettingsFormData,
   HealthReport,
   HealthReportPreview,
+  // API Key types
+  ApiKey,
+  ApiKeyWithSecret,
+  ApiKeyFormData,
+  ApiKeyScope,
 } from '../types';
 
 // Pagination params
@@ -105,7 +110,7 @@ export const utmApi = {
   },
 
   bulkDelete: async (ids: number[]) => {
-    await api.post('/utms/bulk-delete', { ids });
+    await getAsPost('/utms/bulk-delete', { ids });
   },
 
   export: async () => {
@@ -143,6 +148,10 @@ export const linksApi = {
 
   delete: async (id: number) => {
     await api.delete(`/links/${id}`);
+  },
+
+  bulkDelete: async (ids: number[]) => {
+    await getAsPost('/links/bulk-delete', { ids });
   },
 
   getClicks: async (id: number, params?: { days?: number }) => {
@@ -215,11 +224,11 @@ export const contactsApi = {
   },
 
   bulkDelete: async (ids: number[]) => {
-    await api.post('/contacts/bulk-delete', { ids });
+    await getAsPost('/contacts/bulk-delete', { ids });
   },
 
   bulkUpdateStatus: async (ids: number[], status: string) => {
-    await api.post('/contacts/bulk-status', { ids, status });
+    await getAsPost('/contacts/bulk-status', { ids, status });
   },
 };
 
@@ -268,7 +277,7 @@ export const popupsApi = {
   },
 
   bulkAction: async (action: 'delete' | 'activate' | 'pause' | 'archive', ids: number[]) => {
-    await api.post('/popups/bulk', { action, ids });
+    await getAsPost('/popups/bulk', { action, ids });
   },
 
   getDefaults: async () => {
@@ -325,11 +334,11 @@ export const settingsApi = {
   },
 
   activateModule: async (id: string) => {
-    await api.post(`/modules/${id}/activate`);
+    await getAsPost(`/modules/${id}/activate`, {});
   },
 
   deactivateModule: async (id: string) => {
-    await api.post(`/modules/${id}/deactivate`);
+    await getAsPost(`/modules/${id}/deactivate`, {});
   },
 
   getLicense: async () => {
@@ -338,12 +347,38 @@ export const settingsApi = {
   },
 
   activateLicense: async (key: string) => {
-    const { data } = await api.post<License>('/license/activate', { key });
+    const { data } = await getAsPost<License>('/license/activate', { license_key: key });
     return data;
   },
 
   deactivateLicense: async () => {
     await api.delete('/license/deactivate');
+  },
+
+  // Advanced settings actions
+  exportSettings: async () => {
+    const { data } = await api.get<{ filename: string; data: Record<string, unknown> }>('/settings/export');
+    return data;
+  },
+
+  importSettings: async (importData: Record<string, unknown>) => {
+    const { data } = await api.post<{ message: string; imported: string[] }>('/settings/import', { data: importData });
+    return data;
+  },
+
+  clearCache: async () => {
+    const { data } = await api.post<{ message: string }>('/settings/clear-cache');
+    return data;
+  },
+
+  deleteAllData: async (confirm: string) => {
+    const { data } = await api.delete<{ message: string }>('/settings/delete-all', { params: { confirm } });
+    return data;
+  },
+
+  testIntegration: async (integrationId: string) => {
+    const { data } = await api.post<{ message: string }>(`/integrations/${integrationId}/test`);
+    return data;
   },
 };
 
@@ -462,7 +497,7 @@ export const webhooksApi = {
   },
 
   bulkDelete: async (ids: number[]) => {
-    const { data } = await api.post<{ message: string; deleted: number }>(
+    const { data } = await getAsPost<{ message: string; deleted: number }>(
       '/webhooks/bulk-delete',
       { ids }
     );
@@ -1346,7 +1381,7 @@ export const accountsApi = {
 
   transferOwnership: async (accountId: number, newOwnerId: number) => {
     const { data } = await api.post<{ message: string }>(
-      `/accounts/${accountId}/transfer`,
+      `/accounts/${accountId}/transfer-ownership`,
       { new_owner_id: newOwnerId }
     );
     return data;
@@ -1619,5 +1654,61 @@ export const healthReportsApi = {
       servers: Array<{ id: number; name: string; host: string }>;
     }>('/health-reports/available-items');
     return data;
+  },
+};
+
+// ============================================
+// API Keys Endpoints
+// ============================================
+export const apiKeysApi = {
+  // Get all API keys for an account
+  getAll: async (accountId: number) => {
+    const { data } = await api.get<ApiKey[]>(`/accounts/${accountId}/api-keys`);
+    return data;
+  },
+
+  // Get a single API key by ID
+  getById: async (accountId: number, keyId: number) => {
+    const { data } = await api.get<ApiKey>(`/accounts/${accountId}/api-keys/${keyId}`);
+    return data;
+  },
+
+  // Create a new API key
+  create: async (accountId: number, keyData: ApiKeyFormData) => {
+    const { data } = await api.post<ApiKeyWithSecret>(
+      `/accounts/${accountId}/api-keys`,
+      keyData
+    );
+    return data;
+  },
+
+  // Revoke an API key
+  revoke: async (accountId: number, keyId: number) => {
+    const { data } = await api.delete<{ message: string }>(
+      `/accounts/${accountId}/api-keys/${keyId}`
+    );
+    return data;
+  },
+
+  // Regenerate an API key (revoke old and create new with same settings)
+  regenerate: async (accountId: number, keyId: number) => {
+    const { data } = await api.post<ApiKeyWithSecret>(
+      `/accounts/${accountId}/api-keys/${keyId}/regenerate`
+    );
+    return data;
+  },
+
+  // Get available scopes
+  getScopes: async () => {
+    const scopes: ApiKeyScope[] = [
+      'links:read',
+      'links:write',
+      'utms:read',
+      'utms:write',
+      'contacts:read',
+      'contacts:write',
+      'analytics:read',
+    ];
+    return scopes;
   },
 };

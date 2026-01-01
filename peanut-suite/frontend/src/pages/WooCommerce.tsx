@@ -12,9 +12,10 @@ import {
   PieChart,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Table, Pagination, Badge, Select, SampleDataBanner } from '../components/common';
+import { Card, Button, Table, Pagination, Badge, Select, SampleDataBanner, useToast } from '../components/common';
 import { woocommerceApi } from '../api/endpoints';
 import { pageDescriptions, sampleWooCommerceStats, sampleWooCommerceReport, sampleWooCommerceOrders } from '../constants';
+import { exportToCSV } from '../utils';
 
 interface AttributedOrder {
   id: number;
@@ -29,7 +30,19 @@ interface AttributedOrder {
 
 const columnHelper = createColumnHelper<AttributedOrder>();
 
+// Export columns for WooCommerce orders
+const ordersExportColumns = [
+  { key: 'order_id' as const, header: 'Order ID' },
+  { key: 'customer_email' as const, header: 'Customer Email' },
+  { key: 'order_total' as const, header: 'Total' },
+  { key: 'utm_source' as const, header: 'Source' },
+  { key: 'utm_medium' as const, header: 'Medium' },
+  { key: 'utm_campaign' as const, header: 'Campaign' },
+  { key: 'created_at' as const, header: 'Date' },
+];
+
 export default function WooCommerce() {
+  const toast = useToast();
   const [period, setPeriod] = useState(30);
   const [groupBy, setGroupBy] = useState<'source' | 'medium' | 'campaign'>('source');
   const [page, setPage] = useState(1);
@@ -61,6 +74,15 @@ export default function WooCommerce() {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+  };
+
+  const handleExportReport = () => {
+    if (displayOrders.length > 0) {
+      exportToCSV(displayOrders, ordersExportColumns, `woocommerce-report-${period}days`);
+      toast.success('Report exported successfully');
+    } else {
+      toast.error('No data to export');
+    }
   };
 
   const columns = [
@@ -147,7 +169,12 @@ export default function WooCommerce() {
             fullWidth={false}
           />
         </div>
-        <Button variant="outline" icon={<Download className="w-4 h-4" />}>
+        <Button
+          variant="outline"
+          icon={<Download className="w-4 h-4" />}
+          onClick={handleExportReport}
+          disabled={displayOrders.length === 0}
+        >
           Export Report
         </Button>
       </div>

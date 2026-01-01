@@ -9,7 +9,6 @@ export function exportToCSV(
   filename: string
 ): void {
   if (data.length === 0) {
-    console.warn('No data to export');
     return;
   }
 
@@ -57,8 +56,7 @@ export async function exportToPDF(
 ): Promise<void> {
   const element = document.getElementById(elementId);
   if (!element) {
-    console.error(`Element with id "${elementId}" not found`);
-    return;
+    throw new Error(`Element with id "${elementId}" not found`);
   }
 
   try {
@@ -130,8 +128,7 @@ export async function exportToPDF(
 
     pdf.save(`${filename}.pdf`);
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    throw error;
+    throw error instanceof Error ? error : new Error('Error generating PDF');
   }
 }
 

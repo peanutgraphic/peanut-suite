@@ -12,60 +12,74 @@ class Contacts_Controller extends Peanut_REST_Controller {
     protected string $rest_base = 'contacts';
 
     public function register_routes(): void {
-        // List contacts
+        // List contacts (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base, [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_items'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('contacts:read'),
         ]);
 
-        // Create contact
+        // Create contact (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base, [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'create_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('contacts:write'),
         ]);
 
-        // Get contact
+        // Get contact (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('contacts:read'),
         ]);
 
-        // Update contact
+        // Update contact (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
             'methods' => WP_REST_Server::EDITABLE,
             'callback' => [$this, 'update_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('contacts:write'),
         ]);
 
-        // Delete contact
+        // Delete contact (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
             'methods' => WP_REST_Server::DELETABLE,
             'callback' => [$this, 'delete_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('contacts:write'),
         ]);
 
-        // Get contact activities
+        // Get contact activities (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/activities', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_activities'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('contacts:read'),
         ]);
 
-        // Add activity
+        // Add activity (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/activities', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'add_activity'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('contacts:write'),
         ]);
 
-        // Export
+        // Export (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/export', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'export'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('contacts:read'),
+        ]);
+
+        // Bulk delete (GET+POST for WAF compatibility, write scope)
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/bulk-delete', [
+            'methods' => WP_REST_Server::READABLE . ', ' . WP_REST_Server::CREATABLE,
+            'callback' => [$this, 'bulk_delete'],
+            'permission_callback' => $this->with_scope('contacts:write'),
+        ]);
+
+        // Bulk update status (GET+POST for WAF compatibility, write scope)
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/bulk-status', [
+            'methods' => WP_REST_Server::READABLE . ', ' . WP_REST_Server::CREATABLE,
+            'callback' => [$this, 'bulk_update_status'],
+            'permission_callback' => $this->with_scope('contacts:write'),
         ]);
     }
 
@@ -416,6 +430,96 @@ class Contacts_Controller extends Peanut_REST_Controller {
             'filename' => 'peanut-contacts-' . date('Y-m-d') . '.csv',
             'data' => $items,
             'headers' => ['Email', 'First Name', 'Last Name', 'Phone', 'Company', 'Status', 'Source', 'UTM Source', 'UTM Medium', 'UTM Campaign', 'Score', 'Created'],
+        ]);
+    }
+
+    /**
+     * Bulk delete contacts
+     */
+    public function bulk_delete(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        global $wpdb;
+        $table = Peanut_Database::contacts_table();
+        $activities_table = Peanut_Database::contact_activities_table();
+        $user_id = get_current_user_id();
+
+        $ids = $request->get_param('ids');
+        if (!is_array($ids) || empty($ids)) {
+            return $this->error(__('No contacts selected', 'peanut-suite'));
+        }
+
+        // Sanitize IDs
+        $ids = array_map('intval', $ids);
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+
+        // Verify ownership of all contacts
+        $owned = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $table WHERE id IN ($placeholders) AND user_id = %d",
+            ...array_merge($ids, [$user_id])
+        ));
+
+        if (count($owned) !== count($ids)) {
+            return $this->error(__('Some contacts could not be found', 'peanut-suite'), 'not_found', 404);
+        }
+
+        // Delete activities first
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM $activities_table WHERE contact_id IN ($placeholders)",
+            ...$ids
+        ));
+
+        // Delete contacts
+        $deleted = $wpdb->query($wpdb->prepare(
+            "DELETE FROM $table WHERE id IN ($placeholders) AND user_id = %d",
+            ...array_merge($ids, [$user_id])
+        ));
+
+        return $this->success([
+            'message' => sprintf(__('%d contacts deleted', 'peanut-suite'), $deleted),
+            'deleted' => $deleted,
+        ]);
+    }
+
+    /**
+     * Bulk update contact status
+     */
+    public function bulk_update_status(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        global $wpdb;
+        $table = Peanut_Database::contacts_table();
+        $user_id = get_current_user_id();
+
+        $ids = $request->get_param('ids');
+        $status = sanitize_text_field($request->get_param('status'));
+
+        if (!is_array($ids) || empty($ids)) {
+            return $this->error(__('No contacts selected', 'peanut-suite'));
+        }
+
+        if (empty($status) || !array_key_exists($status, Contacts_Module::STATUSES)) {
+            return $this->error(__('Invalid status', 'peanut-suite'));
+        }
+
+        // Sanitize IDs
+        $ids = array_map('intval', $ids);
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+
+        // Update status
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE $table SET status = %s, last_activity_at = %s
+             WHERE id IN ($placeholders) AND user_id = %d",
+            $status,
+            current_time('mysql'),
+            ...array_merge($ids, [$user_id])
+        ));
+
+        // Add activity for each contact
+        $contacts_module = new Contacts_Module();
+        foreach ($ids as $id) {
+            $contacts_module->add_activity($id, 'status_change', "Status changed to {$status}");
+        }
+
+        return $this->success([
+            'message' => sprintf(__('%d contacts updated', 'peanut-suite'), $updated),
+            'updated' => $updated,
         ]);
     }
 

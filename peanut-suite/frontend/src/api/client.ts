@@ -66,6 +66,23 @@ api.interceptors.response.use(
 
 export default api;
 
+/**
+ * GET request as POST alternative
+ *
+ * Some hosting environments (especially those with ModSecurity or WAF)
+ * block POST requests to certain URL patterns. This helper uses a GET
+ * request with query parameters as a workaround. The backend must register
+ * the route to accept both GET and POST.
+ */
+export const getAsPost = async <T>(url: string, data?: Record<string, unknown>): Promise<{ data: T }> => {
+  const response = await api.request<T>({
+    method: 'GET',
+    url,
+    params: data,
+  });
+  return response;
+};
+
 // Helper to check if we're in WordPress admin
 export const isWordPressAdmin = (): boolean => {
   return typeof window.peanutSuite !== 'undefined';

@@ -12,53 +12,60 @@ class Links_Controller extends Peanut_REST_Controller {
     protected string $rest_base = 'links';
 
     public function register_routes(): void {
-        // List links
+        // List links (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base, [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_items'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('links:read'),
         ]);
 
-        // Create link
+        // Create link (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base, [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'create_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('links:write'),
         ]);
 
-        // Get link
+        // Get link (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('links:read'),
         ]);
 
-        // Update link
+        // Update link (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
             'methods' => WP_REST_Server::EDITABLE,
             'callback' => [$this, 'update_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('links:write'),
         ]);
 
-        // Delete link
+        // Delete link (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
             'methods' => WP_REST_Server::DELETABLE,
             'callback' => [$this, 'delete_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('links:write'),
         ]);
 
-        // Get click stats
+        // Get click stats (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/clicks', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_clicks'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('links:read'),
         ]);
 
-        // Quick create from UTM
+        // Quick create from UTM (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/from-utm', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'create_from_utm'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('links:write'),
+        ]);
+
+        // Bulk delete (GET+POST for WAF compatibility, write scope)
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/bulk-delete', [
+            'methods' => WP_REST_Server::READABLE . ', ' . WP_REST_Server::CREATABLE,
+            'callback' => [$this, 'bulk_delete'],
+            'permission_callback' => $this->with_scope('links:write'),
         ]);
     }
 
@@ -354,6 +361,52 @@ class Links_Controller extends Peanut_REST_Controller {
         $request->set_param('utm_id', $utm_id);
 
         return $this->create_item($request);
+    }
+
+    /**
+     * Bulk delete links
+     */
+    public function bulk_delete(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        global $wpdb;
+        $table = Peanut_Database::links_table();
+        $clicks_table = Peanut_Database::link_clicks_table();
+        $user_id = get_current_user_id();
+
+        $ids = $request->get_param('ids');
+        if (!is_array($ids) || empty($ids)) {
+            return $this->error(__('No links selected', 'peanut-suite'));
+        }
+
+        // Sanitize IDs
+        $ids = array_map('intval', $ids);
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+
+        // Verify ownership of all links
+        $owned = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $table WHERE id IN ($placeholders) AND user_id = %d",
+            ...array_merge($ids, [$user_id])
+        ));
+
+        if (count($owned) !== count($ids)) {
+            return $this->error(__('Some links could not be found', 'peanut-suite'), 'not_found', 404);
+        }
+
+        // Delete clicks first
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM $clicks_table WHERE link_id IN ($placeholders)",
+            ...$ids
+        ));
+
+        // Delete links
+        $deleted = $wpdb->query($wpdb->prepare(
+            "DELETE FROM $table WHERE id IN ($placeholders) AND user_id = %d",
+            ...array_merge($ids, [$user_id])
+        ));
+
+        return $this->success([
+            'message' => sprintf(__('%d links deleted', 'peanut-suite'), $deleted),
+            'deleted' => $deleted,
+        ]);
     }
 
     /**

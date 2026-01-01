@@ -99,8 +99,7 @@ export default function TeamMemberProfile() {
         setError('Team member not found');
       }
     } catch (err) {
-      setError('Failed to load team member');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to load team member');
     } finally {
       setLoading(false);
     }
@@ -161,8 +160,7 @@ export default function TeamMemberProfile() {
 
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      setError('Failed to save changes');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to save changes');
     } finally {
       setSaving(false);
     }
@@ -177,8 +175,7 @@ export default function TeamMemberProfile() {
       setSuccessMessage('Password reset email sent');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      setError('Failed to send password reset email');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to send password reset email');
     }
   };
 
@@ -190,8 +187,7 @@ export default function TeamMemberProfile() {
       await accountsApi.removeMember(accountId, member.user_id);
       navigate('/team');
     } catch (err) {
-      setError('Failed to remove team member');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to remove team member');
     }
   };
 
@@ -219,8 +215,7 @@ export default function TeamMemberProfile() {
       setConfirmPassword('');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      setError('Failed to set password');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to set password');
     } finally {
       setSettingPassword(false);
     }

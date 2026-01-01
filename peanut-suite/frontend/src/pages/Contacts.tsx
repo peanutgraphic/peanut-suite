@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
 import {
@@ -10,6 +10,8 @@ import {
   Download,
   Upload,
   User,
+  FileUp,
+  AlertCircle,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
 import {
@@ -26,6 +28,7 @@ import {
   createCheckboxColumn,
   InfoTooltip,
   SampleDataBanner,
+  useToast,
 } from '../components/common';
 import { contactsApi } from '../api/endpoints';
 import type { Contact, ContactStatus } from '../types';
@@ -45,10 +48,16 @@ const statusOptions = [
 
 export default function Contacts() {
   const queryClient = useQueryClient();
+  const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   const [newContact, setNewContact] = useState<{
     email: string;
@@ -105,6 +114,19 @@ export default function Contacts() {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: contactsApi.bulkDelete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      setBulkDeleteModalOpen(false);
+      setSelectedRows({});
+      toast.success('Contacts deleted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to delete contacts');
+    },
+  });
+
   // Determine if we should show sample data
   const hasNoRealData = !isLoading && (!data?.data || data.data.length === 0);
   const displaySampleData = hasNoRealData && showSampleData;
@@ -119,6 +141,88 @@ export default function Contacts() {
       company: newContact.company || undefined,
       status: newContact.status,
     });
+  };
+
+  const handleBulkDelete = () => {
+    const contacts = data?.data || [];
+    const selectedIds = Object.entries(selectedRows)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([index]) => contacts[parseInt(index, 10)]?.id)
+      .filter((id): id is number => id !== undefined);
+    if (selectedIds.length > 0) {
+      bulkDeleteMutation.mutate(selectedIds);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+
+    setIsImporting(true);
+    try {
+      const text = await importFile.text();
+      const lines = text.split('\n').filter(line => line.trim());
+
+      if (lines.length < 2) {
+        toast.error('CSV file is empty or missing header row');
+        setIsImporting(false);
+        return;
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const emailIndex = headers.findIndex(h => h === 'email');
+
+      if (emailIndex === -1) {
+        toast.error('CSV must have an "email" column');
+        setIsImporting(false);
+        return;
+      }
+
+      const firstNameIndex = headers.findIndex(h => h === 'first_name' || h === 'firstname');
+      const lastNameIndex = headers.findIndex(h => h === 'last_name' || h === 'lastname');
+      const companyIndex = headers.findIndex(h => h === 'company');
+      const phoneIndex = headers.findIndex(h => h === 'phone');
+
+      let imported = 0;
+      let errors = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
+        const email = values[emailIndex];
+
+        if (!email || !email.includes('@')) {
+          errors++;
+          continue;
+        }
+
+        try {
+          await contactsApi.create({
+            email,
+            first_name: firstNameIndex >= 0 ? values[firstNameIndex] : undefined,
+            last_name: lastNameIndex >= 0 ? values[lastNameIndex] : undefined,
+            company: companyIndex >= 0 ? values[companyIndex] : undefined,
+            phone: phoneIndex >= 0 ? values[phoneIndex] : undefined,
+            status: 'lead',
+          });
+          imported++;
+        } catch {
+          errors++;
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      setImportModalOpen(false);
+      setImportFile(null);
+
+      if (errors > 0) {
+        toast.success(`Imported ${imported} contacts (${errors} failed)`);
+      } else {
+        toast.success(`Imported ${imported} contacts successfully`);
+      }
+    } catch {
+      toast.error('Failed to parse CSV file');
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const columns = [
@@ -242,7 +346,12 @@ export default function Contacts() {
 
         <div className="flex items-center gap-3">
           {selectedCount > 0 && (
-            <Button variant="danger" size="sm" icon={<Trash2 className="w-4 h-4" />}>
+            <Button
+              variant="danger"
+              size="sm"
+              icon={<Trash2 className="w-4 h-4" />}
+              onClick={() => setBulkDeleteModalOpen(true)}
+            >
               Delete ({selectedCount})
             </Button>
           )}
@@ -255,7 +364,12 @@ export default function Contacts() {
           >
             Export CSV
           </Button>
-          <Button variant="outline" size="sm" icon={<Upload className="w-4 h-4" />}>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Upload className="w-4 h-4" />}
+            onClick={() => setImportModalOpen(true)}
+          >
             Import
           </Button>
           <Button
@@ -422,6 +536,106 @@ export default function Contacts() {
         variant="danger"
         loading={deleteMutation.isPending}
       />
+
+      {/* Bulk Delete Confirmation */}
+      <ConfirmModal
+        isOpen={bulkDeleteModalOpen}
+        onClose={() => setBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Contacts"
+        message={`Are you sure you want to delete ${selectedCount} contact${selectedCount !== 1 ? 's' : ''}? This action cannot be undone.`}
+        confirmText="Delete All"
+        variant="danger"
+        loading={bulkDeleteMutation.isPending}
+      />
+
+      {/* Import Modal */}
+      <Modal
+        isOpen={importModalOpen}
+        onClose={() => {
+          setImportModalOpen(false);
+          setImportFile(null);
+        }}
+        title="Import Contacts"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Upload a CSV file with contacts. The file must have an "email" column.
+            Optional columns: first_name, last_name, company, phone.
+          </p>
+
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              importFile ? 'border-primary-500 bg-primary-50' : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setImportFile(file);
+              }}
+            />
+
+            {importFile ? (
+              <div className="flex items-center justify-center gap-2">
+                <FileUp className="w-5 h-5 text-primary-600" />
+                <span className="text-sm font-medium text-primary-700">{importFile.name}</span>
+                <button
+                  onClick={() => setImportFile(null)}
+                  className="ml-2 text-slate-400 hover:text-slate-600"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <FileUp className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <p className="text-sm text-slate-600 mb-2">
+                  Drag and drop a CSV file, or
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Browse Files
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
+            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700">
+              All imported contacts will be added as leads. Duplicate emails will create new entries.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setImportModalOpen(false);
+              setImportFile(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleImport}
+            disabled={!importFile}
+            loading={isImporting}
+          >
+            {isImporting ? 'Importing...' : 'Import Contacts'}
+          </Button>
+        </div>
+      </Modal>
     </Layout>
   );
 }

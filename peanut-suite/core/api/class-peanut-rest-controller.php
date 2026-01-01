@@ -63,6 +63,100 @@ abstract class Peanut_REST_Controller {
     }
 
     /**
+     * API key permission callback with scope validation
+     *
+     * Allows authentication via Bearer token (API key) as an alternative to nonce.
+     * If API key is provided, validates it and checks for required scope.
+     * Falls back to standard permission_callback if no API key.
+     *
+     * @param WP_REST_Request $request The request object
+     * @param string|null $required_scope The scope required for this endpoint (e.g., 'links:read')
+     * @return bool|WP_Error
+     */
+    public function api_key_permission_callback(WP_REST_Request $request, ?string $required_scope = null): bool|WP_Error {
+        $auth_header = $request->get_header('Authorization');
+
+        // Check for Bearer token (API key)
+        if (!empty($auth_header) && preg_match('/Bearer\s+(.+)$/i', $auth_header, $matches)) {
+            $api_key = $matches[1];
+
+            // Validate the API key
+            $key_data = Peanut_Api_Keys_Service::validate($api_key);
+
+            if (!$key_data) {
+                return new WP_Error(
+                    'rest_invalid_api_key',
+                    __('Invalid or expired API key.', 'peanut-suite'),
+                    ['status' => 401]
+                );
+            }
+
+            // Check scope if required
+            if ($required_scope && !Peanut_Api_Keys_Service::has_scope($key_data, $required_scope)) {
+                return new WP_Error(
+                    'rest_insufficient_scope',
+                    sprintf(
+                        __('API key does not have required scope: %s', 'peanut-suite'),
+                        $required_scope
+                    ),
+                    ['status' => 403]
+                );
+            }
+
+            // Update last used timestamp
+            Peanut_Api_Keys_Service::update_last_used(
+                $key_data['id'],
+                $_SERVER['REMOTE_ADDR'] ?? null
+            );
+
+            // Store key data on request for use in callback
+            $request->set_param('_api_key_data', $key_data);
+
+            return true;
+        }
+
+        // Fall back to standard authentication
+        return $this->permission_callback($request);
+    }
+
+    /**
+     * Create a permission callback closure for a specific scope
+     *
+     * Usage in register_routes():
+     * 'permission_callback' => $this->with_scope('links:read'),
+     *
+     * @param string $scope The required scope
+     * @return callable
+     */
+    protected function with_scope(string $scope): callable {
+        return fn(WP_REST_Request $request) => $this->api_key_permission_callback($request, $scope);
+    }
+
+    /**
+     * Get API key data from request (if authenticated via API key)
+     *
+     * @param WP_REST_Request $request
+     * @return array|null
+     */
+    protected function get_api_key_data(WP_REST_Request $request): ?array {
+        return $request->get_param('_api_key_data');
+    }
+
+    /**
+     * Get account ID from API key or current user
+     *
+     * @param WP_REST_Request $request
+     * @return int|null
+     */
+    protected function get_account_id_from_request(WP_REST_Request $request): ?int {
+        $key_data = $this->get_api_key_data($request);
+        if ($key_data) {
+            return $key_data['account_id'];
+        }
+        return null;
+    }
+
+    /**
      * Success response
      */
     protected function success(array $data = [], int $status = 200): WP_REST_Response {

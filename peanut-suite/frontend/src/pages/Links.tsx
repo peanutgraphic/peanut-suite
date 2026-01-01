@@ -44,6 +44,7 @@ export default function Links() {
   const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [qrLink, setQrLink] = useState<LinkType | null>(null);
@@ -93,6 +94,28 @@ export default function Links() {
       toast.error('Failed to delete link');
     },
   });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: linksApi.bulkDelete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['links'] });
+      setBulkDeleteModalOpen(false);
+      setSelectedRows({});
+      toast.success('Links deleted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to delete links');
+    },
+  });
+
+  const handleBulkDelete = () => {
+    const selectedIds = Object.entries(selectedRows)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([id]) => parseInt(id, 10));
+    if (selectedIds.length > 0) {
+      bulkDeleteMutation.mutate(selectedIds);
+    }
+  };
 
   // Determine if we should show sample data
   const hasNoRealData = !isLoading && (!data?.data || data.data.length === 0);
@@ -402,13 +425,21 @@ export default function Links() {
             }
           }),
           bulkActions.delete(() => {
-            const selectedIds = Object.entries(selectedRows)
-              .filter(([, selected]) => selected)
-              .map(([id]) => parseInt(id));
-            // For now, show a toast - bulk delete would need a separate mutation
-            toast.info(`Would delete ${selectedIds.length} links (feature coming soon)`);
+            setBulkDeleteModalOpen(true);
           }),
         ]}
+      />
+
+      {/* Bulk Delete Confirmation */}
+      <ConfirmModal
+        isOpen={bulkDeleteModalOpen}
+        onClose={() => setBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Links"
+        message={`Are you sure you want to delete ${Object.values(selectedRows).filter(Boolean).length} link${Object.values(selectedRows).filter(Boolean).length !== 1 ? 's' : ''}? This will break any existing references to these short URLs.`}
+        confirmText="Delete All"
+        variant="danger"
+        loading={bulkDeleteMutation.isPending}
       />
     </Layout>
   );

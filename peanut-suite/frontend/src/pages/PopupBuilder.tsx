@@ -9,6 +9,7 @@ import {
   MousePointer,
   Target,
   Layout,
+  X,
 } from 'lucide-react';
 import { Layout as PageLayout } from '../components/layout';
 import { Card, Button, Input, Select, Textarea } from '../components/common';
@@ -131,6 +132,7 @@ export default function PopupBuilder() {
 
   const [activeTab, setActiveTab] = useState<Tab>('content');
   const [formData, setFormData] = useState<PopupFormData>(defaultFormData);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
   const { data: popup, isLoading } = useQuery({
     queryKey: ['popup', id],
@@ -286,7 +288,11 @@ export default function PopupBuilder() {
           Back to Popups
         </Button>
         <div className="flex items-center gap-3">
-          <Button variant="outline" icon={<Eye className="w-4 h-4" />}>
+          <Button
+            variant="outline"
+            icon={<Eye className="w-4 h-4" />}
+            onClick={() => setPreviewModalOpen(true)}
+          >
             Preview
           </Button>
           <Button
@@ -596,6 +602,46 @@ export default function PopupBuilder() {
           </Card>
         </div>
       </div>
+
+      {/* Full Screen Preview Modal */}
+      {previewModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Close button */}
+          <button
+            onClick={() => setPreviewModalOpen(false)}
+            className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow-lg hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-6 h-6 text-slate-600" />
+          </button>
+
+          {/* Simulated page background */}
+          <div className="absolute inset-0 bg-white">
+            {/* Fake page content */}
+            <div className="max-w-4xl mx-auto p-8 space-y-6">
+              <div className="h-8 bg-slate-200 rounded w-1/3" />
+              <div className="space-y-2">
+                <div className="h-4 bg-slate-100 rounded w-full" />
+                <div className="h-4 bg-slate-100 rounded w-5/6" />
+                <div className="h-4 bg-slate-100 rounded w-4/6" />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-32 bg-slate-100 rounded" />
+                ))}
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 bg-slate-100 rounded w-full" />
+                <div className="h-4 bg-slate-100 rounded w-3/4" />
+              </div>
+            </div>
+          </div>
+
+          {/* Popup preview at full size */}
+          <div className="absolute inset-0">
+            <FullScreenPopupPreview formData={formData} onClose={() => setPreviewModalOpen(false)} />
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }
@@ -767,6 +813,114 @@ function PopupPreview({ formData }: { formData: PopupFormData }) {
           <p className="text-sm opacity-80 mb-4">{content.body || 'Body text...'}</p>
           <button
             className="w-full py-2 px-4 rounded-lg text-sm font-medium"
+            style={{
+              backgroundColor: style.button_color,
+              color: style.button_text_color,
+            }}
+          >
+            {content.cta_text || 'Button'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Full screen preview component
+function FullScreenPopupPreview({ formData, onClose }: { formData: PopupFormData; onClose: () => void }) {
+  const { content, style, settings, type } = formData;
+
+  const getPopupClasses = () => {
+    const base = 'absolute transition-all';
+    switch (style.position) {
+      case 'top-left':
+        return `${base} top-8 left-8`;
+      case 'top-right':
+        return `${base} top-8 right-8`;
+      case 'bottom-left':
+        return `${base} bottom-8 left-8`;
+      case 'bottom-right':
+        return `${base} bottom-8 right-8`;
+      default:
+        return `${base} top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2`;
+    }
+  };
+
+  if (type === 'bar') {
+    return (
+      <div
+        className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between shadow-lg"
+        style={{ backgroundColor: style.background_color, color: style.text_color }}
+      >
+        <span className="text-base font-medium">{content.title}</span>
+        <div className="flex items-center gap-4">
+          <button
+            className="px-4 py-2 text-sm font-medium rounded-lg"
+            style={{ backgroundColor: style.button_color, color: style.button_text_color }}
+          >
+            {content.cta_text}
+          </button>
+          {settings.show_close_button && (
+            <button onClick={onClose} className="text-xl opacity-60 hover:opacity-100">
+              &times;
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundColor: style.overlay_color,
+          opacity: style.overlay_opacity / 100,
+        }}
+        onClick={settings.close_on_overlay ? onClose : undefined}
+      />
+
+      {/* Popup */}
+      <div
+        className={getPopupClasses()}
+        style={{
+          backgroundColor: style.background_color,
+          color: style.text_color,
+          borderRadius: `${style.border_radius}px`,
+          width: type === 'fullscreen' ? '80%' : style.width,
+          maxWidth: type === 'fullscreen' ? '800px' : '480px',
+          maxHeight: '90%',
+          boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+        }}
+      >
+        {settings.show_close_button && (
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <span className="text-2xl">&times;</span>
+          </button>
+        )}
+
+        {content.image_url && (
+          <img
+            src={content.image_url}
+            alt=""
+            className="w-full h-40 object-cover"
+            style={{
+              borderTopLeftRadius: `${style.border_radius}px`,
+              borderTopRightRadius: `${style.border_radius}px`,
+            }}
+          />
+        )}
+
+        <div className="p-6">
+          <h3 className="text-2xl font-bold mb-3">{content.title || 'Headline'}</h3>
+          <p className="text-base opacity-80 mb-6">{content.body || 'Body text...'}</p>
+          <button
+            className="w-full py-3 px-6 rounded-lg text-base font-medium transition-opacity hover:opacity-90"
             style={{
               backgroundColor: style.button_color,
               color: style.button_text_color,

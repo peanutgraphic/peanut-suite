@@ -31,8 +31,8 @@ export function QRCodeDisplay({ value, size = 200, title }: QRCodeDisplayProps) 
 
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy QR code:', err);
+    } catch {
+      // Clipboard API may not be available in some browsers
     }
   };
 

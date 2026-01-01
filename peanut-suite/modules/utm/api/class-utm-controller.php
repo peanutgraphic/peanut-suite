@@ -12,62 +12,62 @@ class UTM_Controller extends Peanut_REST_Controller {
     protected string $rest_base = 'utms';
 
     public function register_routes(): void {
-        // List UTMs
+        // List UTMs (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base, [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_items'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('utms:read'),
             'args' => $this->get_collection_args(),
         ]);
 
-        // Create UTM
+        // Create UTM (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base, [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'create_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('utms:write'),
         ]);
 
-        // Get single UTM
+        // Get single UTM (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('utms:read'),
         ]);
 
-        // Update UTM
+        // Update UTM (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
             'methods' => WP_REST_Server::EDITABLE,
             'callback' => [$this, 'update_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('utms:write'),
         ]);
 
-        // Delete UTM
+        // Delete UTM (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
             'methods' => WP_REST_Server::DELETABLE,
             'callback' => [$this, 'delete_item'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('utms:write'),
         ]);
 
-        // Bulk delete
+        // Bulk delete (write scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/bulk-delete', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'bulk_delete'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('utms:write'),
         ]);
 
-        // Export
+        // Export (read scope)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/export', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'export'],
-            'permission_callback' => [$this, 'permission_callback'],
+            'permission_callback' => $this->with_scope('utms:read'),
         ]);
 
-        // UTM Access routes
+        // UTM Access routes (write scope - admin operations)
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/access', [
             [
                 'methods' => WP_REST_Server::READABLE,
                 'callback' => [$this, 'get_utm_access'],
-                'permission_callback' => [$this, 'permission_callback'],
+                'permission_callback' => $this->with_scope('utms:read'),
             ],
         ]);
 
@@ -75,7 +75,7 @@ class UTM_Controller extends Peanut_REST_Controller {
             [
                 'methods' => WP_REST_Server::CREATABLE,
                 'callback' => [$this, 'assign_utm_access'],
-                'permission_callback' => [$this, 'permission_callback'],
+                'permission_callback' => $this->with_scope('utms:write'),
             ],
         ]);
 
@@ -83,7 +83,7 @@ class UTM_Controller extends Peanut_REST_Controller {
             [
                 'methods' => WP_REST_Server::DELETABLE,
                 'callback' => [$this, 'revoke_utm_access'],
-                'permission_callback' => [$this, 'permission_callback'],
+                'permission_callback' => $this->with_scope('utms:write'),
             ],
         ]);
     }

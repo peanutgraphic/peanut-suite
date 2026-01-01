@@ -113,9 +113,8 @@ export default function Team() {
       setMembers(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {
-      setError('Failed to load team members');
+      setError(err instanceof Error ? err.message : 'Failed to load team members');
       setMembers([]);
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -128,8 +127,8 @@ export default function Team() {
       setLoginSettingsLoading(true);
       const data = await accountsApi.getLoginSettings(accountId);
       setLoginSettings(data);
-    } catch (err) {
-      console.error('Failed to load login settings:', err);
+    } catch {
+      // Silently fail - login settings are optional
     } finally {
       setLoginSettingsLoading(false);
     }
@@ -144,48 +143,30 @@ export default function Team() {
 
   const handleAddMember = async (email: string, role: AccountRole, permissions: FeaturePermissions) => {
     if (!accountId) return;
-    try {
-      await accountsApi.addMember(accountId, { email, role, feature_permissions: permissions });
-      await loadMembers();
-      setShowAddModal(false);
-    } catch (err) {
-      console.error('Failed to add member:', err);
-      throw err;
-    }
+    await accountsApi.addMember(accountId, { email, role, feature_permissions: permissions });
+    await loadMembers();
+    setShowAddModal(false);
   };
 
   const handleUpdatePermissions = async (userId: number, permissions: FeaturePermissions) => {
     if (!accountId) return;
-    try {
-      await accountsApi.updateMemberPermissions(accountId, userId, permissions);
-      await loadMembers();
-      setShowEditModal(false);
-      setSelectedMember(null);
-    } catch (err) {
-      console.error('Failed to update permissions:', err);
-      throw err;
-    }
+    await accountsApi.updateMemberPermissions(accountId, userId, permissions);
+    await loadMembers();
+    setShowEditModal(false);
+    setSelectedMember(null);
   };
 
   const handleUpdateRole = async (userId: number, role: AccountRole) => {
     if (!accountId) return;
-    try {
-      await accountsApi.updateMemberRole(accountId, userId, role);
-      await loadMembers();
-    } catch (err) {
-      console.error('Failed to update role:', err);
-    }
+    await accountsApi.updateMemberRole(accountId, userId, role);
+    await loadMembers();
   };
 
   const handleRemoveMember = async (userId: number) => {
     if (!accountId) return;
     if (!confirm('Are you sure you want to remove this team member?')) return;
-    try {
-      await accountsApi.removeMember(accountId, userId);
-      await loadMembers();
-    } catch (err) {
-      console.error('Failed to remove member:', err);
-    }
+    await accountsApi.removeMember(accountId, userId);
+    await loadMembers();
   };
 
   const handleResetPassword = async (userId: number, email: string) => {
@@ -194,8 +175,7 @@ export default function Team() {
     try {
       await accountsApi.resetMemberPassword(accountId, userId);
       alert('Password reset email sent successfully!');
-    } catch (err) {
-      console.error('Failed to send password reset:', err);
+    } catch {
       alert('Failed to send password reset email. Please try again.');
     }
   };
@@ -820,10 +800,12 @@ function LoginPageSettingsForm({ settings, accountId, onUpdate }: LoginPageSetti
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleSave = async () => {
     setSaving(true);
     setSuccess(false);
+    setSaveError(null);
     try {
       const updated = await accountsApi.updateLoginSettings(accountId, {
         logo_url: logoUrl,
@@ -835,7 +817,7 @@ function LoginPageSettingsForm({ settings, accountId, onUpdate }: LoginPageSetti
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      console.error('Failed to save login settings:', err);
+      setSaveError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -930,6 +912,12 @@ function LoginPageSettingsForm({ settings, accountId, onUpdate }: LoginPageSetti
             <span className="text-sm text-green-600 flex items-center gap-1">
               <Check className="w-4 h-4" />
               Settings saved successfully
+            </span>
+          )}
+          {saveError && (
+            <span className="text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {saveError}
             </span>
           )}
         </div>

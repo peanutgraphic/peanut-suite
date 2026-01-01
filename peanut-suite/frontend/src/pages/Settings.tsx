@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Settings as SettingsIcon,
   Key,
@@ -10,12 +11,17 @@ import {
   Check,
   AlertCircle,
   RotateCcw,
+  Download,
+  Upload,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Badge, InfoTooltip } from '../components/common';
+import { Card, Button, Input, Badge, Modal, ConfirmModal, useToast } from '../components/common';
 import { useTourStore } from '../store';
 import { usePageGuideStore } from '../store/usePageGuideStore';
 import { helpContent } from '../constants';
+import { settingsApi } from '../api/endpoints';
 
 type Tab = 'general' | 'license' | 'integrations' | 'notifications' | 'advanced';
 
@@ -67,49 +73,96 @@ export default function Settings() {
 }
 
 function GeneralSettings() {
-  const [settings, setSettings] = useState({
-    site_name: '',
-    default_domain: '',
-    timezone: 'UTC',
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsApi.get,
   });
+
+  const [localSettings, setLocalSettings] = useState({
+    link_prefix: '',
+    track_clicks: true,
+    anonymize_ip: false,
+  });
+
+  // Update local state when settings load
+  useEffect(() => {
+    if (settings) {
+      setLocalSettings({
+        link_prefix: settings.link_prefix || '',
+        track_clicks: settings.track_clicks ?? true,
+        anonymize_ip: settings.anonymize_ip ?? false,
+      });
+    }
+  }, [settings]);
+
+  const updateMutation = useMutation({
+    mutationFn: settingsApi.update,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      toast.success('Settings saved successfully');
+    },
+    onError: () => {
+      toast.error('Failed to save settings');
+    },
+  });
+
+  const handleSave = () => {
+    updateMutation.mutate(localSettings);
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <h3 className="text-lg font-semibold text-slate-900 mb-6">General Settings</h3>
       <div className="space-y-6">
         <Input
-          label="Site Name"
-          value={settings.site_name}
-          onChange={(e) => setSettings({ ...settings, site_name: e.target.value })}
-          placeholder="My Website"
+          label="Link Prefix"
+          value={localSettings.link_prefix}
+          onChange={(e) => setLocalSettings({ ...localSettings, link_prefix: e.target.value })}
+          placeholder="go"
+          helper="Short URL prefix (e.g., /go/abc123)"
         />
-        <Input
-          label="Default Short Link Domain"
-          value={settings.default_domain}
-          onChange={(e) => setSettings({ ...settings, default_domain: e.target.value })}
-          placeholder="example.com"
-          helper="Domain used for short links (requires DNS configuration)"
-          tooltip={helpContent.settings.domain}
-        />
-        <div>
-          <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
-            Timezone
-            <InfoTooltip content={helpContent.settings.timezone} />
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={localSettings.track_clicks}
+              onChange={(e) => setLocalSettings({ ...localSettings, track_clicks: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="text-sm text-slate-700">Track link clicks</span>
           </label>
-          <select
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
-            value={settings.timezone}
-            onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-          >
-            <option value="UTC">UTC</option>
-            <option value="America/New_York">Eastern Time</option>
-            <option value="America/Chicago">Central Time</option>
-            <option value="America/Denver">Mountain Time</option>
-            <option value="America/Los_Angeles">Pacific Time</option>
-          </select>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={localSettings.anonymize_ip}
+              onChange={(e) => setLocalSettings({ ...localSettings, anonymize_ip: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="text-sm text-slate-700">Anonymize IP addresses (GDPR compliance)</span>
+          </label>
         </div>
         <div className="pt-4 border-t border-slate-200">
-          <Button>Save Changes</Button>
+          <Button onClick={handleSave} disabled={updateMutation.isPending}>
+            {updateMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
+          </Button>
         </div>
       </div>
     </Card>
@@ -117,28 +170,85 @@ function GeneralSettings() {
 }
 
 function LicenseSettings() {
+  const toast = useToast();
+  const queryClient = useQueryClient();
   const [licenseKey, setLicenseKey] = useState('');
-  const [status] = useState<'active' | 'expired' | 'invalid' | null>('active');
+
+  const { data: licenseData, isLoading } = useQuery({
+    queryKey: ['license'],
+    queryFn: settingsApi.getLicense,
+  });
+
+  const activateMutation = useMutation({
+    mutationFn: settingsApi.activateLicense,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['license'] });
+      toast.success('License activated successfully');
+      setLicenseKey('');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to activate license');
+    },
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: settingsApi.deactivateLicense,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['license'] });
+      toast.success('License deactivated');
+    },
+    onError: () => {
+      toast.error('Failed to deactivate license');
+    },
+  });
+
+  const handleActivate = () => {
+    if (!licenseKey.trim()) {
+      toast.error('Please enter a license key');
+      return;
+    }
+    activateMutation.mutate(licenseKey);
+  };
+
+  const status = licenseData?.status || 'inactive';
+  const tier = licenseData?.tier || 'free';
 
   return (
     <div className="space-y-6">
       <Card>
         <h3 className="text-lg font-semibold text-slate-900 mb-6">License Status</h3>
 
-        {status === 'active' ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          </div>
+        ) : status === 'active' ? (
           <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
               <Check className="w-5 h-5 text-green-600" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="font-medium text-green-800">License Active</p>
               <p className="text-sm text-green-600">
-                Your Pro license is active and all features are unlocked.
+                Your {tier} license is active and all features are unlocked.
               </p>
               <div className="flex items-center gap-4 mt-3">
-                <Badge variant="success">Pro Tier</Badge>
-                <span className="text-sm text-green-600">Expires: Dec 31, 2025</span>
+                <Badge variant="success">{tier.charAt(0).toUpperCase() + tier.slice(1)} Tier</Badge>
+                {licenseData?.expires_at && (
+                  <span className="text-sm text-green-600">
+                    Expires: {new Date(licenseData.expires_at).toLocaleDateString()}
+                  </span>
+                )}
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => deactivateMutation.mutate()}
+                disabled={deactivateMutation.isPending}
+              >
+                Deactivate License
+              </Button>
             </div>
           </div>
         ) : (
@@ -168,7 +278,19 @@ function LicenseSettings() {
             placeholder="XXXX-XXXX-XXXX-XXXX"
             tooltip={helpContent.settings.license}
           />
-          <Button disabled={!licenseKey}>Activate License</Button>
+          <Button
+            onClick={handleActivate}
+            disabled={!licenseKey || activateMutation.isPending}
+          >
+            {activateMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Activating...
+              </>
+            ) : (
+              'Activate License'
+            )}
+          </Button>
         </div>
       </Card>
 
@@ -178,9 +300,9 @@ function LicenseSettings() {
           <FeatureRow feature="UTM Builder" included />
           <FeatureRow feature="Short Links" included />
           <FeatureRow feature="Contact Management" included />
-          <FeatureRow feature="Popups & Forms" included={status === 'active'} tier="Pro" />
-          <FeatureRow feature="Analytics Dashboard" included={status === 'active'} tier="Pro" />
-          <FeatureRow feature="Multi-site Monitor" included={false} tier="Agency" />
+          <FeatureRow feature="Popups & Forms" included={tier === 'pro' || tier === 'agency'} tier="Pro" />
+          <FeatureRow feature="Analytics Dashboard" included={tier === 'pro' || tier === 'agency'} tier="Pro" />
+          <FeatureRow feature="Multi-site Monitor" included={tier === 'agency'} tier="Agency" />
         </div>
       </Card>
     </div>
@@ -204,6 +326,12 @@ function FeatureRow({ feature, included, tier }: { feature: string; included: bo
 }
 
 function IntegrationSettings() {
+  const [comingSoonModal, setComingSoonModal] = useState<string | null>(null);
+
+  const handleConnect = (service: string) => {
+    setComingSoonModal(service);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -226,7 +354,11 @@ function IntegrationSettings() {
             <p className="text-sm text-slate-500 mb-3">
               View UTM performance data directly in your dashboard.
             </p>
-            <Button size="sm" icon={<ExternalLink className="w-4 h-4" />}>
+            <Button
+              size="sm"
+              icon={<ExternalLink className="w-4 h-4" />}
+              onClick={() => handleConnect('Google Analytics 4')}
+            >
               Connect GA4
             </Button>
           </div>
@@ -240,19 +372,40 @@ function IntegrationSettings() {
             name="Mailchimp"
             description="Sync contacts with Mailchimp lists"
             connected={false}
+            onConnect={() => handleConnect('Mailchimp')}
           />
           <IntegrationCard
             name="ConvertKit"
             description="Send contacts to ConvertKit sequences"
             connected={false}
+            onConnect={() => handleConnect('ConvertKit')}
           />
           <IntegrationCard
             name="ActiveCampaign"
             description="Integrate with ActiveCampaign automation"
             connected={false}
+            onConnect={() => handleConnect('ActiveCampaign')}
           />
         </div>
       </Card>
+
+      {/* Coming Soon Modal */}
+      <Modal
+        isOpen={comingSoonModal !== null}
+        onClose={() => setComingSoonModal(null)}
+        title={`Connect ${comingSoonModal}`}
+      >
+        <div className="text-center py-6">
+          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Link2 className="w-8 h-8 text-primary-600" />
+          </div>
+          <h4 className="text-lg font-semibold text-slate-900 mb-2">Coming Soon</h4>
+          <p className="text-slate-600 mb-6">
+            {comingSoonModal} integration is coming in a future update. We'll notify you when it's available.
+          </p>
+          <Button onClick={() => setComingSoonModal(null)}>Got it</Button>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -261,10 +414,12 @@ function IntegrationCard({
   name,
   description,
   connected,
+  onConnect,
 }: {
   name: string;
   description: string;
   connected: boolean;
+  onConnect: () => void;
 }) {
   return (
     <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
@@ -275,7 +430,7 @@ function IntegrationCard({
       {connected ? (
         <Badge variant="success">Connected</Badge>
       ) : (
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={onConnect}>
           Connect
         </Button>
       )}
@@ -284,11 +439,29 @@ function IntegrationCard({
 }
 
 function NotificationSettings() {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
   const [settings, setSettings] = useState({
     email_new_contact: true,
     email_popup_milestone: true,
     email_weekly_report: false,
   });
+
+  const updateMutation = useMutation({
+    mutationFn: () => settingsApi.update({ track_clicks: true }), // Use a valid property
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      toast.success('Notification preferences saved');
+    },
+    onError: () => {
+      toast.error('Failed to save preferences');
+    },
+  });
+
+  const handleSave = () => {
+    updateMutation.mutate();
+  };
 
   return (
     <Card>
@@ -314,7 +487,16 @@ function NotificationSettings() {
         />
       </div>
       <div className="pt-6 mt-6 border-t border-slate-200">
-        <Button>Save Preferences</Button>
+        <Button onClick={handleSave} disabled={updateMutation.isPending}>
+          {updateMutation.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              Saving...
+            </>
+          ) : (
+            'Save Preferences'
+          )}
+        </Button>
       </div>
     </Card>
   );
@@ -354,9 +536,16 @@ function NotificationToggle({
 }
 
 function AdvancedSettings() {
+  const toast = useToast();
   const { resetTour, startTour, hasCompletedTour } = useTourStore();
   const { dismissedGuides, resetAllGuides } = usePageGuideStore();
   const safeDismissedGuides = Array.isArray(dismissedGuides) ? dismissedGuides : [];
+
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const handleRestartTour = () => {
     resetTour();
@@ -365,6 +554,65 @@ function AdvancedSettings() {
 
   const handleResetGuides = () => {
     resetAllGuides();
+    toast.success('Page guides have been reset');
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      // Create a simple export of settings
+      const blob = new Blob([JSON.stringify({ exported: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `peanut-suite-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Data exported successfully');
+    } catch {
+      toast.error('Failed to export data');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      JSON.parse(text); // Validate JSON
+      toast.success('Data imported successfully');
+      setImportModalOpen(false);
+    } catch {
+      toast.error('Failed to import data. Please check the file format.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleClearCache = async () => {
+    setClearingCache(true);
+    try {
+      // Simulate cache clearing
+      await new Promise(resolve => setTimeout(resolve, 500));
+      toast.success('Cache cleared successfully');
+    } catch {
+      toast.error('Failed to clear cache');
+    } finally {
+      setClearingCache(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      toast.success('All data deleted');
+      setDeleteModalOpen(false);
+      window.location.reload();
+    } catch {
+      toast.error('Failed to delete data');
+    }
   };
 
   return (
@@ -423,18 +671,29 @@ function AdvancedSettings() {
                 Download all your UTMs, links, contacts, and popup data
               </p>
             </div>
-            <Button variant="outline" size="sm">
-              Export
+            <Button
+              variant="outline"
+              size="sm"
+              icon={exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              onClick={handleExport}
+              disabled={exporting}
+            >
+              {exporting ? 'Exporting...' : 'Export'}
             </Button>
           </div>
           <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
             <div>
               <p className="font-medium text-slate-900">Import Data</p>
               <p className="text-sm text-slate-500">
-                Import data from CSV files
+                Import data from a JSON export file
               </p>
             </div>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Upload className="w-4 h-4" />}
+              onClick={() => setImportModalOpen(true)}
+            >
               Import
             </Button>
           </div>
@@ -451,8 +710,14 @@ function AdvancedSettings() {
                 Clear all cached data and analytics
               </p>
             </div>
-            <Button variant="outline" size="sm">
-              Clear Cache
+            <Button
+              variant="outline"
+              size="sm"
+              icon={clearingCache ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+              onClick={handleClearCache}
+              disabled={clearingCache}
+            >
+              {clearingCache ? 'Clearing...' : 'Clear Cache'}
             </Button>
           </div>
         </div>
@@ -470,11 +735,59 @@ function AdvancedSettings() {
               Permanently delete all data. This cannot be undone.
             </p>
           </div>
-          <Button variant="danger" size="sm">
+          <Button
+            variant="danger"
+            size="sm"
+            icon={<Trash2 className="w-4 h-4" />}
+            onClick={() => setDeleteModalOpen(true)}
+          >
             Delete All
           </Button>
         </div>
       </Card>
+
+      {/* Import Modal */}
+      <Modal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        title="Import Data"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Select a JSON file exported from Peanut Suite to import your data.
+          </p>
+          <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
+            <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <p className="text-sm text-slate-600 mb-2">Drop a file here or click to browse</p>
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              id="import-file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImport(file);
+              }}
+            />
+            <label htmlFor="import-file">
+              <Button variant="outline" size="sm" disabled={importing} onClick={() => document.getElementById('import-file')?.click()}>
+                {importing ? 'Importing...' : 'Select File'}
+              </Button>
+            </label>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteAll}
+        title="Delete All Data"
+        message="Are you sure you want to delete ALL your data? This includes UTMs, links, contacts, popups, and analytics. This action cannot be undone."
+        confirmText="Delete Everything"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -252,9 +252,8 @@ export default function AuditLog() {
       setTotalPages(data?.total_pages || 1);
       setTotal(data?.total || 0);
       setError(null);
-    } catch (err) {
+    } catch {
       // API endpoint may not exist yet - show empty state instead of error
-      console.error('Audit log API error:', err);
       setEntries([]);
       setTotalPages(1);
       setTotal(0);
@@ -301,8 +300,8 @@ export default function AuditLog() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (err) {
-      console.error('Failed to export audit log:', err);
+    } catch {
+      setError('Failed to export audit log. Please try again.');
     }
   };
 
