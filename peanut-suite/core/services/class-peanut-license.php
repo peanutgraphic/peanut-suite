@@ -134,17 +134,22 @@ class Peanut_License {
      * Remote license validation and activation
      */
     private function remote_validate(string $key): array {
-        $response = wp_remote_post(self::LICENSE_API . '/license/validate', [
+        // Use GET with X-HTTP-Method-Override to bypass server firewalls that block POST
+        $body_params = [
+            'license_key' => $key,
+            'site_url' => home_url(),
+            'site_name' => get_bloginfo('name'),
+            'plugin_version' => defined('PEANUT_SUITE_VERSION') ? PEANUT_SUITE_VERSION : '1.0.0',
+        ];
+
+        $response = wp_remote_request(self::LICENSE_API . '/license/validate', [
+            'method' => 'GET',
             'timeout' => 15,
             'headers' => [
-                'X-HTTP-Method-Override' => 'POST', // Bypass server firewall restrictions
+                'X-HTTP-Method-Override' => 'POST',
+                'Content-Type' => 'application/json',
             ],
-            'body' => [
-                'license_key' => $key,
-                'site_url' => home_url(),
-                'site_name' => get_bloginfo('name'),
-                'plugin_version' => defined('PEANUT_SUITE_VERSION') ? PEANUT_SUITE_VERSION : '1.0.0',
-            ],
+            'body' => wp_json_encode($body_params),
         ]);
 
         if (is_wp_error($response)) {
@@ -301,17 +306,19 @@ class Peanut_License {
     public function deactivate(): bool {
         $key = get_option('peanut_license_key', '');
 
-        // Deactivate from remote server
+        // Deactivate from remote server using GET with method override to bypass firewalls
         if (!empty($key) && !$this->is_dev_license($key)) {
-            wp_remote_post(self::LICENSE_API . '/license/deactivate', [
+            wp_remote_request(self::LICENSE_API . '/license/deactivate', [
+                'method' => 'GET',
                 'timeout' => 10,
                 'headers' => [
-                    'X-HTTP-Method-Override' => 'POST', // Bypass server firewall restrictions
+                    'X-HTTP-Method-Override' => 'POST',
+                    'Content-Type' => 'application/json',
                 ],
-                'body' => [
+                'body' => wp_json_encode([
                     'license_key' => $key,
                     'site_url' => home_url(),
-                ],
+                ]),
             ]);
         }
 
