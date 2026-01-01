@@ -103,10 +103,10 @@ class Peanut_Admin_Assets {
 
                 // Add module type for ES modules
                 add_filter('script_loader_tag', function($tag, $handle) {
-                    if ($handle === 'peanut-react-app') {
+                    if ($handle === 'peanut-react-app' && is_string($tag)) {
                         $tag = str_replace(' src=', ' type="module" src=', $tag);
                     }
-                    return $tag;
+                    return $tag ?? '';
                 }, 10, 2);
 
                 $license = peanut_get_license();

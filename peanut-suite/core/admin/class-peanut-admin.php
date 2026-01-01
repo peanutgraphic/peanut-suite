@@ -627,7 +627,7 @@ class Peanut_Admin {
 
             foreach ($legacy_pages as $slug => $callback) {
                 add_submenu_page(
-                    null, // Hidden from menu
+                    '', // Hidden from menu (empty string avoids PHP 8.1+ null deprecation)
                     '',
                     '',
                     'manage_options',
@@ -789,9 +789,9 @@ class Peanut_Admin {
             [$this, 'render_settings']
         );
 
-        // Hidden pages (no menu item)
+        // Hidden pages (no menu item) - use empty string to avoid PHP 8.1+ null deprecation
         add_submenu_page(
-            null, // No parent = hidden
+            '',
             __('UTM Library', 'peanut-suite'),
             __('UTM Library', 'peanut-suite'),
             'manage_options',
@@ -800,7 +800,7 @@ class Peanut_Admin {
         );
 
         add_submenu_page(
-            null,
+            '',
             __('Visitor Details', 'peanut-suite'),
             __('Visitor Details', 'peanut-suite'),
             'manage_options',
@@ -809,7 +809,7 @@ class Peanut_Admin {
         );
 
         add_submenu_page(
-            null,
+            '',
             __('Popup Builder', 'peanut-suite'),
             __('Popup Builder', 'peanut-suite'),
             'manage_options',
@@ -818,7 +818,7 @@ class Peanut_Admin {
         );
 
         add_submenu_page(
-            null,
+            '',
             __('Site Details', 'peanut-suite'),
             __('Site Details', 'peanut-suite'),
             'manage_options',
