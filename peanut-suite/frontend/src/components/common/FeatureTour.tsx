@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getPortalRoot } from '../../utils/portalRoot';
-import { X, ChevronLeft, ChevronRight, SkipForward } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, SkipForward, Link2, Users, BarChart2, MessageSquare, Rocket } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTourStore, tourSteps } from '../../store/useTourStore';
 import Button from './Button';
@@ -335,7 +335,7 @@ export function WelcomeModal() {
         {/* Hero illustration */}
         <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-8 text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-2xl mb-4">
-            <span className="text-5xl">🥜</span>
+            <Rocket className="w-10 h-10 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">
             Welcome to Marketing Suite!
@@ -349,22 +349,22 @@ export function WelcomeModal() {
         <div className="p-6">
           <div className="space-y-3 mb-6">
             <FeatureItem
-              emoji="🔗"
+              icon={Link2}
               title="Track Campaigns"
               description="Create UTM links and short URLs"
             />
             <FeatureItem
-              emoji="👥"
+              icon={Users}
               title="Manage Contacts"
               description="Build and segment your audience"
             />
             <FeatureItem
-              emoji="📊"
+              icon={BarChart2}
               title="Analyze Performance"
               description="Attribution and analytics insights"
             />
             <FeatureItem
-              emoji="💬"
+              icon={MessageSquare}
               title="Convert Visitors"
               description="Popups and lead capture forms"
             />
@@ -392,10 +392,12 @@ export function WelcomeModal() {
   );
 }
 
-function FeatureItem({ emoji, title, description }: { emoji: string; title: string; description: string }) {
+function FeatureItem({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-2xl">{emoji}</span>
+      <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">
+        <Icon className="w-5 h-5 text-primary-600" />
+      </div>
       <div>
         <p className="font-medium text-slate-900">{title}</p>
         <p className="text-sm text-slate-500">{description}</p>

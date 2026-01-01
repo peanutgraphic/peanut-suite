@@ -218,7 +218,7 @@ export default function Header({ title, description, onSearchClick, helpContent,
             {helpContent && onHelpClick && (
               <button
                 onClick={onHelpClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-primary-600 bg-white hover:bg-primary-50 border border-slate-200 hover:border-primary-200 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-primary-600 bg-white hover:bg-primary-50 border border-slate-200 hover:border-primary-200 rounded-lg transition-colors whitespace-nowrap"
                 title="How to use this page"
               >
                 <HelpCircle className="w-4 h-4" />

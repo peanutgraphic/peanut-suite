@@ -191,7 +191,7 @@ export function HelpButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 px-2.5 py-1 text-sm text-slate-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+      className="flex items-center gap-1.5 px-2.5 py-1 text-sm text-slate-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors whitespace-nowrap"
       title="How to use this page"
     >
       <HelpCircle className="w-4 h-4" />
