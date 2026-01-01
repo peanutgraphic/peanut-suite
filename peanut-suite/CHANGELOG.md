@@ -5,6 +5,18 @@ All notable changes to Peanut Suite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.32] - 2025-01-01
+
+### Fixed
+- React portal "removeChild" error in WordPress admin caused by DOM conflicts with external scripts
+
+### Added
+- Dedicated portal container (`#peanut-portal-root`) for all React portals
+- `portalRoot.ts` utility for safe portal rendering
+
+### Changed
+- Updated PageGuide, FeatureTour, WelcomeModal, and Team dropdown to use isolated portal container
+
 ## [4.2.31] - 2024-12-31
 
 ### Added
