@@ -342,30 +342,36 @@ function peanut_get_dashboard_stats(): array {
 
     // Get UTM count
     $utms_table = $wpdb->prefix . 'peanut_utms';
-    if ($wpdb->get_var("SHOW TABLES LIKE '$utms_table'") === $utms_table) {
-        $stats['utms']['total'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM $utms_table");
+    if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $utms_table)) === $utms_table) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
+        $stats['utms']['total'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . esc_sql($utms_table));
 
         // Get recent UTMs
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
         $stats['recent_utms'] = $wpdb->get_results(
-            "SELECT * FROM $utms_table ORDER BY created_at DESC LIMIT 5",
+            "SELECT * FROM " . esc_sql($utms_table) . " ORDER BY created_at DESC LIMIT 5",
             ARRAY_A
         ) ?: [];
 
         // Get total clicks
-        $stats['clicks']['total'] = (int) $wpdb->get_var("SELECT SUM(click_count) FROM $utms_table");
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
+        $stats['clicks']['total'] = (int) $wpdb->get_var("SELECT SUM(click_count) FROM " . esc_sql($utms_table));
     }
 
     // Get links count
     $links_table = $wpdb->prefix . 'peanut_links';
-    if ($wpdb->get_var("SHOW TABLES LIKE '$links_table'") === $links_table) {
-        $stats['links']['total'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM $links_table");
-        $stats['links']['clicks'] = (int) $wpdb->get_var("SELECT SUM(click_count) FROM $links_table");
+    if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $links_table)) === $links_table) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
+        $stats['links']['total'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . esc_sql($links_table));
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
+        $stats['links']['clicks'] = (int) $wpdb->get_var("SELECT SUM(click_count) FROM " . esc_sql($links_table));
     }
 
     // Get contacts count
     $contacts_table = $wpdb->prefix . 'peanut_contacts';
-    if ($wpdb->get_var("SHOW TABLES LIKE '$contacts_table'") === $contacts_table) {
-        $stats['contacts']['total'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM $contacts_table");
+    if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $contacts_table)) === $contacts_table) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
+        $stats['contacts']['total'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . esc_sql($contacts_table));
     }
 
     return $stats;

@@ -35,8 +35,9 @@ class Peanut_Settings_Controller extends Peanut_REST_Controller {
             'permission_callback' => [$this, 'permission_callback'],
         ]);
 
+        // License activation (GET+POST for WAF compatibility)
         register_rest_route($this->namespace, '/license/activate', [
-            'methods' => WP_REST_Server::CREATABLE,
+            'methods' => WP_REST_Server::READABLE . ', ' . WP_REST_Server::CREATABLE,
             'callback' => [$this, 'activate_license'],
             'permission_callback' => [$this, 'admin_permission_callback'],
             'args' => [
@@ -60,14 +61,16 @@ class Peanut_Settings_Controller extends Peanut_REST_Controller {
             'permission_callback' => [$this, 'permission_callback'],
         ]);
 
+        // Module activation (GET+POST for WAF compatibility)
         register_rest_route($this->namespace, '/modules/(?P<id>[a-z_]+)/activate', [
-            'methods' => WP_REST_Server::CREATABLE,
+            'methods' => WP_REST_Server::READABLE . ', ' . WP_REST_Server::CREATABLE,
             'callback' => [$this, 'activate_module'],
             'permission_callback' => [$this, 'admin_permission_callback'],
         ]);
 
+        // Module deactivation (GET+POST for WAF compatibility)
         register_rest_route($this->namespace, '/modules/(?P<id>[a-z_]+)/deactivate', [
-            'methods' => WP_REST_Server::CREATABLE,
+            'methods' => WP_REST_Server::READABLE . ', ' . WP_REST_Server::CREATABLE,
             'callback' => [$this, 'deactivate_module'],
             'permission_callback' => [$this, 'admin_permission_callback'],
         ]);
@@ -76,6 +79,34 @@ class Peanut_Settings_Controller extends Peanut_REST_Controller {
         register_rest_route($this->namespace, '/integrations/(?P<id>[a-z0-9_]+)/test', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [$this, 'test_integration'],
+            'permission_callback' => [$this, 'admin_permission_callback'],
+        ]);
+
+        // Export all settings
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/export', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => [$this, 'export_settings'],
+            'permission_callback' => [$this, 'admin_permission_callback'],
+        ]);
+
+        // Import settings
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/import', [
+            'methods' => WP_REST_Server::CREATABLE,
+            'callback' => [$this, 'import_settings'],
+            'permission_callback' => [$this, 'admin_permission_callback'],
+        ]);
+
+        // Clear cache
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/clear-cache', [
+            'methods' => WP_REST_Server::CREATABLE,
+            'callback' => [$this, 'clear_cache'],
+            'permission_callback' => [$this, 'admin_permission_callback'],
+        ]);
+
+        // Delete all data
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/delete-all', [
+            'methods' => WP_REST_Server::DELETABLE,
+            'callback' => [$this, 'delete_all_data'],
             'permission_callback' => [$this, 'admin_permission_callback'],
         ]);
     }
@@ -318,5 +349,162 @@ class Peanut_Settings_Controller extends Peanut_REST_Controller {
         } else {
             return $this->error($result['message'], 'connection_failed');
         }
+    }
+
+    /**
+     * Export all settings and data
+     */
+    public function export_settings(WP_REST_Request $request): WP_REST_Response {
+        $export = [
+            'version' => PEANUT_VERSION,
+            'exported_at' => current_time('mysql'),
+            'settings' => [
+                'general' => get_option('peanut_settings', []),
+                'modules' => peanut_get_active_modules(),
+                'integrations' => get_option('peanut_integrations', []),
+            ],
+        ];
+
+        // Include license info (without key)
+        $license = new Peanut_License();
+        $license_data = $license->get_license_data();
+        $export['license'] = [
+            'tier' => $license_data['tier'],
+            'status' => $license_data['status'],
+        ];
+
+        return $this->success([
+            'filename' => 'peanut-suite-export-' . date('Y-m-d') . '.json',
+            'data' => $export,
+        ]);
+    }
+
+    /**
+     * Import settings from export
+     */
+    public function import_settings(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $data = $request->get_param('data');
+
+        if (empty($data) || !is_array($data)) {
+            return $this->error(__('Invalid import data', 'peanut-suite'));
+        }
+
+        // Validate version
+        if (empty($data['version'])) {
+            return $this->error(__('Import file is missing version info', 'peanut-suite'));
+        }
+
+        $imported = [];
+
+        // Import general settings
+        if (!empty($data['settings']['general']) && is_array($data['settings']['general'])) {
+            $sanitized = Peanut_Security::sanitize_fields($data['settings']['general']);
+            update_option('peanut_settings', $sanitized);
+            $imported[] = 'general';
+        }
+
+        // Import module settings
+        if (!empty($data['settings']['modules']) && is_array($data['settings']['modules'])) {
+            update_option('peanut_active_modules', array_map('boolval', $data['settings']['modules']));
+            $imported[] = 'modules';
+        }
+
+        // Import integration settings
+        if (!empty($data['settings']['integrations']) && is_array($data['settings']['integrations'])) {
+            $sanitized = Peanut_Security::sanitize_fields($data['settings']['integrations']);
+            update_option('peanut_integrations', $sanitized);
+            $imported[] = 'integrations';
+        }
+
+        return $this->success([
+            'message' => sprintf(__('Imported: %s', 'peanut-suite'), implode(', ', $imported)),
+            'imported' => $imported,
+        ]);
+    }
+
+    /**
+     * Clear all cached data
+     */
+    public function clear_cache(WP_REST_Request $request): WP_REST_Response {
+        global $wpdb;
+
+        // Clear transients with our prefix
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options}
+             WHERE option_name LIKE '_transient_peanut_%'
+             OR option_name LIKE '_transient_timeout_peanut_%'"
+        );
+
+        // Clear object cache if available
+        if (function_exists('wp_cache_flush')) {
+            wp_cache_flush();
+        }
+
+        // Clear any dashboard stats cache
+        delete_transient('peanut_dashboard_stats');
+
+        return $this->success([
+            'message' => __('Cache cleared successfully', 'peanut-suite'),
+        ]);
+    }
+
+    /**
+     * Delete all plugin data
+     */
+    public function delete_all_data(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        // Require explicit confirmation
+        $confirm = $request->get_param('confirm');
+        if ($confirm !== 'DELETE_ALL_DATA') {
+            return $this->error(
+                __('You must confirm this action by passing confirm=DELETE_ALL_DATA', 'peanut-suite'),
+                'confirmation_required'
+            );
+        }
+
+        global $wpdb;
+
+        // Delete all custom tables
+        $tables = [
+            Peanut_Database::utms_table(),
+            Peanut_Database::links_table(),
+            Peanut_Database::link_clicks_table(),
+            Peanut_Database::contacts_table(),
+            Peanut_Database::contact_activities_table(),
+            Peanut_Database::popups_table(),
+            Peanut_Database::popup_views_table(),
+        ];
+
+        // Add conditional tables if methods exist
+        if (method_exists('Peanut_Database', 'invoices_table')) {
+            $tables[] = Peanut_Database::invoices_table();
+        }
+        if (method_exists('Peanut_Database', 'accounts_table')) {
+            $tables[] = Peanut_Database::accounts_table();
+            $tables[] = Peanut_Database::account_members_table();
+            $tables[] = Peanut_Database::api_keys_table();
+            $tables[] = Peanut_Database::audit_log_table();
+        }
+
+        foreach ($tables as $table) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from Peanut_Database class
+            $wpdb->query("TRUNCATE TABLE " . esc_sql($table));
+        }
+
+        // Delete options
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options}
+             WHERE option_name LIKE 'peanut_%'"
+        );
+
+        // Clear transients
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options}
+             WHERE option_name LIKE '_transient_peanut_%'
+             OR option_name LIKE '_transient_timeout_peanut_%'"
+        );
+
+        return $this->success([
+            'message' => __('All plugin data has been deleted', 'peanut-suite'),
+        ]);
     }
 }

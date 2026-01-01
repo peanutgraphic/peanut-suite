@@ -493,7 +493,8 @@ class Attribution_Database {
             ARRAY_A
         );
 
-        $touches = $wpdb->get_var("SELECT COUNT(*) FROM {$touches_table}");
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from class method
+        $touches = $wpdb->get_var("SELECT COUNT(*) FROM " . esc_sql($touches_table));
 
         return [
             'total_conversions' => (int) ($stats['total_conversions'] ?? 0),

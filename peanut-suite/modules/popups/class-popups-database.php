@@ -111,7 +111,8 @@ class Popups_Database {
         ];
 
         foreach ($tables as $table) {
-            $wpdb->query("DROP TABLE IF EXISTS $table");
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from class method
+            $wpdb->query("DROP TABLE IF EXISTS " . esc_sql($table));
         }
     }
 
@@ -122,7 +123,8 @@ class Popups_Database {
         global $wpdb;
 
         // Keep 90 days of interactions
-        $interactions_table = self::interactions_table();
+        $interactions_table = esc_sql(self::interactions_table());
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from class method
         $wpdb->query("DELETE FROM $interactions_table WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)");
     }
 

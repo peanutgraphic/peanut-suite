@@ -182,7 +182,8 @@ class Monitor_Database {
         ];
 
         foreach ($tables as $table) {
-            $wpdb->query("DROP TABLE IF EXISTS $table");
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from class method
+            $wpdb->query("DROP TABLE IF EXISTS " . esc_sql($table));
         }
     }
 
@@ -193,19 +194,23 @@ class Monitor_Database {
         global $wpdb;
 
         // Keep 30 days of health logs
-        $health_log_table = self::health_log_table();
+        $health_log_table = esc_sql(self::health_log_table());
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from class method
         $wpdb->query("DELETE FROM $health_log_table WHERE checked_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
 
         // Keep 90 days of uptime records
-        $uptime_table = self::uptime_table();
+        $uptime_table = esc_sql(self::uptime_table());
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from class method
         $wpdb->query("DELETE FROM $uptime_table WHERE checked_at < DATE_SUB(NOW(), INTERVAL 90 DAY)");
 
         // Keep 12 months of analytics
-        $analytics_table = self::analytics_table();
+        $analytics_table = esc_sql(self::analytics_table());
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from class method
         $wpdb->query("DELETE FROM $analytics_table WHERE period_start < DATE_SUB(NOW(), INTERVAL 12 MONTH)");
 
         // Keep 90 days of web vitals data
-        $webvitals_table = self::webvitals_table();
+        $webvitals_table = esc_sql(self::webvitals_table());
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from class method
         $wpdb->query("DELETE FROM $webvitals_table WHERE checked_at < DATE_SUB(NOW(), INTERVAL 90 DAY)");
     }
 }

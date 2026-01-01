@@ -13,7 +13,7 @@ global $wpdb;
 $table = $wpdb->prefix . PEANUT_TABLE_PREFIX . 'backlinks';
 
 // Check if table exists
-$table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table'") === $table;
+$table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table)) === $table;
 
 // Handle actions
 if (isset($_POST['action']) && $_POST['action'] === 'add_backlink' && wp_verify_nonce($_POST['_wpnonce'], 'peanut_add_backlink')) {
@@ -55,6 +55,7 @@ $stats = [
 ];
 
 if ($table_exists) {
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
     $stats_row = $wpdb->get_row(
         "SELECT
             COUNT(*) as total,
@@ -63,7 +64,7 @@ if ($table_exists) {
             SUM(CASE WHEN link_type = 'dofollow' AND status = 'active' THEN 1 ELSE 0 END) as dofollow,
             COUNT(DISTINCT source_domain) as unique_domains,
             SUM(CASE WHEN first_seen >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as new_30_days
-        FROM $table",
+        FROM " . esc_sql($table),
         ARRAY_A
     );
     $stats = array_merge($stats, $stats_row ?: []);
@@ -83,10 +84,12 @@ if ($status_filter) {
 $backlinks = [];
 $total = 0;
 if ($table_exists) {
-    $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE $where");
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source, $where already prepared
+    $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . esc_sql($table) . " WHERE $where");
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source, $where already prepared
     $backlinks = $wpdb->get_results(
         $wpdb->prepare(
-            "SELECT * FROM $table WHERE $where ORDER BY first_seen DESC LIMIT %d OFFSET %d",
+            "SELECT * FROM " . esc_sql($table) . " WHERE $where ORDER BY first_seen DESC LIMIT %d OFFSET %d",
             $per_page,
             $offset
         )

@@ -175,26 +175,30 @@ class Peanut_Connect_Controller extends WP_REST_Controller {
 
         // Get contact count
         $contacts_table = $wpdb->prefix . 'peanut_contacts';
-        if ($wpdb->get_var("SHOW TABLES LIKE '$contacts_table'") === $contacts_table) {
-            $stats['contacts'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM $contacts_table");
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $contacts_table)) === $contacts_table) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
+            $stats['contacts'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . esc_sql($contacts_table));
         }
 
         // Get UTM clicks
         $utm_table = $wpdb->prefix . 'peanut_utms';
-        if ($wpdb->get_var("SHOW TABLES LIKE '$utm_table'") === $utm_table) {
-            $stats['utm_clicks'] = (int) $wpdb->get_var("SELECT SUM(clicks) FROM $utm_table");
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $utm_table)) === $utm_table) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
+            $stats['utm_clicks'] = (int) $wpdb->get_var("SELECT SUM(clicks) FROM " . esc_sql($utm_table));
         }
 
         // Get link clicks
         $links_table = $wpdb->prefix . 'peanut_links';
-        if ($wpdb->get_var("SHOW TABLES LIKE '$links_table'") === $links_table) {
-            $stats['link_clicks'] = (int) $wpdb->get_var("SELECT SUM(clicks) FROM $links_table");
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $links_table)) === $links_table) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
+            $stats['link_clicks'] = (int) $wpdb->get_var("SELECT SUM(clicks) FROM " . esc_sql($links_table));
         }
 
         // Get visitor count
         $visitors_table = $wpdb->prefix . 'peanut_visitors';
-        if ($wpdb->get_var("SHOW TABLES LIKE '$visitors_table'") === $visitors_table) {
-            $stats['visitors'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM $visitors_table");
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $visitors_table)) === $visitors_table) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted source
+            $stats['visitors'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . esc_sql($visitors_table));
         }
 
         return new WP_REST_Response($stats, 200);
