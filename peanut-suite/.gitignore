@@ -12,6 +12,7 @@
 /tests/e2e/test-results/
 /tests/phpunit/.phpunit.cache/
 /.phpunit.cache/
+.phpunit.result.cache
 /coverage/
 
 # IDE/Editor
