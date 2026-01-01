@@ -338,15 +338,8 @@ function IntegrationSettings() {
         <h3 className="text-lg font-semibold text-slate-900 mb-6">Google Analytics</h3>
         <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <div className="w-10 h-10 bg-white rounded-lg border border-slate-200 flex items-center justify-center">
-            <svg className="w-6 h-6" viewBox="0 0 24 24">
-              <path
-                fill="#F9AB00"
-                d="M22.84 2.998c-.606-.606-1.417-.998-2.34-.998h-17c-.923 0-1.734.392-2.34.998-.606.606-.998 1.417-.998 2.34v13.324c0 .923.392 1.734.998 2.34.606.606 1.417.998 2.34.998h17c.923 0 1.734-.392 2.34-.998.606-.606.998-1.417.998-2.34V5.338c0-.923-.392-1.734-.998-2.34z"
-              />
-              <path
-                fill="#E37400"
-                d="M12 16.5c-2.49 0-4.5-2.01-4.5-4.5s2.01-4.5 4.5-4.5 4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5z"
-              />
+            <svg className="w-6 h-6 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
             </svg>
           </div>
           <div className="flex-1">

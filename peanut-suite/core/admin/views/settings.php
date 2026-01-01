@@ -487,9 +487,9 @@ $tabs = [
     <div class="peanut-card" style="margin-bottom: 24px;">
         <div class="peanut-card-header">
             <h3 class="peanut-card-title">
-                <span style="color: #635bff;">
-                    <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
-                        <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z"/>
+                <span class="peanut-integration-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                        <rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>
                     </svg>
                 </span>
                 <?php esc_html_e('Stripe Integration', 'peanut-suite'); ?>
@@ -578,9 +578,9 @@ $tabs = [
     <div class="peanut-card" style="margin-bottom: 24px;">
         <div class="peanut-card-header">
             <h3 class="peanut-card-title">
-                <span style="color: #F9AB00;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
-                        <path d="M22.84 2.998v17.999a3.003 3.003 0 01-3.003 3.003H4.163a3.003 3.003 0 01-3.003-3.003V2.998A2.998 2.998 0 014.158 0h15.68a2.998 2.998 0 012.998 2.998zM8.56 20.207a2.063 2.063 0 100-4.125 2.063 2.063 0 000 4.125zm0-6.048c1.116 0 2.063-.947 2.063-2.063V5.855a2.063 2.063 0 00-4.125 0v6.241c0 1.116.947 2.063 2.063 2.063zm6.88 6.048a2.063 2.063 0 100-4.125 2.063 2.063 0 000 4.125zm0-6.048c1.116 0 2.063-.947 2.063-2.063V5.855a2.063 2.063 0 00-4.125 0v6.241c0 1.116.947 2.063 2.063 2.063z"/>
+                <span class="peanut-integration-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                        <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
                     </svg>
                 </span>
                 <?php esc_html_e('Google Analytics 4', 'peanut-suite'); ?>
@@ -642,10 +642,9 @@ $tabs = [
     <div class="peanut-card" style="margin-bottom: 24px;">
         <div class="peanut-card-header">
             <h3 class="peanut-card-title">
-                <span style="color: #4285F4;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
-                        <path d="M12 0L1.5 6v12L12 24l10.5-6V6L12 0zm0 2.25L20.25 7.5v9L12 21.75 3.75 16.5v-9L12 2.25z"/>
-                        <path d="M12 6.75L6.75 9.75v4.5L12 17.25l5.25-3v-4.5L12 6.75zm0 2.25l3 1.5v3l-3 1.5-3-1.5v-3l3-1.5z"/>
+                <span class="peanut-integration-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                        <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/>
                     </svg>
                 </span>
                 <?php esc_html_e('Google Tag Manager', 'peanut-suite'); ?>
@@ -743,9 +742,9 @@ $tabs = [
     <div class="peanut-card" style="margin-bottom: 24px;">
         <div class="peanut-card-header">
             <h3 class="peanut-card-title">
-                <span style="color: #FFE01B;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
-                        <path d="M18.89 12.71c-.17-.17-.41-.18-.59-.02-.23.21-.31.6-.55.81-.45.38-1.07.29-1.64-.02-.42-.22-.63-.49-.63-.96 0-.84.37-1.37 1.11-1.79.41-.23.87-.35 1.39-.39.14-.01.31-.02.45 0 .38.05.67.27.76.64.05.21 0 .44-.11.63-.16.28-.45.42-.75.44-.21.02-.41-.06-.54-.24-.07-.1-.12-.2-.11-.33.01-.22.18-.4.38-.45.15-.04.29.02.39.14.06.08.04.18-.04.24-.07.05-.13.11-.14.2-.01.16.11.28.27.27.24-.01.44-.21.44-.51-.01-.35-.25-.6-.57-.67-.21-.05-.42-.03-.62.05-.45.17-.74.47-.87.93-.07.24-.07.48.01.71.13.36.38.61.73.76.43.19.87.21 1.31.06.4-.13.7-.4.89-.77.14-.27.17-.55.07-.84-.07-.22-.2-.4-.39-.54-.4-.3-.87-.39-1.36-.32-.73.1-1.37.4-1.93.87-.81.68-1.22 1.53-1.23 2.58-.01.69.19 1.31.62 1.85.52.66 1.22 1.04 2.03 1.18.79.14 1.54.01 2.25-.37.56-.3 1.01-.72 1.38-1.22.03-.04.06-.08.1-.11.21-.17.47-.14.64.07.17.22.14.47-.08.68-.85.87-1.87 1.41-3.09 1.58-.91.13-1.78-.01-2.58-.46-.91-.52-1.51-1.27-1.79-2.28-.28-1.01-.17-1.98.34-2.88.42-.74 1.02-1.31 1.78-1.7.72-.37 1.49-.54 2.31-.48.61.05 1.16.25 1.62.65.47.41.7.92.68 1.55-.02.64-.31 1.15-.82 1.51-.3.21-.64.32-1.01.32-.63 0-1.08-.32-1.3-.89-.06-.16-.09-.32-.08-.49.03-.37.24-.62.56-.78.2-.1.37-.06.5.12.03.04.04.08.06.12.04.11-.02.21-.12.27-.13.09-.13.14-.03.26.18.22.49.25.72.08.28-.2.38-.57.24-.88-.2-.44-.69-.64-1.18-.48-.54.17-.88.55-.97 1.11-.07.42.04.8.32 1.12.43.5 1.08.67 1.72.44.52-.19.91-.54 1.15-1.04.17-.35.22-.72.14-1.1-.12-.54-.43-.95-.9-1.24-.36-.23-.75-.34-1.18-.34-.53 0-1.01.15-1.45.46-.09.07-.18.14-.26.22z"/>
+                <span class="peanut-integration-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                        <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
                     </svg>
                 </span>
                 <?php esc_html_e('Mailchimp', 'peanut-suite'); ?>
@@ -828,9 +827,9 @@ $tabs = [
     <div class="peanut-card">
         <div class="peanut-card-header">
             <h3 class="peanut-card-title">
-                <span style="color: #FB6970;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                <span class="peanut-integration-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                        <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
                     </svg>
                 </span>
                 <?php esc_html_e('ConvertKit', 'peanut-suite'); ?>
