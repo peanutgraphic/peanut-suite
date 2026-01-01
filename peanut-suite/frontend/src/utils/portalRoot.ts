@@ -14,12 +14,16 @@ export function getPortalRoot(): HTMLElement {
     portalRoot = document.getElementById('peanut-portal-root');
 
     if (!portalRoot) {
-      // Create the portal container
+      // Create the portal container inside the React app root
+      // This prevents conflicts with WordPress admin scripts that manipulate document.body
+      const appRoot = document.getElementById('peanut-app');
+      const parent = appRoot || document.body;
+
       portalRoot = document.createElement('div');
       portalRoot.id = 'peanut-portal-root';
       portalRoot.style.position = 'relative';
       portalRoot.style.zIndex = '99999';
-      document.body.appendChild(portalRoot);
+      parent.appendChild(portalRoot);
     }
   }
 

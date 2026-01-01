@@ -25,10 +25,20 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
+    // Ignore non-critical DOM errors caused by WordPress admin scripts
+    // These occur when external scripts modify the DOM while React is cleaning up portals
+    if (error.message?.includes('removeChild') || error.message?.includes('insertBefore')) {
+      return { hasError: false, error: null };
+    }
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Suppress removeChild errors - these are non-critical DOM cleanup issues
+    if (error.message?.includes('removeChild') || error.message?.includes('insertBefore')) {
+      console.warn('Suppressed non-critical DOM error:', error.message);
+      return;
+    }
     console.error('ErrorBoundary caught an error:', error);
     console.error('Error info:', errorInfo);
     this.setState({ errorInfo });
