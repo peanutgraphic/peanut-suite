@@ -33,7 +33,7 @@ export default function FeatureTour() {
   } = useTourStore();
 
   const [spotlight, setSpotlight] = useState<SpotlightPosition | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<TooltipPosition>({ top: 0, left: 0 });
+  const [tooltipPos, setTooltipPos] = useState<TooltipPosition | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const step = tourSteps[currentStep];
@@ -243,7 +243,8 @@ export default function FeatureTour() {
         />
       )}
 
-      {/* Tooltip */}
+      {/* Tooltip - only render when position is calculated */}
+      {tooltipPos && (
       <div
         className={clsx(
           'absolute w-80 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden',
@@ -321,6 +322,7 @@ export default function FeatureTour() {
           </div>
         </div>
       </div>
+      )}
     </div>,
     getPortalRoot()
   );
