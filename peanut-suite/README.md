@@ -176,6 +176,65 @@ peanut-suite/
 
 ## Development
 
+### Quick Start
+
+```bash
+# Install frontend dependencies
+npm run install:frontend
+
+# Start development server
+npm run dev
+```
+
+### NPM Scripts
+
+#### Development
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start Vite development server |
+| `npm run build` | Build frontend for production |
+| `npm run install:frontend` | Install frontend dependencies |
+
+#### Version Management
+| Script | Description |
+|--------|-------------|
+| `npm run bump` | Bump patch version (default) |
+| `npm run bump:patch` | Bump patch version (x.y.z → x.y.z+1) |
+| `npm run bump:minor` | Bump minor version (x.y.z → x.y+1.0) |
+| `npm run bump:major` | Bump major version (x.y.z → x+1.0.0) |
+
+Version is updated across all files:
+- `peanut-suite.php` (header, PEANUT_VERSION, PEANUT_SUITE_VERSION)
+- `package.json`
+- `frontend/package.json`
+- `docs/openapi.yaml`
+
+#### Deployment
+| Script | Description |
+|--------|-------------|
+| `npm run deploy` | Deploy to peanutgraphic server via rsync |
+
+#### Release Workflow
+| Script | Description |
+|--------|-------------|
+| `npm run release:patch` | Full release with patch bump |
+| `npm run release:minor` | Full release with minor bump |
+| `npm run release:major` | Full release with major bump |
+
+Release workflow automates:
+1. Bump version across all files
+2. Commit and push to GitHub
+3. Create distributable zip package
+4. Create GitHub release with zip asset
+5. Deploy to peanutgraphic server
+
+#### Packaging
+| Script | Description |
+|--------|-------------|
+| `npm run clean` | Remove dist folder and zip files |
+| `npm run package` | Build and create zip package |
+| `npm run release` | Clean, build, and package |
+
 ### Frontend Development
 
 ```bash
