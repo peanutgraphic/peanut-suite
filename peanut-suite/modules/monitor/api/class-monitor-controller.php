@@ -120,6 +120,24 @@ class Monitor_Controller extends Peanut_REST_Controller {
             ],
         ]);
 
+        // Reconnect site endpoint
+        register_rest_route(PEANUT_API_NAMESPACE, '/' . $this->rest_base . '/sites/(?P<id>\d+)/reconnect', [
+            'methods' => WP_REST_Server::CREATABLE,
+            'callback' => [$this, 'reconnect_site'],
+            'permission_callback' => [$this, 'permission_callback'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'type' => 'integer',
+                ],
+                'site_key' => [
+                    'required' => true,
+                    'type' => 'string',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ],
+            ],
+        ]);
+
         // Site updates endpoint
         register_rest_route(PEANUT_API_NAMESPACE, '/' . $this->rest_base . '/sites/(?P<id>\d+)/updates', [
             [
@@ -380,6 +398,48 @@ class Monitor_Controller extends Peanut_REST_Controller {
         $result = $this->health->check_site($site);
 
         return $this->success($result);
+    }
+
+    /**
+     * Reconnect site with new key
+     */
+    public function reconnect_site(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $id = $request->get_param('id');
+        $site_key = $request->get_param('site_key');
+
+        $site = $this->sites->get($id);
+
+        if (!$site) {
+            return $this->error('not_found', __('Site not found.', 'peanut-suite'), 404);
+        }
+
+        // Verify the new key works
+        $verify = $this->sites->verify_connection($site->site_url, $site_key);
+
+        if (is_wp_error($verify)) {
+            return $this->error($verify->get_error_code(), $verify->get_error_message());
+        }
+
+        // Store the new encrypted key
+        $this->sites->store_site_key($id, $site_key);
+
+        // Update site status and health
+        global $wpdb;
+        $table = Monitor_Database::sites_table();
+        $wpdb->update(
+            $table,
+            [
+                'status' => 'active',
+                'last_health' => wp_json_encode($verify['health'] ?? []),
+                'last_check' => current_time('mysql'),
+            ],
+            ['id' => $id]
+        );
+
+        return $this->success([
+            'message' => __('Site reconnected successfully.', 'peanut-suite'),
+            'health' => $verify['health'] ?? [],
+        ]);
     }
 
     /**

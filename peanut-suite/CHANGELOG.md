@@ -5,6 +5,14 @@ All notable changes to Peanut Suite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.36] - 2026-01-01
+
+### Added
+- Site reconnect feature for Monitor module
+- Reconnect button appears when site connection is lost
+- Modal dialog to enter new site key from Peanut Connect
+- Backend endpoint `POST /monitor/sites/{id}/reconnect`
+
 ## [4.2.35] - 2026-01-01
 
 ### Fixed

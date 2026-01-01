@@ -433,6 +433,14 @@ export const monitorApi = {
     return data;
   },
 
+  reconnectSite: async (id: number, siteKey: string) => {
+    const { data } = await api.post<{ message: string; health: Record<string, unknown> }>(
+      `/monitor/sites/${id}/reconnect`,
+      { site_key: siteKey }
+    );
+    return data;
+  },
+
   getSiteHealth: async (id: number) => {
     const { data } = await api.get<MonitorHealth>(`/monitor/sites/${id}/health`);
     return data;
