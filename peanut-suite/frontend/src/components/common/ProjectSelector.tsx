@@ -64,7 +64,7 @@ export default function ProjectSelector({
             onChange(newValue);
           }}
           disabled={disabled || isLoading}
-          className={`w-full pl-12 pr-10 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white ${
+          className={`w-full pl-14 pr-10 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white ${
             error
               ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
               : 'border-slate-300'
