@@ -31,6 +31,7 @@ import {
   SampleDataBanner,
   useToast,
   ProjectSelector,
+  ClientSelector,
 } from '../components/common';
 import { contactsApi, clientsApi } from '../api/endpoints';
 import type { Contact, ContactStatus } from '../types';
@@ -72,6 +73,7 @@ export default function Contacts() {
     company: string;
     status: ContactStatus;
     project_id: number | null;
+    client_id: number | null;
   }>({
     email: '',
     first_name: '',
@@ -80,6 +82,7 @@ export default function Contacts() {
     company: '',
     status: 'lead',
     project_id: null,
+    client_id: null,
   });
 
   const { contactFilters, setContactFilter, resetContactFilters } = useFilterStore();
@@ -117,6 +120,7 @@ export default function Contacts() {
         company: '',
         status: 'lead',
         project_id: null,
+        client_id: null,
       });
       toast.success('Contact created successfully');
     },
@@ -534,6 +538,11 @@ export default function Contacts() {
         size="md"
       >
         <div className="space-y-4">
+          <ClientSelector
+            value={newContact.client_id}
+            onChange={(clientId) => setNewContact({ ...newContact, client_id: clientId })}
+            label="Client"
+          />
           <ProjectSelector
             value={newContact.project_id}
             onChange={(projectId) => setNewContact({ ...newContact, project_id: projectId })}
