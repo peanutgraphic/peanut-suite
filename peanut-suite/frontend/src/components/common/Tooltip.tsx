@@ -19,7 +19,7 @@ export default function Tooltip({
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const [actualPosition, setActualPosition] = useState(position);
-  const triggerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function Tooltip({
   };
 
   return (
-    <div
+    <span
       ref={triggerRef}
       className="relative inline-flex"
       onMouseEnter={() => setIsVisible(true)}
@@ -116,7 +116,7 @@ export default function Tooltip({
         </div>,
         getPortalRoot()
       )}
-    </div>
+    </span>
   );
 }
 
