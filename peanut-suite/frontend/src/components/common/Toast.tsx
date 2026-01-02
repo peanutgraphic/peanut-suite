@@ -34,7 +34,6 @@ export function useToast() {
   const context = useContext(ToastContext);
   // Return no-op if context isn't available (prevents crashes during error boundaries)
   if (!context) {
-    console.warn('useToast called outside ToastProvider - returning no-op');
     return noopToast;
   }
   return context.toast;

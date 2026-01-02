@@ -145,29 +145,42 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           const hasAccess = !item.tier || hasTier(item.tier);
           const isLocked = item.tier && !hasAccess;
 
+          // Render locked items as non-interactive elements instead of links
+          if (isLocked) {
+            return (
+              <div
+                key={item.name}
+                data-tour={item.tourId}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 cursor-not-allowed"
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0 text-slate-400" />
+                {!collapsed && (
+                  <span className="flex-1">{item.name}</span>
+                )}
+                {!collapsed && (
+                  <Crown className="w-4 h-4 text-amber-500" />
+                )}
+              </div>
+            );
+          }
+
           return (
             <NavLink
               key={item.name}
-              to={isLocked ? '#' : item.href}
-              onClick={(e) => isLocked && e.preventDefault()}
+              to={item.href}
               data-tour={item.tourId}
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isLocked
-                    ? 'text-slate-400 cursor-not-allowed'
-                    : isActive
+                  isActive
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 )
               }
             >
-              <item.icon className={clsx('w-5 h-5 flex-shrink-0', isLocked ? 'text-slate-400' : 'text-slate-500')} />
+              <item.icon className="w-5 h-5 flex-shrink-0 text-slate-500" />
               {!collapsed && (
                 <span className="flex-1">{item.name}</span>
-              )}
-              {!collapsed && isLocked && (
-                <Crown className="w-4 h-4 text-amber-500" />
               )}
             </NavLink>
           );

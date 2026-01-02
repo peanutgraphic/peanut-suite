@@ -298,23 +298,29 @@ describe('ToastProvider', () => {
 
 describe('useToast', () => {
   // =========================================
-  // Context Error Tests
+  // Context Fallback Tests
   // =========================================
 
-  it('throws error when used outside provider', () => {
-    // Suppress console.error for this test
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it('returns no-op toast when used outside provider', () => {
+    let toastMethods: ReturnType<typeof useToast> | null = null;
 
-    function BadComponent() {
-      useToast();
+    function TestComponent() {
+      toastMethods = useToast();
       return null;
     }
 
-    expect(() => render(<BadComponent />)).toThrow(
-      'useToast must be used within a ToastProvider'
-    );
+    // Should not throw - returns no-op fallback
+    render(<TestComponent />);
 
-    consoleSpy.mockRestore();
+    expect(toastMethods).not.toBeNull();
+    expect(toastMethods!.success).toBeInstanceOf(Function);
+    expect(toastMethods!.error).toBeInstanceOf(Function);
+    expect(toastMethods!.warning).toBeInstanceOf(Function);
+    expect(toastMethods!.info).toBeInstanceOf(Function);
+
+    // Calling no-op methods should not throw
+    expect(() => toastMethods!.success('test')).not.toThrow();
+    expect(() => toastMethods!.error('test')).not.toThrow();
   });
 
   // =========================================
