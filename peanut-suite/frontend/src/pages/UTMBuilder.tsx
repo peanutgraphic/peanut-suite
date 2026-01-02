@@ -3,8 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Copy, Check, ExternalLink, Save, RotateCcw, Library, Zap } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Select, SampleDataBanner, useToast } from '../components/common';
-import { useUTMStore } from '../store';
+import { Card, Button, Input, Select, SampleDataBanner, useToast, ProjectSelector } from '../components/common';
+import { useUTMStore, useProjectStore } from '../store';
 import { utmApi } from '../api/endpoints';
 import { helpContent, pageDescriptions } from '../constants';
 
@@ -48,6 +48,7 @@ export default function UTMBuilder() {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [showSampleData, setShowSampleData] = useState(true);
+  const { currentProject } = useProjectStore();
   const {
     formData,
     setFormField,
@@ -121,6 +122,12 @@ export default function UTMBuilder() {
   const handleSave = () => {
     if (!isValid) return;
 
+    const projectId = formData.project_id ?? currentProject?.id;
+    if (!projectId) {
+      toast.error('Please select a project');
+      return;
+    }
+
     createMutation.mutate({
       base_url: formData.base_url,
       utm_source: formData.utm_source,
@@ -131,6 +138,7 @@ export default function UTMBuilder() {
       program: formData.program || undefined,
       tags: formData.tags.length > 0 ? formData.tags : undefined,
       notes: formData.notes || undefined,
+      project_id: projectId,
     });
   };
 
@@ -192,6 +200,12 @@ export default function UTMBuilder() {
           </div>
 
           <div className="space-y-4">
+            <ProjectSelector
+              value={formData.project_id}
+              onChange={(projectId) => setFormField('project_id', projectId)}
+              required
+            />
+
             <Input
               label="Website URL"
               placeholder="https://example.com/page"

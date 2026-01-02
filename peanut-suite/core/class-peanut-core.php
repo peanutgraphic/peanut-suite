@@ -41,6 +41,7 @@ class Peanut_Core {
         require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-api-keys-service.php';
         require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-audit-log-service.php';
         require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-utm-access-service.php';
+        require_once PEANUT_PLUGIN_DIR . 'core/services/class-peanut-project-service.php';
 
         // Database
         require_once PEANUT_PLUGIN_DIR . 'core/database/class-peanut-database.php';
@@ -51,6 +52,7 @@ class Peanut_Core {
         require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-accounts-controller.php';
         require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-auth-controller.php';
         require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-plesk-controller.php';
+        require_once PEANUT_PLUGIN_DIR . 'core/api/class-peanut-projects-controller.php';
 
         // Plesk monitoring (loaded here since it's part of Monitor module)
         require_once PEANUT_PLUGIN_DIR . 'modules/monitor/class-monitor-plesk.php';
@@ -442,6 +444,10 @@ class Peanut_Core {
         // Accounts API (multi-tenancy)
         $accounts_controller = new Peanut_Accounts_Controller();
         $accounts_controller->register_routes();
+
+        // Projects API (project-based organization)
+        $projects_controller = new Peanut_Projects_Controller();
+        $projects_controller->register_routes();
 
         // Auth API (team login)
         $auth_controller = new Peanut_Auth_Controller();

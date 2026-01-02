@@ -14,7 +14,7 @@ class Peanut_Database {
     /**
      * Database version
      */
-    private const DB_VERSION = '2.2.2';
+    private const DB_VERSION = '2.3.0';
 
     /**
      * Table names
@@ -41,6 +41,10 @@ class Peanut_Database {
     public static function audit_log_table(): string { return self::table('audit_log'); }
     public static function utm_access_table(): string { return self::table('utm_access'); }
 
+    // Projects tables
+    public static function projects_table(): string { return self::table('projects'); }
+    public static function project_members_table(): string { return self::table('project_members'); }
+
     // Plesk monitoring tables
     public static function monitor_servers_table(): string { return self::table('monitor_servers'); }
     public static function monitor_server_health_table(): string { return self::table('monitor_server_health'); }
@@ -63,6 +67,7 @@ class Peanut_Database {
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             user_id bigint(20) UNSIGNED NOT NULL,
             account_id bigint(20) UNSIGNED DEFAULT NULL,
+            project_id bigint(20) UNSIGNED DEFAULT NULL,
             name varchar(255) NOT NULL,
             base_url varchar(2048) NOT NULL,
             utm_source varchar(255) NOT NULL,
@@ -79,6 +84,7 @@ class Peanut_Database {
             PRIMARY KEY (id),
             KEY user_id (user_id),
             KEY account_id (account_id),
+            KEY project_id (project_id),
             KEY utm_source (utm_source),
             KEY utm_campaign (utm_campaign),
             KEY created_at (created_at),
@@ -90,6 +96,8 @@ class Peanut_Database {
         $sql = "CREATE TABLE " . self::links_table() . " (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             user_id bigint(20) UNSIGNED NOT NULL,
+            account_id bigint(20) UNSIGNED DEFAULT NULL,
+            project_id bigint(20) UNSIGNED DEFAULT NULL,
             slug varchar(50) NOT NULL,
             destination_url varchar(2048) NOT NULL,
             title varchar(255) DEFAULT NULL,
@@ -104,6 +112,8 @@ class Peanut_Database {
             PRIMARY KEY (id),
             UNIQUE KEY slug (slug),
             KEY user_id (user_id),
+            KEY account_id (account_id),
+            KEY project_id (project_id),
             KEY utm_id (utm_id),
             KEY is_active (is_active)
         ) $charset;";
@@ -134,6 +144,8 @@ class Peanut_Database {
         $sql = "CREATE TABLE " . self::contacts_table() . " (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             user_id bigint(20) UNSIGNED NOT NULL,
+            account_id bigint(20) UNSIGNED DEFAULT NULL,
+            project_id bigint(20) UNSIGNED DEFAULT NULL,
             email varchar(255) NOT NULL,
             first_name varchar(100) DEFAULT NULL,
             last_name varchar(100) DEFAULT NULL,
@@ -152,6 +164,8 @@ class Peanut_Database {
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY user_id (user_id),
+            KEY account_id (account_id),
+            KEY project_id (project_id),
             KEY email (email),
             KEY status (status),
             KEY source (source),
@@ -319,12 +333,55 @@ class Peanut_Database {
         ) $charset;";
         dbDelta($sql);
 
+        // ===== Projects Tables =====
+
+        // Projects table (hierarchical)
+        $sql = "CREATE TABLE " . self::projects_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            account_id bigint(20) UNSIGNED NOT NULL,
+            parent_id bigint(20) UNSIGNED DEFAULT NULL,
+            name varchar(255) NOT NULL,
+            slug varchar(100) NOT NULL,
+            description text DEFAULT NULL,
+            color varchar(7) DEFAULT '#6366f1',
+            status varchar(20) DEFAULT 'active',
+            settings longtext DEFAULT NULL,
+            created_by bigint(20) UNSIGNED NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY account_id (account_id),
+            KEY parent_id (parent_id),
+            KEY status (status),
+            KEY created_by (created_by),
+            UNIQUE KEY account_slug (account_id, slug)
+        ) $charset;";
+        dbDelta($sql);
+
+        // Project members table
+        $sql = "CREATE TABLE " . self::project_members_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            project_id bigint(20) UNSIGNED NOT NULL,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            role varchar(20) NOT NULL DEFAULT 'member',
+            assigned_by bigint(20) UNSIGNED NOT NULL,
+            assigned_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY project_user (project_id, user_id),
+            KEY project_id (project_id),
+            KEY user_id (user_id),
+            KEY role (role)
+        ) $charset;";
+        dbDelta($sql);
+
         // ===== Plesk Server Monitoring Tables =====
 
         // Monitor servers table (Plesk servers)
         $sql = "CREATE TABLE " . self::monitor_servers_table() . " (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             user_id bigint(20) UNSIGNED NOT NULL,
+            account_id bigint(20) UNSIGNED DEFAULT NULL,
+            project_id bigint(20) UNSIGNED DEFAULT NULL,
             server_name varchar(255) NOT NULL,
             server_host varchar(255) NOT NULL,
             server_port int DEFAULT 8443,
@@ -339,6 +396,8 @@ class Peanut_Database {
             PRIMARY KEY (id),
             UNIQUE KEY user_host (user_id, server_host),
             KEY user_id (user_id),
+            KEY account_id (account_id),
+            KEY project_id (project_id),
             KEY status (status)
         ) $charset;";
         dbDelta($sql);
@@ -430,6 +489,9 @@ class Peanut_Database {
             self::api_keys_table(),
             self::account_members_table(),
             self::accounts_table(),
+            // Projects tables
+            self::project_members_table(),
+            self::projects_table(),
             // Plesk monitoring tables
             self::monitor_server_health_table(),
             self::monitor_servers_table(),
@@ -456,6 +518,11 @@ class Peanut_Database {
         // Migration to 2.1.0: Set up feature permissions and UTM access
         if (version_compare($current_version, '2.1.0', '<')) {
             self::migrate_to_2_1_0();
+        }
+
+        // Migration to 2.3.0: Create default projects for existing accounts
+        if (version_compare($current_version, '2.3.0', '<')) {
+            self::migrate_to_2_3_0();
         }
     }
 
@@ -547,6 +614,99 @@ class Peanut_Database {
              FROM {$utms_table} u
              WHERE u.account_id IS NOT NULL"
         );
+    }
+
+    /**
+     * Migration to 2.3.0
+     * - Create default project for each existing account
+     * - Assign existing entities to the default project
+     * - Add account owners as project admins
+     */
+    private static function migrate_to_2_3_0(): void {
+        global $wpdb;
+
+        $projects_table = self::projects_table();
+        $project_members_table = self::project_members_table();
+        $accounts_table = self::accounts_table();
+        $utms_table = self::utms_table();
+        $links_table = self::links_table();
+        $contacts_table = self::contacts_table();
+        $monitor_servers_table = self::monitor_servers_table();
+
+        // Get all existing accounts
+        $accounts = $wpdb->get_results("SELECT id, owner_user_id FROM $accounts_table");
+
+        foreach ($accounts as $account) {
+            // Check if default project already exists for this account
+            $existing_project = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $projects_table WHERE account_id = %d AND slug = 'default'",
+                $account->id
+            ));
+
+            if ($existing_project) {
+                continue; // Skip if already migrated
+            }
+
+            // Create default project
+            $wpdb->insert($projects_table, [
+                'account_id' => $account->id,
+                'parent_id' => null,
+                'name' => 'General',
+                'slug' => 'default',
+                'description' => 'Default project for existing items',
+                'color' => '#6366f1',
+                'status' => 'active',
+                'created_by' => $account->owner_user_id,
+            ]);
+
+            $project_id = $wpdb->insert_id;
+
+            if (!$project_id) {
+                continue; // Skip if insert failed
+            }
+
+            // Add owner as project admin
+            $wpdb->insert($project_members_table, [
+                'project_id' => $project_id,
+                'user_id' => $account->owner_user_id,
+                'role' => 'admin',
+                'assigned_by' => $account->owner_user_id,
+            ]);
+
+            // Assign existing UTMs to default project
+            $wpdb->query($wpdb->prepare(
+                "UPDATE $utms_table SET project_id = %d WHERE account_id = %d AND project_id IS NULL",
+                $project_id,
+                $account->id
+            ));
+
+            // Assign existing links to default project (set account_id first if needed)
+            $wpdb->query($wpdb->prepare(
+                "UPDATE $links_table SET account_id = %d, project_id = %d
+                 WHERE user_id = %d AND project_id IS NULL",
+                $account->id,
+                $project_id,
+                $account->owner_user_id
+            ));
+
+            // Assign existing contacts to default project
+            $wpdb->query($wpdb->prepare(
+                "UPDATE $contacts_table SET account_id = %d, project_id = %d
+                 WHERE user_id = %d AND project_id IS NULL",
+                $account->id,
+                $project_id,
+                $account->owner_user_id
+            ));
+
+            // Assign existing servers to default project
+            $wpdb->query($wpdb->prepare(
+                "UPDATE $monitor_servers_table SET account_id = %d, project_id = %d
+                 WHERE user_id = %d AND project_id IS NULL",
+                $account->id,
+                $project_id,
+                $account->owner_user_id
+            ));
+        }
     }
 
     /**

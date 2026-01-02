@@ -41,6 +41,7 @@ const WooCommerce = lazy(() => import('./pages/WooCommerce'));
 const Performance = lazy(() => import('./pages/Performance'));
 const Team = lazy(() => import('./pages/Team'));
 const TeamMemberProfile = lazy(() => import('./pages/TeamMemberProfile'));
+const Projects = lazy(() => import('./pages/Projects'));
 const AuditLog = lazy(() => import('./pages/AuditLog'));
 const ApiKeys = lazy(() => import('./pages/ApiKeys'));
 
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="/performance" element={<Performance />} />
             <Route path="/team" element={<Team />} />
             <Route path="/team/:userId" element={<TeamMemberProfile />} />
+            <Route path="/projects" element={<Projects />} />
             <Route path="/audit-log" element={<AuditLog />} />
             <Route path="/api-keys" element={<ApiKeys />} />
             <Route path="/settings" element={<Settings />} />

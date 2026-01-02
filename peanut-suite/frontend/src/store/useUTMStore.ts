@@ -12,6 +12,7 @@ interface UTMFormData {
   program: string;
   tags: string[];
   notes: string;
+  project_id: number | null;
 }
 
 interface UTMState {
@@ -53,6 +54,7 @@ const initialFormData: UTMFormData = {
   program: '',
   tags: [],
   notes: '',
+  project_id: null,
 };
 
 const addToRecent = (arr: string[], value: string, max = 10): string[] => {
@@ -97,6 +99,7 @@ export const useUTMStore = create<UTMState>()(
             program: utm.program || '',
             tags: utm.tags || [],
             notes: utm.notes || '',
+            project_id: utm.project_id || null,
           },
         }),
 

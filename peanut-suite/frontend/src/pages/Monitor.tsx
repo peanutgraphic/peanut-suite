@@ -27,9 +27,12 @@ import {
   createCheckboxColumn,
   InfoTooltip,
   SampleDataBanner,
+  ProjectSelector,
+  useToast,
 } from '../components/common';
 import { monitorApi } from '../api/endpoints';
 import type { MonitorSite } from '../types';
+import { useProjectStore } from '../store';
 import { helpContent, pageDescriptions, sampleMonitorSites, sampleStats } from '../constants';
 
 const columnHelper = createColumnHelper<MonitorSite>();
@@ -48,13 +51,17 @@ function getUptimeBadge(uptime: number) {
 
 export default function Monitor() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [newSite, setNewSite] = useState({ url: '', name: '', site_key: '' });
+  const [newSite, setNewSite] = useState({ url: '', name: '', site_key: '', project_id: null as number | null });
   const [showSampleData, setShowSampleData] = useState(true);
+
+  // Get current project
+  const { currentProject } = useProjectStore();
 
   const { data, isLoading } = useQuery({
     queryKey: ['monitor-sites', page, search],
@@ -71,9 +78,27 @@ export default function Monitor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['monitor-sites'] });
       setAddModalOpen(false);
-      setNewSite({ url: '', name: '', site_key: '' });
+      setNewSite({ url: '', name: '', site_key: '', project_id: null });
+      toast.success('Site added successfully');
+    },
+    onError: () => {
+      toast.error('Failed to add site');
     },
   });
+
+  const handleAddSite = () => {
+    const projectId = newSite.project_id ?? currentProject?.id;
+    if (!projectId) {
+      toast.error('Please select a project');
+      return;
+    }
+    addMutation.mutate({
+      url: newSite.url,
+      name: newSite.name || undefined,
+      site_key: newSite.site_key,
+      project_id: projectId,
+    });
+  };
 
   const deleteMutation = useMutation({
     mutationFn: monitorApi.removeSite,
@@ -356,6 +381,11 @@ export default function Monitor() {
         size="md"
       >
         <div className="space-y-4">
+          <ProjectSelector
+            value={newSite.project_id}
+            onChange={(projectId) => setNewSite({ ...newSite, project_id: projectId })}
+            required
+          />
           <Input
             label="Site URL"
             placeholder="https://example.com"
@@ -396,7 +426,7 @@ export default function Monitor() {
           </button>
           <button
             type="button"
-            onClick={() => addMutation.mutate(newSite)}
+            onClick={handleAddSite}
             disabled={!newSite.url || !newSite.site_key || addMutation.isPending}
             style={{ padding: '8px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: (!newSite.url || !newSite.site_key) ? 0.5 : 1 }}
           >

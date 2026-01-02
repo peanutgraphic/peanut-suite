@@ -22,12 +22,14 @@ import {
   ChevronUp,
   LogIn,
   KeyRound,
+  FolderKanban,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Badge, Modal, SampleDataBanner } from '../components/common';
-import { accountsApi } from '../api/endpoints';
+import { Card, Button, Input, Badge, Modal, SampleDataBanner, useToast } from '../components/common';
+import { accountsApi, projectsApi } from '../api/endpoints';
 import { useAccountStore } from '../store/useAccountStore';
-import type { AccountMember, AccountRole, FeaturePermissions } from '../types';
+import type { AccountMember, AccountRole, FeaturePermissions, Project, ProjectRole } from '../types';
 import { sampleTeamMembers } from '../constants';
 
 const ROLE_CONFIG: Record<AccountRole, { label: string; color: string; icon: typeof Crown }> = {
@@ -62,11 +64,13 @@ interface LoginSettings {
 
 export default function Team() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [members, setMembers] = useState<AccountMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showProjectsModal, setShowProjectsModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<AccountMember | null>(null);
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
   const [showSampleData, setShowSampleData] = useState(true);
@@ -76,6 +80,13 @@ export default function Team() {
 
   // Get account context from store
   const { account, isInitialized, fetchCurrentUser } = useAccountStore();
+
+  // Fetch all projects for project assignment
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectsApi.getAll(),
+    enabled: isInitialized,
+  });
   const accountId = account?.id ?? null;
   const currentUserRole: AccountRole = account?.role ?? 'owner';
 
@@ -291,6 +302,12 @@ export default function Team() {
                     navigate(`/team/${member.user_id}`);
                   }
                 }}
+                onManageProjects={() => {
+                  setSelectedMember(member);
+                  setShowProjectsModal(true);
+                  setOpenDropdown(null);
+                }}
+                projectCount={undefined} // Will be populated when we have project membership data per user
               />
             ))}
           </div>
@@ -362,6 +379,24 @@ export default function Team() {
           onSubmit={(permissions) => handleUpdatePermissions(selectedMember.user_id, permissions)}
         />
       )}
+
+      {/* Assign Projects Modal */}
+      {selectedMember && (
+        <AssignProjectsModal
+          isOpen={showProjectsModal}
+          onClose={() => {
+            setShowProjectsModal(false);
+            setSelectedMember(null);
+          }}
+          member={selectedMember}
+          projects={allProjects}
+          onSuccess={() => {
+            toast.success('Project access updated');
+            setShowProjectsModal(false);
+            setSelectedMember(null);
+          }}
+        />
+      )}
     </Layout>
   );
 }
@@ -376,6 +411,8 @@ interface MemberRowProps {
   onResetPassword: () => void;
   onRoleChange: (role: AccountRole) => void;
   onNavigateToProfile: () => void;
+  onManageProjects: () => void;
+  projectCount?: number;
 }
 
 function MemberRow({
@@ -387,6 +424,8 @@ function MemberRow({
   onRemove,
   onResetPassword,
   onNavigateToProfile,
+  onManageProjects,
+  projectCount,
 }: MemberRowProps) {
   const roleConfig = ROLE_CONFIG[member.role];
   const RoleIcon = roleConfig.icon;
@@ -437,15 +476,25 @@ function MemberRow({
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Feature access summary */}
+        {/* Project access summary */}
         {member.role !== 'owner' && member.role !== 'admin' && (
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-3">
+            {/* Project count */}
+            <div className="flex items-center gap-1">
+              <FolderKanban className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-xs text-slate-500">
+                {projectCount !== undefined ? (
+                  projectCount > 0 ? `${projectCount} project${projectCount !== 1 ? 's' : ''}` : 'No projects'
+                ) : '—'}
+              </span>
+            </div>
+            {/* Feature access */}
             {enabledFeatures.length > 0 ? (
               <span className="text-xs text-slate-500">
-                {enabledFeatures.length} feature{enabledFeatures.length !== 1 ? 's' : ''} enabled
+                {enabledFeatures.length} feature{enabledFeatures.length !== 1 ? 's' : ''}
               </span>
             ) : (
-              <span className="text-xs text-slate-400">No specific permissions</span>
+              <span className="text-xs text-slate-400">No permissions</span>
             )}
           </div>
         )}
@@ -465,10 +514,10 @@ function MemberRow({
             </button>
             {isOpen && createPortal(
               <>
-                <div className="fixed inset-0 z-[100]" onClick={(e) => { e.stopPropagation(); onToggleDropdown(); }} />
+                <div className="fixed inset-0 z-[100]" style={{ pointerEvents: 'auto' }} onClick={(e) => { e.stopPropagation(); onToggleDropdown(); }} />
                 <div
                   className="fixed w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-[101]"
-                  style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+                  style={{ top: dropdownPosition.top, left: dropdownPosition.left, pointerEvents: 'auto' }}
                 >
                   <button
                     onClick={(e) => { e.stopPropagation(); onEdit(); }}
@@ -476,6 +525,13 @@ function MemberRow({
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit Permissions
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onManageProjects(); }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    <FolderKanban className="w-4 h-4" />
+                    Manage Projects
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); onResetPassword(); }}
@@ -938,5 +994,242 @@ function LoginPageSettingsForm({ settings, accountId, onUpdate }: LoginPageSetti
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================
+// Assign Projects Modal
+// ============================================
+interface AssignProjectsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  member: AccountMember;
+  projects: Project[];
+  onSuccess: () => void;
+}
+
+const PROJECT_ROLES: { value: ProjectRole; label: string }[] = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'member', label: 'Member' },
+  { value: 'viewer', label: 'Viewer' },
+];
+
+function AssignProjectsModal({ isOpen, onClose, member, projects, onSuccess }: AssignProjectsModalProps) {
+  const [projectMemberships, setProjectMemberships] = useState<Map<number, ProjectRole | null>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load current project memberships for this user
+  useEffect(() => {
+    if (isOpen && member) {
+      loadMemberships();
+    }
+  }, [isOpen, member]);
+
+  const loadMemberships = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Get memberships for each project
+      const memberships = new Map<number, ProjectRole | null>();
+
+      await Promise.all(
+        projects.map(async (project) => {
+          try {
+            const members = await projectsApi.getMembers(project.id);
+            const userMembership = members.find((m) => m.user_id === member.user_id);
+            memberships.set(project.id, userMembership?.role ?? null);
+          } catch {
+            memberships.set(project.id, null);
+          }
+        })
+      );
+
+      setProjectMemberships(memberships);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load project memberships');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleProject = (projectId: number) => {
+    setProjectMemberships((prev) => {
+      const next = new Map(prev);
+      if (next.get(projectId)) {
+        next.set(projectId, null); // Remove access
+      } else {
+        next.set(projectId, 'member'); // Grant access with default role
+      }
+      return next;
+    });
+  };
+
+  const handleRoleChange = (projectId: number, role: ProjectRole) => {
+    setProjectMemberships((prev) => {
+      const next = new Map(prev);
+      next.set(projectId, role);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      // Process each project
+      for (const project of projects) {
+        const newRole = projectMemberships.get(project.id);
+        const currentMembers = await projectsApi.getMembers(project.id);
+        const currentMembership = currentMembers.find((m) => m.user_id === member.user_id);
+
+        if (newRole && !currentMembership) {
+          // Add member to project
+          await projectsApi.addMember(project.id, member.user_id, newRole);
+        } else if (newRole && currentMembership && currentMembership.role !== newRole) {
+          // Update role
+          await projectsApi.updateMemberRole(project.id, member.user_id, newRole);
+        } else if (!newRole && currentMembership) {
+          // Remove from project
+          await projectsApi.removeMember(project.id, member.user_id);
+        }
+      }
+
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update project access');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const assignedCount = Array.from(projectMemberships.values()).filter((r) => r !== null).length;
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Manage Project Access - ${member.display_name || member.user_login}`}
+      size="md"
+    >
+      <div className="space-y-6">
+        {/* Member info */}
+        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+            <span className="text-primary-700 font-medium">
+              {member.display_name?.charAt(0).toUpperCase() || member.user_email.charAt(0).toUpperCase()}
+            </span>
+          </div>
+          <div>
+            <p className="font-medium text-slate-900">{member.display_name || member.user_login}</p>
+            <p className="text-sm text-slate-500">{member.user_email}</p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {error}
+          </div>
+        )}
+
+        {/* Projects list */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-medium text-slate-700">Project Access</label>
+            <span className="text-xs text-slate-500">
+              {assignedCount} of {projects.length} projects
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="py-8 text-center">
+              <Loader2 className="w-6 h-6 text-primary-500 mx-auto animate-spin" />
+              <p className="text-sm text-slate-500 mt-2">Loading project memberships...</p>
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="py-8 text-center text-slate-500">
+              <FolderKanban className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+              <p>No projects available</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {projects.map((project) => {
+                const currentRole = projectMemberships.get(project.id);
+                const hasAccess = currentRole !== null;
+
+                return (
+                  <div
+                    key={project.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      hasAccess ? 'border-primary-200 bg-primary-50' : 'border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleProject(project.id)}
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                          hasAccess
+                            ? 'bg-primary-600 border-primary-600 text-white'
+                            : 'border-slate-300 hover:border-primary-400'
+                        }`}
+                      >
+                        {hasAccess && <Check className="w-3 h-3" />}
+                      </button>
+                      <div
+                        className="w-4 h-4 rounded-sm"
+                        style={{ backgroundColor: project.color || '#6366f1' }}
+                      />
+                      <span className="text-sm font-medium text-slate-700">{project.name}</span>
+                    </div>
+
+                    {hasAccess && (
+                      <select
+                        value={currentRole || 'member'}
+                        onChange={(e) => handleRoleChange(project.id, e.target.value as ProjectRole)}
+                        className="text-xs border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {PROJECT_ROLES.map((role) => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Info note */}
+        <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg text-sm">
+          <AlertCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+          <div className="text-blue-700">
+            <p className="font-medium">Project Roles:</p>
+            <ul className="list-disc list-inside mt-1 space-y-0.5 text-blue-600">
+              <li><strong>Admin:</strong> Full project access, can manage members</li>
+              <li><strong>Member:</strong> Can create and edit items in the project</li>
+              <li><strong>Viewer:</strong> Read-only access to project data</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving || loading}>
+            {saving ? 'Saving...' : 'Save Project Access'}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }

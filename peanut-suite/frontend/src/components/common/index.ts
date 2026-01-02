@@ -22,3 +22,5 @@ export { default as ToastProvider, useToast } from './Toast';
 export { default as BulkActionsBar, bulkActions } from './BulkActionsBar';
 export { default as PageGuide, PageGuideButton, useAutoShowGuide } from './PageGuide';
 export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as ProjectSwitcher } from './ProjectSwitcher';
+export { default as ProjectSelector } from './ProjectSelector';

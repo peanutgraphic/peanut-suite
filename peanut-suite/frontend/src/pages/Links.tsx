@@ -29,10 +29,11 @@ import {
   useToast,
   BulkActionsBar,
   bulkActions,
+  ProjectSelector,
 } from '../components/common';
 import { linksApi } from '../api/endpoints';
 import type { Link as LinkType } from '../types';
-import { useFilterStore } from '../store';
+import { useFilterStore, useProjectStore } from '../store';
 import { exportToCSV, linksExportColumns } from '../utils';
 import { helpContent, pageDescriptions, sampleLinks, sampleStats } from '../constants';
 
@@ -49,11 +50,15 @@ export default function Links() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [qrLink, setQrLink] = useState<LinkType | null>(null);
 
+  // Get current project
+  const { currentProject } = useProjectStore();
+
   // Form state
   const [newLink, setNewLink] = useState({
     destination_url: '',
     slug: '',
     title: '',
+    project_id: null as number | null,
   });
 
   const { linkFilters, setLinkFilter } = useFilterStore();
@@ -75,7 +80,7 @@ export default function Links() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links'] });
       setCreateModalOpen(false);
-      setNewLink({ destination_url: '', slug: '', title: '' });
+      setNewLink({ destination_url: '', slug: '', title: '', project_id: null });
       toast.success('Link created successfully');
     },
     onError: () => {
@@ -135,10 +140,16 @@ export default function Links() {
   };
 
   const handleCreate = () => {
+    const projectId = newLink.project_id ?? currentProject?.id;
+    if (!projectId) {
+      toast.error('Please select a project');
+      return;
+    }
     createMutation.mutate({
       destination_url: newLink.destination_url,
       slug: newLink.slug || undefined,
       title: newLink.title || undefined,
+      project_id: projectId,
     });
   };
 
@@ -351,6 +362,11 @@ export default function Links() {
         size="md"
       >
         <div className="space-y-4">
+          <ProjectSelector
+            value={newLink.project_id}
+            onChange={(projectId) => setNewLink({ ...newLink, project_id: projectId })}
+            required
+          />
           <Input
             label="Destination URL"
             placeholder="https://example.com/your-long-url"

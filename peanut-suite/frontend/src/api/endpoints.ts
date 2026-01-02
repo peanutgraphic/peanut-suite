@@ -63,6 +63,14 @@ import type {
   ApiKeyWithSecret,
   ApiKeyFormData,
   ApiKeyScope,
+  // Project types
+  Project,
+  ProjectMember,
+  ProjectFormData,
+  ProjectLimits,
+  ProjectStats,
+  ProjectHierarchy,
+  ProjectRole,
 } from '../types';
 
 // Pagination params
@@ -415,11 +423,12 @@ export const monitorApi = {
     return data;
   },
 
-  addSite: async (site: { url: string; name?: string; site_key?: string }) => {
+  addSite: async (site: { url: string; name?: string; site_key?: string; project_id: number }) => {
     const { data } = await api.post<{ id: number; site: MonitorSite }>('/monitor/sites', {
       site_url: site.url,
       site_name: site.name,
       site_key: site.site_key,
+      project_id: site.project_id,
     });
     return data;
   },
@@ -1718,5 +1727,117 @@ export const apiKeysApi = {
       'analytics:read',
     ];
     return scopes;
+  },
+};
+
+// ============================================
+// Projects Endpoints
+// ============================================
+export const projectsApi = {
+  // Get all projects for the current account
+  getAll: async (parentId?: number | null) => {
+    const params = parentId !== undefined ? { parent_id: parentId } : undefined;
+    const { data } = await api.get<Project[]>('/projects', { params });
+    return data;
+  },
+
+  // Get accessible projects for the current user
+  getAccessible: async () => {
+    const { data } = await api.get<Project[]>('/projects/accessible');
+    return data;
+  },
+
+  // Get project hierarchy (nested structure)
+  getHierarchy: async () => {
+    const { data } = await api.get<ProjectHierarchy[]>('/projects/hierarchy');
+    return data;
+  },
+
+  // Get project limits based on tier
+  getLimits: async () => {
+    const { data } = await api.get<ProjectLimits>('/projects/limits');
+    return data;
+  },
+
+  // Get single project by ID
+  getById: async (id: number) => {
+    const { data } = await api.get<Project>(`/projects/${id}`);
+    return data;
+  },
+
+  // Create a new project
+  create: async (projectData: ProjectFormData) => {
+    const { data } = await api.post<Project>('/projects', projectData);
+    return data;
+  },
+
+  // Update a project
+  update: async (id: number, projectData: Partial<ProjectFormData>) => {
+    const { data } = await api.put<Project>(`/projects/${id}`, projectData);
+    return data;
+  },
+
+  // Delete a project
+  delete: async (id: number, options?: { force?: boolean; move_to?: number }) => {
+    const params = options || undefined;
+    const { data } = await api.delete<{ deleted: boolean }>(`/projects/${id}`, { params });
+    return data;
+  },
+
+  // Get project statistics
+  getStats: async (id: number) => {
+    const { data } = await api.get<ProjectStats>(`/projects/${id}/stats`);
+    return data;
+  },
+
+  // Get children projects
+  getChildren: async (id: number) => {
+    const { data } = await api.get<Project[]>(`/projects/${id}/children`);
+    return data;
+  },
+
+  // Get project members
+  getMembers: async (projectId: number) => {
+    const { data } = await api.get<ProjectMember[]>(`/projects/${projectId}/members`);
+    return data;
+  },
+
+  // Add member to project
+  addMember: async (projectId: number, userId: number, role: ProjectRole = 'member') => {
+    const { data } = await api.post<ProjectMember[]>(
+      `/projects/${projectId}/members`,
+      { user_id: userId, role }
+    );
+    return data;
+  },
+
+  // Update member role
+  updateMemberRole: async (projectId: number, userId: number, role: ProjectRole) => {
+    const { data } = await api.put<ProjectMember[]>(
+      `/projects/${projectId}/members/${userId}`,
+      { role }
+    );
+    return data;
+  },
+
+  // Remove member from project
+  removeMember: async (projectId: number, userId: number) => {
+    const { data } = await api.delete<ProjectMember[]>(
+      `/projects/${projectId}/members/${userId}`
+    );
+    return data;
+  },
+
+  // Bulk add members
+  bulkAddMembers: async (
+    projectId: number,
+    members: Array<{ user_id: number; role?: ProjectRole }>
+  ) => {
+    const { data } = await api.post<{
+      members: ProjectMember[];
+      added: Array<{ user_id: number; role: string }>;
+      failed: Array<{ user_id: number; reason: string }>;
+    }>(`/projects/${projectId}/members/bulk`, { members });
+    return data;
   },
 };

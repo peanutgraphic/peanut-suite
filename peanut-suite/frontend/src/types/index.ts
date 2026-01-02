@@ -29,6 +29,7 @@ export interface UTM {
   notes?: string;
   click_count: number;
   is_archived: boolean;
+  project_id?: number;
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +44,7 @@ export interface UTMFormData {
   program?: string;
   tags?: string[];
   notes?: string;
+  project_id: number;
 }
 
 // Link Types
@@ -85,6 +87,7 @@ export interface LinkFormData {
   utm_id?: number;
   password?: string;
   expires_at?: string;
+  project_id: number;
 }
 
 // Contact Types
@@ -126,6 +129,7 @@ export interface ContactFormData {
   source?: string;
   tags?: string[];
   custom_fields?: Record<string, unknown>;
+  project_id: number;
 }
 
 // Popup Types
@@ -969,4 +973,79 @@ export interface ApiKeyFormData {
   name: string;
   scopes: ApiKeyScope[];
   expires_at?: string | null;
+}
+
+// ============================================
+// Project Types
+// ============================================
+export type ProjectRole = 'admin' | 'member' | 'viewer';
+export type ProjectStatus = 'active' | 'archived';
+
+export interface Project {
+  id: number;
+  account_id: number;
+  parent_id: number | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  color: string;
+  status: ProjectStatus;
+  settings: ProjectSettings;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+  // Computed fields
+  children?: Project[];
+  member_count?: number;
+  entity_count?: number;
+}
+
+export interface ProjectSettings {
+  is_default?: boolean;
+  [key: string]: unknown;
+}
+
+export interface ProjectMember {
+  id: number;
+  project_id: number;
+  user_id: number;
+  role: ProjectRole;
+  assigned_by: number;
+  assigned_at: string;
+  // Joined user data
+  user_login?: string;
+  user_email?: string;
+  display_name?: string;
+}
+
+export interface ProjectFormData {
+  name: string;
+  slug?: string;
+  description?: string;
+  color?: string;
+  parent_id?: number | null;
+  settings?: ProjectSettings;
+}
+
+export interface ProjectLimits {
+  max: number;
+  current: number;
+  can_create: boolean;
+  tier: string;
+}
+
+export interface ProjectStats {
+  id: number;
+  name: string;
+  links_count: number;
+  utms_count: number;
+  contacts_count: number;
+  sites_count: number;
+  member_count: number;
+  children_count: number;
+}
+
+export interface ProjectHierarchy extends Project {
+  children: ProjectHierarchy[];
+  depth: number;
 }

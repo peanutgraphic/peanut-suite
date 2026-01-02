@@ -18,7 +18,9 @@ const queryClient = new QueryClient({
 // Mount point for WordPress admin
 const rootElement = document.getElementById('peanut-app');
 
-if (rootElement) {
+// Prevent double mounting (can happen with WordPress admin scripts)
+if (rootElement && !rootElement.hasAttribute('data-react-mounted')) {
+  rootElement.setAttribute('data-react-mounted', 'true');
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>

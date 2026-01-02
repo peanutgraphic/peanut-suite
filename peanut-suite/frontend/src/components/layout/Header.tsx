@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Search, User, Command, Plus, Link2, Target, Users, ChevronDown, HelpCircle, LogOut } from 'lucide-react';
 import type { HelpContent } from '../common';
-import { PageGuideButton } from '../common';
+import { PageGuideButton, ProjectSwitcher } from '../common';
 import { useAccountStore } from '../../store';
 
 interface HeaderProps {
@@ -81,6 +81,9 @@ export default function Header({ title, description, onSearchClick, helpContent,
       <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-end px-6">
         {hasAnyAccess ? (
           <div className="flex items-center gap-3">
+            {/* Project Switcher */}
+            <ProjectSwitcher />
+
             {/* Quick Create - only show if user has features to create */}
             {filteredQuickCreateItems.length > 0 && (
               <div className="relative" ref={dropdownRef}>

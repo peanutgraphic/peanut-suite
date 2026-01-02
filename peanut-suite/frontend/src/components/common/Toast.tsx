@@ -22,10 +22,20 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+// No-op toast for when context isn't available (during SSR, error boundaries, etc.)
+const noopToast = {
+  success: () => {},
+  error: () => {},
+  warning: () => {},
+  info: () => {},
+};
+
 export function useToast() {
   const context = useContext(ToastContext);
+  // Return no-op if context isn't available (prevents crashes during error boundaries)
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    console.warn('useToast called outside ToastProvider - returning no-op');
+    return noopToast;
   }
   return context.toast;
 }

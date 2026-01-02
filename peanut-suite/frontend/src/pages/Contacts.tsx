@@ -29,10 +29,11 @@ import {
   InfoTooltip,
   SampleDataBanner,
   useToast,
+  ProjectSelector,
 } from '../components/common';
 import { contactsApi } from '../api/endpoints';
 import type { Contact, ContactStatus } from '../types';
-import { useFilterStore } from '../store';
+import { useFilterStore, useProjectStore } from '../store';
 import { exportToCSV, contactsExportColumns } from '../utils';
 import { helpContent, pageDescriptions, sampleContacts } from '../constants';
 
@@ -59,6 +60,9 @@ export default function Contacts() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
+  // Get current project
+  const { currentProject } = useProjectStore();
+
   const [newContact, setNewContact] = useState<{
     email: string;
     first_name: string;
@@ -66,6 +70,7 @@ export default function Contacts() {
     phone: string;
     company: string;
     status: ContactStatus;
+    project_id: number | null;
   }>({
     email: '',
     first_name: '',
@@ -73,6 +78,7 @@ export default function Contacts() {
     phone: '',
     company: '',
     status: 'lead',
+    project_id: null,
   });
 
   const { contactFilters, setContactFilter, resetContactFilters } = useFilterStore();
@@ -102,7 +108,12 @@ export default function Contacts() {
         phone: '',
         company: '',
         status: 'lead',
+        project_id: null,
       });
+      toast.success('Contact created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create contact');
     },
   });
 
@@ -133,6 +144,11 @@ export default function Contacts() {
   const displayData = displaySampleData ? sampleContacts : (data?.data || []);
 
   const handleCreate = () => {
+    const projectId = newContact.project_id ?? currentProject?.id;
+    if (!projectId) {
+      toast.error('Please select a project');
+      return;
+    }
     createMutation.mutate({
       email: newContact.email,
       first_name: newContact.first_name || undefined,
@@ -140,6 +156,7 @@ export default function Contacts() {
       phone: newContact.phone || undefined,
       company: newContact.company || undefined,
       status: newContact.status,
+      project_id: projectId,
     });
   };
 
@@ -156,6 +173,12 @@ export default function Contacts() {
 
   const handleImport = async () => {
     if (!importFile) return;
+
+    const projectId = currentProject?.id;
+    if (!projectId) {
+      toast.error('Please select a project before importing');
+      return;
+    }
 
     setIsImporting(true);
     try {
@@ -202,6 +225,7 @@ export default function Contacts() {
             company: companyIndex >= 0 ? values[companyIndex] : undefined,
             phone: phoneIndex >= 0 ? values[phoneIndex] : undefined,
             status: 'lead',
+            project_id: projectId,
           });
           imported++;
         } catch {
@@ -468,6 +492,11 @@ export default function Contacts() {
         size="md"
       >
         <div className="space-y-4">
+          <ProjectSelector
+            value={newContact.project_id}
+            onChange={(projectId) => setNewContact({ ...newContact, project_id: projectId })}
+            required
+          />
           <Input
             label="Email"
             type="email"
