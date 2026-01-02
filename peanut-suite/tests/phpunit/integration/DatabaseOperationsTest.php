@@ -157,8 +157,8 @@ class DatabaseOperationsTest extends Peanut_Test_Case {
 
         $result = Webhooks_Database::cleanup(30);
 
-        // Mock wpdb->query returns true (or affected rows)
-        $this->assertIsBool($result);
+        // cleanup() returns int (number of deleted rows)
+        $this->assertIsInt($result);
     }
 
     // =========================================

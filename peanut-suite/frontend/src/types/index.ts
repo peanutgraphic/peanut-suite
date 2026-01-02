@@ -109,6 +109,9 @@ export interface Contact {
   last_activity_at?: string;
   created_at: string;
   updated_at: string;
+  // Client links
+  clients?: ClientContact[];
+  client_names?: string[];
 }
 
 export interface ContactActivity {
@@ -130,6 +133,104 @@ export interface ContactFormData {
   tags?: string[];
   custom_fields?: Record<string, unknown>;
   project_id: number;
+}
+
+// Client Types
+export type ClientStatus = 'active' | 'inactive' | 'archived';
+export type ClientSize = 'solo' | 'small' | 'medium' | 'large' | 'enterprise';
+export type ClientContactRole = 'primary' | 'billing' | 'technical' | 'project_manager' | 'other';
+
+export interface Client {
+  id: number;
+  account_id: number;
+  name: string;
+  slug: string;
+  legal_name?: string;
+  website?: string;
+  industry?: string;
+  size?: ClientSize;
+  billing_email?: string;
+  billing_address?: string;
+  billing_city?: string;
+  billing_state?: string;
+  billing_postal?: string;
+  billing_country?: string;
+  tax_id?: string;
+  currency: string;
+  payment_terms: number;
+  status: ClientStatus;
+  acquisition_source?: string;
+  acquired_at?: string;
+  notes?: string;
+  custom_fields?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+  // Computed fields
+  contact_count?: number;
+  project_count?: number;
+  primary_contact?: ClientContact;
+  outstanding_balance?: number;
+  total_revenue?: number;
+  stats?: ClientStats;
+}
+
+export interface ClientContact {
+  id: number;
+  client_id: number;
+  contact_id: number;
+  role: ClientContactRole;
+  is_primary: boolean;
+  title?: string;
+  department?: string;
+  notes?: string;
+  assigned_at: string;
+  // Joined contact data
+  contact_email?: string;
+  contact_name?: string;
+  contact_phone?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+export interface ClientFormData {
+  name: string;
+  slug?: string;
+  legal_name?: string;
+  website?: string;
+  industry?: string;
+  size?: ClientSize;
+  billing_email?: string;
+  billing_address?: string;
+  billing_city?: string;
+  billing_state?: string;
+  billing_postal?: string;
+  billing_country?: string;
+  tax_id?: string;
+  currency?: string;
+  payment_terms?: number;
+  notes?: string;
+  acquisition_source?: string;
+  acquired_at?: string;
+  custom_fields?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+}
+
+export interface ClientStats {
+  total_revenue: number;
+  outstanding_balance: number;
+  invoice_count: number;
+  project_count: number;
+  contact_count: number;
+}
+
+export interface ClientLimits {
+  max: number;
+  current: number;
+  can_create: boolean;
+  tier: string;
+  unlimited?: boolean;
 }
 
 // Popup Types
@@ -984,6 +1085,7 @@ export type ProjectStatus = 'active' | 'archived';
 export interface Project {
   id: number;
   account_id: number;
+  client_id: number | null;
   parent_id: number | null;
   name: string;
   slug: string;
@@ -998,6 +1100,8 @@ export interface Project {
   children?: Project[];
   member_count?: number;
   entity_count?: number;
+  client_name?: string;
+  client?: Client;
 }
 
 export interface ProjectSettings {
@@ -1023,6 +1127,7 @@ export interface ProjectFormData {
   slug?: string;
   description?: string;
   color?: string;
+  client_id?: number | null;
   parent_id?: number | null;
   settings?: ProjectSettings;
 }
@@ -1048,4 +1153,378 @@ export interface ProjectStats {
 export interface ProjectHierarchy extends Project {
   children: ProjectHierarchy[];
   depth: number;
+}
+
+// ============================================
+// Finance / Invoicing Types
+// ============================================
+
+export type InvoiceStatus = 'draft' | 'sent' | 'viewed' | 'partial' | 'paid' | 'overdue' | 'cancelled';
+export type QuoteStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'declined' | 'expired' | 'converted';
+export type RecurringStatus = 'active' | 'paused' | 'completed' | 'cancelled';
+export type InvoiceItemType = 'service' | 'product' | 'expense' | 'time';
+export type DiscountType = 'fixed' | 'percent';
+export type PaymentMethod = 'bank_transfer' | 'cash' | 'check' | 'card' | 'paypal' | 'stripe' | 'other';
+export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annually';
+export type ExpenseCategory = 'software' | 'hosting' | 'advertising' | 'contractors' | 'office' | 'travel' | 'meals' | 'equipment' | 'professional' | 'insurance' | 'utilities' | 'other';
+
+export interface InvoiceItem {
+  id?: number;
+  invoice_id?: number;
+  item_type: InvoiceItemType;
+  description: string;
+  quantity: number;
+  hours?: number | null;
+  rate?: number | null;
+  unit_price: number;
+  amount: number;
+  taxable: boolean;
+  sort_order: number;
+}
+
+export interface Invoice {
+  id: number;
+  user_id: number;
+  account_id: number | null;
+  project_id: number;
+  invoice_number: string;
+  contact_id: number | null;
+  client_name: string;
+  client_email: string;
+  client_company: string | null;
+  client_address: string | null;
+  subtotal: number;
+  tax_amount: number;
+  tax_percent: number;
+  discount_amount: number;
+  discount_type: DiscountType;
+  total: number;
+  amount_paid: number;
+  balance_due: number;
+  currency: string;
+  status: InvoiceStatus;
+  issue_date: string | null;
+  due_date: string | null;
+  sent_at: string | null;
+  paid_at: string | null;
+  payment_terms: string | null;
+  notes: string | null;
+  client_notes: string | null;
+  footer: string | null;
+  source: 'manual' | 'quote' | 'recurring';
+  source_id: number | null;
+  items: InvoiceItem[];
+  payments?: Payment[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvoiceFormData {
+  project_id: number;
+  contact_id?: number | null;
+  client_name: string;
+  client_email: string;
+  client_company?: string;
+  client_address?: string;
+  tax_percent?: number;
+  discount_amount?: number;
+  discount_type?: DiscountType;
+  currency?: string;
+  issue_date?: string;
+  due_date?: string;
+  payment_terms?: string;
+  notes?: string;
+  client_notes?: string;
+  footer?: string;
+  status?: InvoiceStatus;
+  items: Omit<InvoiceItem, 'id' | 'invoice_id'>[];
+}
+
+export interface QuoteItem {
+  id?: number;
+  quote_id?: number;
+  item_type: InvoiceItemType;
+  description: string;
+  quantity: number;
+  hours?: number | null;
+  rate?: number | null;
+  unit_price: number;
+  amount: number;
+  taxable: boolean;
+  optional: boolean;
+  sort_order: number;
+}
+
+export interface Quote {
+  id: number;
+  user_id: number;
+  account_id: number | null;
+  project_id: number;
+  quote_number: string;
+  contact_id: number | null;
+  client_name: string;
+  client_email: string;
+  client_company: string | null;
+  client_address: string | null;
+  subtotal: number;
+  tax_amount: number;
+  tax_percent: number;
+  discount_amount: number;
+  discount_type: DiscountType;
+  total: number;
+  currency: string;
+  status: QuoteStatus;
+  valid_until: string | null;
+  sent_at: string | null;
+  accepted_at: string | null;
+  declined_at: string | null;
+  converted_invoice_id: number | null;
+  notes: string | null;
+  client_notes: string | null;
+  terms: string | null;
+  items: QuoteItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuoteFormData {
+  project_id: number;
+  contact_id?: number | null;
+  client_name: string;
+  client_email: string;
+  client_company?: string;
+  client_address?: string;
+  tax_percent?: number;
+  discount_amount?: number;
+  discount_type?: DiscountType;
+  currency?: string;
+  valid_until?: string;
+  notes?: string;
+  client_notes?: string;
+  terms?: string;
+  status?: QuoteStatus;
+  items: Omit<QuoteItem, 'id' | 'quote_id'>[];
+}
+
+export interface Expense {
+  id: number;
+  user_id: number;
+  account_id: number | null;
+  project_id: number | null;
+  vendor: string | null;
+  category: ExpenseCategory;
+  description: string | null;
+  amount: number;
+  currency: string;
+  expense_date: string;
+  receipt_url: string | null;
+  billable: boolean;
+  invoiced: boolean;
+  invoice_id: number | null;
+  payment_method: string | null;
+  reference: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExpenseFormData {
+  project_id?: number | null;
+  vendor?: string;
+  category: ExpenseCategory;
+  description?: string;
+  amount: number;
+  currency?: string;
+  expense_date: string;
+  receipt_url?: string;
+  billable?: boolean;
+  payment_method?: string;
+  reference?: string;
+  notes?: string;
+}
+
+export interface RecurringInvoiceItem {
+  id?: number;
+  recurring_invoice_id?: number;
+  item_type: InvoiceItemType;
+  description: string;
+  quantity: number;
+  hours?: number | null;
+  rate?: number | null;
+  unit_price: number;
+  amount: number;
+  taxable: boolean;
+  sort_order: number;
+}
+
+export interface RecurringInvoice {
+  id: number;
+  user_id: number;
+  account_id: number | null;
+  project_id: number;
+  template_name: string;
+  contact_id: number | null;
+  client_name: string;
+  client_email: string;
+  client_company: string | null;
+  client_address: string | null;
+  frequency: RecurringFrequency;
+  day_of_week: number | null;
+  day_of_month: number | null;
+  start_date: string;
+  end_date: string | null;
+  next_invoice_date: string;
+  last_invoice_date: string | null;
+  invoices_generated: number;
+  subtotal: number;
+  tax_amount: number;
+  tax_percent: number;
+  discount_amount: number;
+  total: number;
+  currency: string;
+  due_days: number;
+  status: RecurringStatus;
+  auto_send: boolean;
+  notes: string | null;
+  client_notes: string | null;
+  items: RecurringInvoiceItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecurringInvoiceFormData {
+  project_id: number;
+  template_name: string;
+  contact_id?: number | null;
+  client_name: string;
+  client_email: string;
+  client_company?: string;
+  client_address?: string;
+  frequency: RecurringFrequency;
+  day_of_week?: number;
+  day_of_month?: number;
+  start_date: string;
+  end_date?: string | null;
+  next_invoice_date?: string;
+  tax_percent?: number;
+  discount_amount?: number;
+  currency?: string;
+  due_days?: number;
+  auto_send?: boolean;
+  notes?: string;
+  client_notes?: string;
+  items: Omit<RecurringInvoiceItem, 'id' | 'recurring_invoice_id'>[];
+}
+
+export interface Payment {
+  id: number;
+  user_id: number;
+  account_id: number | null;
+  invoice_id: number;
+  amount: number;
+  currency: string;
+  payment_method: PaymentMethod;
+  payment_date: string;
+  reference: string | null;
+  notes: string | null;
+  created_at: string;
+  // Joined fields
+  invoice_number?: string;
+  client_name?: string;
+  invoice_total?: number;
+}
+
+export interface PaymentFormData {
+  invoice_id: number;
+  amount: number;
+  currency?: string;
+  payment_method: PaymentMethod;
+  payment_date: string;
+  reference?: string;
+  notes?: string;
+}
+
+export interface InvoiceStats {
+  total: number;
+  draft: number;
+  sent: number;
+  viewed: number;
+  partial: number;
+  paid: number;
+  overdue: number;
+  cancelled: number;
+  total_paid: number;
+  total_outstanding: number;
+  total_invoiced: number;
+}
+
+export interface QuoteStats {
+  total: number;
+  draft: number;
+  sent: number;
+  viewed: number;
+  accepted: number;
+  declined: number;
+  expired: number;
+  converted: number;
+  total_accepted: number;
+  total_quoted: number;
+  conversion_rate: number;
+}
+
+export interface ExpenseStats {
+  total_count: number;
+  total: number;
+  billable_total: number;
+  uninvoiced_billable: number;
+  avg_amount: number;
+}
+
+export interface PaymentStats {
+  total_count: number;
+  total_amount: number;
+  avg_amount: number;
+  by_method: { payment_method: PaymentMethod; count: number; total: number }[];
+}
+
+export interface FinanceLimits {
+  limit: number;
+  used: number;
+  remaining: number;
+  can_create: boolean;
+}
+
+export interface FinanceDashboard {
+  invoices: InvoiceStats;
+  expenses: ExpenseStats;
+  payments: PaymentStats;
+  profit: number;
+  recent_invoices: Invoice[];
+  recent_payments: Payment[];
+  limits: FinanceLimits;
+}
+
+export interface RevenueData {
+  data: { period: string; revenue: number; payment_count: number }[];
+  total: number;
+  period: string;
+  date_from: string;
+  date_to: string;
+}
+
+export interface ProfitLossReport {
+  revenue: number;
+  expenses: number;
+  profit: number;
+  margin: number;
+  expenses_by_category: { category: ExpenseCategory; total: number; count: number }[];
+  date_from: string;
+  date_to: string;
+}
+
+export interface OutstandingBalance {
+  invoice_count: number;
+  total_outstanding: number;
+  overdue_amount: number;
+  overdue_count: number;
 }

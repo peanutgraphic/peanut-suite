@@ -26,6 +26,14 @@ class Invoicing_Module {
     private function load_dependencies(): void {
         require_once __DIR__ . '/class-invoicing-database.php';
         require_once __DIR__ . '/class-invoicing-stripe.php';
+
+        // Finance services
+        require_once __DIR__ . '/class-invoice-service.php';
+        require_once __DIR__ . '/class-payment-service.php';
+        require_once __DIR__ . '/class-quote-service.php';
+        require_once __DIR__ . '/class-expense-service.php';
+        require_once __DIR__ . '/class-recurring-service.php';
+        require_once __DIR__ . '/class-finance-service.php';
     }
 
     /**
@@ -52,9 +60,15 @@ class Invoicing_Module {
      * Register REST API routes
      */
     public function register_routes(): void {
+        // Legacy Stripe-based invoicing (Agency only)
         require_once __DIR__ . '/api/class-invoicing-controller.php';
         $controller = new Invoicing_Controller();
         $controller->register_routes();
+
+        // New Finance API (Pro+)
+        require_once __DIR__ . '/api/class-finance-controller.php';
+        $finance_controller = new Finance_Controller();
+        $finance_controller->register_routes();
     }
 
     /**

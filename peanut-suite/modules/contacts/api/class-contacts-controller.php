@@ -192,7 +192,7 @@ class Contacts_Controller extends Peanut_REST_Controller {
 
         $email = sanitize_email($request->get_param('email'));
         if (empty($email)) {
-            return $this->error(__('Email is required', 'peanut-suite'));
+            return $this->error('missing_email', __('Email is required', 'peanut-suite'));
         }
 
         // Check duplicate
@@ -203,7 +203,7 @@ class Contacts_Controller extends Peanut_REST_Controller {
         ));
 
         if ($exists) {
-            return $this->error(__('A contact with this email already exists', 'peanut-suite'));
+            return $this->error('duplicate_email', __('A contact with this email already exists', 'peanut-suite'));
         }
 
         $data = [
@@ -235,7 +235,7 @@ class Contacts_Controller extends Peanut_REST_Controller {
         $id = $wpdb->insert_id;
 
         if (!$id) {
-            return $this->error(__('Failed to create contact', 'peanut-suite'), 'create_failed', 500);
+            return $this->error('create_failed', __('Failed to create contact', 'peanut-suite'), 500);
         }
 
         // Add creation activity
@@ -279,7 +279,7 @@ class Contacts_Controller extends Peanut_REST_Controller {
         }
 
         if (empty($data)) {
-            return $this->error(__('No data to update', 'peanut-suite'));
+            return $this->error('no_data', __('No data to update', 'peanut-suite'));
         }
 
         $data['last_activity_at'] = current_time('mysql');
@@ -396,7 +396,7 @@ class Contacts_Controller extends Peanut_REST_Controller {
         $description = sanitize_textarea_field($request->get_param('description'));
 
         if (empty($description)) {
-            return $this->error(__('Description is required', 'peanut-suite'));
+            return $this->error('missing_description', __('Description is required', 'peanut-suite'));
         }
 
         $contacts_module = new Contacts_Module();
@@ -444,7 +444,7 @@ class Contacts_Controller extends Peanut_REST_Controller {
 
         $ids = $request->get_param('ids');
         if (!is_array($ids) || empty($ids)) {
-            return $this->error(__('No contacts selected', 'peanut-suite'));
+            return $this->error('no_contacts', __('No contacts selected', 'peanut-suite'));
         }
 
         // Sanitize IDs
@@ -458,7 +458,7 @@ class Contacts_Controller extends Peanut_REST_Controller {
         ));
 
         if (count($owned) !== count($ids)) {
-            return $this->error(__('Some contacts could not be found', 'peanut-suite'), 'not_found', 404);
+            return $this->error('not_found', __('Some contacts could not be found', 'peanut-suite'), 404);
         }
 
         // Delete activities first
@@ -491,11 +491,11 @@ class Contacts_Controller extends Peanut_REST_Controller {
         $status = sanitize_text_field($request->get_param('status'));
 
         if (!is_array($ids) || empty($ids)) {
-            return $this->error(__('No contacts selected', 'peanut-suite'));
+            return $this->error('no_contacts', __('No contacts selected', 'peanut-suite'));
         }
 
         if (empty($status) || !array_key_exists($status, Contacts_Module::STATUSES)) {
-            return $this->error(__('Invalid status', 'peanut-suite'));
+            return $this->error('invalid_status', __('Invalid status', 'peanut-suite'));
         }
 
         // Sanitize IDs

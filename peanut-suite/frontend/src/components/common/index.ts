@@ -24,3 +24,4 @@ export { default as PageGuide, PageGuideButton, useAutoShowGuide } from './PageG
 export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as ProjectSwitcher } from './ProjectSwitcher';
 export { default as ProjectSelector } from './ProjectSelector';
+export { default as ClientSelector } from './ClientSelector';

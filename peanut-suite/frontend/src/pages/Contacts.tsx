@@ -12,6 +12,7 @@ import {
   User,
   FileUp,
   AlertCircle,
+  Building2,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
 import {
@@ -31,7 +32,7 @@ import {
   useToast,
   ProjectSelector,
 } from '../components/common';
-import { contactsApi } from '../api/endpoints';
+import { contactsApi, clientsApi } from '../api/endpoints';
 import type { Contact, ContactStatus } from '../types';
 import { useFilterStore, useProjectStore } from '../store';
 import { exportToCSV, contactsExportColumns } from '../utils';
@@ -83,6 +84,13 @@ export default function Contacts() {
 
   const { contactFilters, setContactFilter, resetContactFilters } = useFilterStore();
   const [showSampleData, setShowSampleData] = useState(true);
+  const [clientFilter, setClientFilter] = useState<number | null>(null);
+
+  // Fetch clients for filter
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients', { status: 'active' }],
+    queryFn: () => clientsApi.getAll({ status: 'active' }),
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['contacts', page, contactFilters],
@@ -275,6 +283,23 @@ export default function Contacts() {
         <span className="text-slate-700">{info.getValue() || '-'}</span>
       ),
     }),
+    columnHelper.accessor('client_names', {
+      header: 'Clients',
+      cell: (info) => {
+        const clientNames = info.getValue() || [];
+        return clientNames.length > 0 ? (
+          <div className="flex items-center gap-1">
+            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-sm text-slate-600 truncate max-w-[120px]">
+              {clientNames.slice(0, 2).join(', ')}
+              {clientNames.length > 2 && ` +${clientNames.length - 2}`}
+            </span>
+          </div>
+        ) : (
+          <span className="text-slate-400">-</span>
+        );
+      },
+    }),
     columnHelper.accessor('status', {
       header: 'Status',
       cell: (info) => <StatusBadge status={info.getValue()} />,
@@ -413,6 +438,23 @@ export default function Contacts() {
       {/* Filters */}
       <Card className="mb-6">
         <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[150px]">
+            <label className="flex items-center gap-1 text-xs font-medium text-slate-500 mb-1">
+              Client
+            </label>
+            <select
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+              value={clientFilter ?? ''}
+              onChange={(e) => setClientFilter(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">All Clients</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex-1 min-w-[150px]">
             <label className="flex items-center gap-1 text-xs font-medium text-slate-500 mb-1">
               Status

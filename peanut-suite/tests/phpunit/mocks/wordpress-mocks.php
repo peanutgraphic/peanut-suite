@@ -6,18 +6,74 @@
  * when running tests without the full WordPress test suite.
  */
 
+// Testing mode flag
+if (!defined('PEANUT_TESTING')) {
+    define('PEANUT_TESTING', true);
+}
+
 if (!defined('ABSPATH')) {
     define('ABSPATH', '/tmp/wordpress/');
+}
+
+// Time constants
+if (!defined('DAY_IN_SECONDS')) {
+    define('DAY_IN_SECONDS', 86400);
+}
+
+if (!defined('HOUR_IN_SECONDS')) {
+    define('HOUR_IN_SECONDS', 3600);
+}
+
+if (!defined('MINUTE_IN_SECONDS')) {
+    define('MINUTE_IN_SECONDS', 60);
+}
+
+if (!defined('WEEK_IN_SECONDS')) {
+    define('WEEK_IN_SECONDS', 604800);
+}
+
+// Plugin-specific constants
+if (!defined('PEANUT_TABLE_PREFIX')) {
+    global $wpdb;
+    if (isset($wpdb) && isset($wpdb->prefix)) {
+        define('PEANUT_TABLE_PREFIX', $wpdb->prefix . 'peanut_');
+    } else {
+        define('PEANUT_TABLE_PREFIX', 'wp_peanut_');
+    }
+}
+
+if (!defined('PEANUT_API_NAMESPACE')) {
+    define('PEANUT_API_NAMESPACE', 'peanut/v1');
+}
+
+if (!defined('PEANUT_VERSION')) {
+    define('PEANUT_VERSION', '4.2.0');
+}
+
+if (!defined('PEANUT_PLUGIN_DIR')) {
+    define('PEANUT_PLUGIN_DIR', dirname(dirname(dirname(__DIR__))) . '/');
+}
+
+if (!defined('PEANUT_PLUGIN_URL')) {
+    define('PEANUT_PLUGIN_URL', 'http://example.org/wp-content/plugins/peanut-suite/');
 }
 
 // Mock WordPress functions that are commonly used
 if (!function_exists('add_action')) {
     function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {
-        global $wp_actions;
+        global $wp_actions, $wp_action_callbacks;
         if (!isset($wp_actions)) {
             $wp_actions = [];
         }
-        $wp_actions[$hook][] = [
+        if (!isset($wp_action_callbacks)) {
+            $wp_action_callbacks = [];
+        }
+        // Track that add_action was called (for testing assertArrayHasKey)
+        if (!isset($wp_actions[$hook])) {
+            $wp_actions[$hook] = 0;
+        }
+        // Store callbacks separately for do_action to call
+        $wp_action_callbacks[$hook][] = [
             'callback' => $callback,
             'priority' => $priority,
             'accepted_args' => $accepted_args,
@@ -41,9 +97,16 @@ if (!function_exists('add_filter')) {
 
 if (!function_exists('do_action')) {
     function do_action($hook, ...$args) {
-        global $wp_actions;
-        if (isset($wp_actions[$hook])) {
-            foreach ($wp_actions[$hook] as $action) {
+        global $wp_actions, $wp_action_callbacks;
+        // Track that this action was fired (for testing)
+        if (!isset($wp_actions[$hook])) {
+            $wp_actions[$hook] = 0;
+        }
+        $wp_actions[$hook]++;
+
+        // Call registered callbacks if any
+        if (isset($wp_action_callbacks[$hook])) {
+            foreach ($wp_action_callbacks[$hook] as $action) {
                 call_user_func_array($action['callback'], array_slice($args, 0, $action['accepted_args']));
             }
         }
@@ -84,6 +147,14 @@ if (!function_exists('delete_option')) {
     function delete_option($option) {
         global $wp_options;
         unset($wp_options[$option]);
+        return true;
+    }
+}
+
+// AJAX nonce verification
+if (!function_exists('check_ajax_referer')) {
+    function check_ajax_referer($action = -1, $query_arg = false, $die = true) {
+        // Mock always returns true for testing
         return true;
     }
 }
@@ -331,6 +402,137 @@ if (!function_exists('is_wp_error')) {
     }
 }
 
+// Mock WP_REST_Request class
+if (!class_exists('WP_REST_Request')) {
+    class WP_REST_Request {
+        private $params = [];
+        private $headers = [];
+        private $body = '';
+        private $route = '';
+        private $method = 'GET';
+
+        public function __construct($method = 'GET', $route = '') {
+            $this->method = $method;
+            $this->route = $route;
+        }
+
+        public function set_param($key, $value) {
+            $this->params[$key] = $value;
+        }
+
+        public function get_param($key) {
+            return $this->params[$key] ?? null;
+        }
+
+        public function get_params() {
+            return $this->params;
+        }
+
+        public function set_header($key, $value) {
+            $this->headers[$key] = $value;
+        }
+
+        public function get_header($key) {
+            return $this->headers[$key] ?? null;
+        }
+
+        public function get_headers() {
+            return $this->headers;
+        }
+
+        public function set_body($body) {
+            $this->body = $body;
+        }
+
+        public function get_body() {
+            return $this->body;
+        }
+
+        public function get_route() {
+            return $this->route;
+        }
+
+        public function get_method() {
+            return $this->method;
+        }
+
+        public function get_json_params() {
+            return $this->params;
+        }
+    }
+}
+
+// Mock WP_REST_Response class
+if (!class_exists('WP_REST_Response')) {
+    class WP_REST_Response {
+        public $data;
+        public $status;
+        public $headers = [];
+
+        public function __construct($data = null, $status = 200, $headers = []) {
+            $this->data = $data;
+            $this->status = $status;
+            $this->headers = $headers;
+        }
+
+        public function get_data() {
+            return $this->data;
+        }
+
+        public function get_status() {
+            return $this->status;
+        }
+
+        public function set_status($status) {
+            $this->status = $status;
+        }
+    }
+}
+
+// Mock WP_REST_Server class
+if (!class_exists('WP_REST_Server')) {
+    class WP_REST_Server {
+        const READABLE = 'GET';
+        const CREATABLE = 'POST';
+        const EDITABLE = 'POST, PUT, PATCH';
+        const DELETABLE = 'DELETE';
+        const ALLMETHODS = 'GET, POST, PUT, PATCH, DELETE';
+    }
+}
+
+// Mock register_rest_route
+if (!function_exists('register_rest_route')) {
+    function register_rest_route($namespace, $route, $args = [], $override = false) {
+        global $wp_rest_routes;
+        if (!isset($wp_rest_routes)) {
+            $wp_rest_routes = [];
+        }
+        $wp_rest_routes[$namespace][$route] = $args;
+        return true;
+    }
+}
+
+// Mock sanitize_title
+if (!function_exists('sanitize_title')) {
+    function sanitize_title($title, $fallback_title = '', $context = 'save') {
+        $title = strip_tags($title);
+        $title = preg_replace('/[^a-z0-9-]/', '-', strtolower($title));
+        $title = preg_replace('/-+/', '-', $title);
+        $title = trim($title, '-');
+        return $title ?: $fallback_title;
+    }
+}
+
+// Mock rest_ensure_response
+if (!function_exists('rest_ensure_response')) {
+    function rest_ensure_response($response) {
+        if ($response instanceof WP_REST_Response) {
+            return $response;
+        }
+        return new WP_REST_Response($response);
+    }
+}
+
 if (!function_exists('wp_salt')) {
     function wp_salt($scheme = 'auth') {
         return 'test-salt-for-' . $scheme;
@@ -363,6 +565,69 @@ if (!function_exists('wp_check_password')) {
     }
 }
 
+// Cron functions
+if (!function_exists('wp_next_scheduled')) {
+    function wp_next_scheduled($hook, $args = []) {
+        global $wp_scheduled_events;
+        if (!isset($wp_scheduled_events)) {
+            $wp_scheduled_events = [];
+        }
+        $key = md5($hook . serialize($args));
+        return $wp_scheduled_events[$key] ?? false;
+    }
+}
+
+if (!function_exists('wp_schedule_event')) {
+    function wp_schedule_event($timestamp, $recurrence, $hook, $args = [], $wp_error = false) {
+        global $wp_scheduled_events;
+        if (!isset($wp_scheduled_events)) {
+            $wp_scheduled_events = [];
+        }
+        $key = md5($hook . serialize($args));
+        $wp_scheduled_events[$key] = $timestamp;
+        return true;
+    }
+}
+
+if (!function_exists('wp_schedule_single_event')) {
+    function wp_schedule_single_event($timestamp, $hook, $args = [], $wp_error = false) {
+        global $wp_scheduled_events;
+        if (!isset($wp_scheduled_events)) {
+            $wp_scheduled_events = [];
+        }
+        $key = md5($hook . serialize($args));
+        $wp_scheduled_events[$key] = $timestamp;
+        return true;
+    }
+}
+
+if (!function_exists('wp_unschedule_event')) {
+    function wp_unschedule_event($timestamp, $hook, $args = [], $wp_error = false) {
+        global $wp_scheduled_events;
+        if (!isset($wp_scheduled_events)) {
+            return false;
+        }
+        $key = md5($hook . serialize($args));
+        unset($wp_scheduled_events[$key]);
+        return true;
+    }
+}
+
+if (!function_exists('wp_clear_scheduled_hook')) {
+    function wp_clear_scheduled_hook($hook, $args = [], $wp_error = false) {
+        global $wp_scheduled_events;
+        if (!isset($wp_scheduled_events)) {
+            return 0;
+        }
+        $key = md5($hook . serialize($args));
+        if (isset($wp_scheduled_events[$key])) {
+            unset($wp_scheduled_events[$key]);
+            return 1;
+        }
+        return 0;
+    }
+}
+
 // Mock database class
 if (!class_exists('wpdb')) {
     class wpdb {
@@ -371,7 +636,18 @@ if (!class_exists('wpdb')) {
         private $results = [];
 
         public function prepare($query, ...$args) {
-            return vsprintf(str_replace(['%s', '%d'], ["'%s'", '%d'], $query), $args);
+            // Handle case where args may be passed as a single array
+            if (count($args) === 1 && is_array($args[0])) {
+                $args = $args[0];
+            }
+            // Replace placeholders and handle mismatched arg counts gracefully
+            $formatted = str_replace(['%s', '%d'], ["'%s'", '%d'], $query);
+            // Count placeholders and pad args if needed
+            $placeholder_count = substr_count($formatted, '%s') + substr_count($formatted, '%d');
+            while (count($args) < $placeholder_count) {
+                $args[] = '';
+            }
+            return @vsprintf($formatted, array_slice($args, 0, $placeholder_count));
         }
 
         public function get_results($query, $output = OBJECT) {
@@ -405,6 +681,14 @@ if (!class_exists('wpdb')) {
 
         public function set_mock_results($results) {
             $this->results = $results;
+        }
+
+        public function esc_like($text) {
+            return addcslashes($text, '_%\\');
+        }
+
+        public function get_charset_collate() {
+            return 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
         }
     }
 }

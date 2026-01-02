@@ -44,6 +44,11 @@ const TeamMemberProfile = lazy(() => import('./pages/TeamMemberProfile'));
 const Projects = lazy(() => import('./pages/Projects'));
 const AuditLog = lazy(() => import('./pages/AuditLog'));
 const ApiKeys = lazy(() => import('./pages/ApiKeys'));
+const Finance = lazy(() => import('./pages/Finance'));
+const Invoices = lazy(() => import('./pages/Invoices'));
+const InvoiceEditor = lazy(() => import('./pages/InvoiceEditor'));
+const Clients = lazy(() => import('./pages/Clients'));
+const ClientDetail = lazy(() => import('./pages/ClientDetail'));
 
 export default function App() {
   return (
@@ -55,6 +60,8 @@ export default function App() {
             <Route path="/utm" element={<UTMBuilder />} />
             <Route path="/utm/library" element={<UTMLibrary />} />
             <Route path="/links" element={<Links />} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/clients/:id" element={<ClientDetail />} />
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/webhooks" element={<Webhooks />} />
             <Route path="/visitors" element={<Visitors />} />
@@ -80,6 +87,10 @@ export default function App() {
             <Route path="/projects" element={<Projects />} />
             <Route path="/audit-log" element={<AuditLog />} />
             <Route path="/api-keys" element={<ApiKeys />} />
+            <Route path="/finance" element={<Finance />} />
+            <Route path="/finance/invoices" element={<Invoices />} />
+            <Route path="/finance/invoices/new" element={<InvoiceEditor />} />
+            <Route path="/finance/invoices/:id" element={<InvoiceEditor />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Suspense>

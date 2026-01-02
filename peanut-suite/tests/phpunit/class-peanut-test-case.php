@@ -99,55 +99,19 @@ class Peanut_Test_Case extends TestCase {
     /**
      * Create a mock REST request
      */
-    protected function createMockRequest(string $method, array $params = []): object {
-        return new class($method, $params) {
-            private string $method;
-            private array $params;
-
-            public function __construct(string $method, array $params) {
-                $this->method = $method;
-                $this->params = $params;
-            }
-
-            public function get_method(): string {
-                return $this->method;
-            }
-
-            public function get_param(string $key) {
-                return $this->params[$key] ?? null;
-            }
-
-            public function get_params(): array {
-                return $this->params;
-            }
-
-            public function set_param(string $key, $value): void {
-                $this->params[$key] = $value;
-            }
-        };
+    protected function createMockRequest(string $method, array $params = []): WP_REST_Request {
+        $request = new WP_REST_Request($method, '/peanut/v1/test');
+        foreach ($params as $key => $value) {
+            $request->set_param($key, $value);
+        }
+        return $request;
     }
 
     /**
      * Create a mock REST response
      */
-    protected function createMockResponse($data, int $status = 200): object {
-        return new class($data, $status) {
-            private $data;
-            private int $status;
-
-            public function __construct($data, int $status) {
-                $this->data = $data;
-                $this->status = $status;
-            }
-
-            public function get_data() {
-                return $this->data;
-            }
-
-            public function get_status(): int {
-                return $this->status;
-            }
-        };
+    protected function createMockResponse($data, int $status = 200): WP_REST_Response {
+        return new WP_REST_Response($data, $status);
     }
 
     /**

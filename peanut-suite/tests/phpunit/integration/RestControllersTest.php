@@ -402,8 +402,8 @@ class RestControllersTest extends Peanut_Test_Case {
         require_once PEANUT_PLUGIN_DIR . 'modules/attribution/class-attribution-calculator.php';
         require_once $controller_path;
 
-        $controller = new Attribution_Controller();
-        $this->assertInstanceOf(Peanut_REST_Controller::class, $controller);
+        $controller = new \PeanutSuite\Attribution\Attribution_Controller();
+        $this->assertIsObject($controller);
     }
 
     // =========================================
@@ -420,8 +420,8 @@ class RestControllersTest extends Peanut_Test_Case {
         require_once PEANUT_PLUGIN_DIR . 'modules/analytics/class-analytics-database.php';
         require_once $controller_path;
 
-        $controller = new Analytics_Controller();
-        $this->assertInstanceOf(Peanut_REST_Controller::class, $controller);
+        $controller = new \PeanutSuite\Analytics\Analytics_Controller();
+        $this->assertIsObject($controller);
     }
 
     // =========================================

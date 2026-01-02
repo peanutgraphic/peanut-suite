@@ -27,6 +27,8 @@ import {
   ScrollText,
   Key,
   FolderKanban,
+  DollarSign,
+  Building2,
 } from 'lucide-react';
 import { useAccountStore } from '../../store';
 
@@ -65,6 +67,7 @@ const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, tourId: 'nav-dashboard' },
   { name: 'UTM Builder', href: '/utm', icon: Tag, feature: 'utm', tourId: 'nav-utm' },
   { name: 'Links', href: '/links', icon: Link2, feature: 'links', tourId: 'nav-links' },
+  { name: 'Clients', href: '/clients', icon: Building2, tier: 'pro', feature: 'contacts', tourId: 'nav-clients' },
   { name: 'Contacts', href: '/contacts', icon: Users, feature: 'contacts', tourId: 'nav-contacts' },
   { name: 'Sequences', href: '/sequences', icon: Mail, tier: 'pro', feature: 'sequences', tourId: 'nav-sequences' },
   { name: 'Webhooks', href: '/webhooks', icon: Webhook, feature: 'webhooks', tourId: 'nav-webhooks' },
@@ -77,6 +80,7 @@ const navigation: NavItem[] = [
   { name: 'WooCommerce', href: '/woocommerce', icon: ShoppingCart, tier: 'pro', feature: 'woocommerce', tourId: 'nav-woocommerce' },
   { name: 'Performance', href: '/performance', icon: Gauge, tier: 'pro', feature: 'performance', tourId: 'nav-performance' },
   { name: 'Security', href: '/security', icon: Shield, tier: 'pro', feature: 'security', tourId: 'nav-security' },
+  { name: 'Finance', href: '/finance', icon: DollarSign, tier: 'pro', feature: 'finance', tourId: 'nav-finance' },
   { name: 'Monitor', href: '/monitor', icon: Activity, tier: 'agency', feature: 'monitor', tourId: 'nav-monitor' },
   { name: 'Servers', href: '/servers', icon: Server, tier: 'agency', feature: 'monitor', tourId: 'nav-servers' },
   { name: 'Health Reports', href: '/health-reports', icon: ClipboardCheck, tier: 'agency', feature: 'monitor', tourId: 'nav-health-reports' },

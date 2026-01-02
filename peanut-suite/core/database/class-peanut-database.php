@@ -14,7 +14,7 @@ class Peanut_Database {
     /**
      * Database version
      */
-    private const DB_VERSION = '2.3.0';
+    private const DB_VERSION = '2.4.0';
 
     /**
      * Table names
@@ -44,6 +44,10 @@ class Peanut_Database {
     // Projects tables
     public static function projects_table(): string { return self::table('projects'); }
     public static function project_members_table(): string { return self::table('project_members'); }
+
+    // Clients tables
+    public static function clients_table(): string { return self::table('clients'); }
+    public static function client_contacts_table(): string { return self::table('client_contacts'); }
 
     // Plesk monitoring tables
     public static function monitor_servers_table(): string { return self::table('monitor_servers'); }
@@ -374,6 +378,64 @@ class Peanut_Database {
         ) $charset;";
         dbDelta($sql);
 
+        // ===== Clients Tables =====
+
+        // Clients table
+        $sql = "CREATE TABLE " . self::clients_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            account_id bigint(20) UNSIGNED NOT NULL,
+            name varchar(255) NOT NULL,
+            slug varchar(100) NOT NULL,
+            legal_name varchar(255) DEFAULT NULL,
+            website varchar(500) DEFAULT NULL,
+            industry varchar(100) DEFAULT NULL,
+            size varchar(50) DEFAULT NULL,
+            billing_email varchar(255) DEFAULT NULL,
+            billing_address text DEFAULT NULL,
+            billing_city varchar(100) DEFAULT NULL,
+            billing_state varchar(100) DEFAULT NULL,
+            billing_postal varchar(20) DEFAULT NULL,
+            billing_country varchar(2) DEFAULT NULL,
+            tax_id varchar(100) DEFAULT NULL,
+            currency varchar(3) DEFAULT 'USD',
+            payment_terms int DEFAULT 30,
+            status varchar(20) DEFAULT 'active',
+            acquisition_source varchar(100) DEFAULT NULL,
+            acquired_at date DEFAULT NULL,
+            notes text DEFAULT NULL,
+            custom_fields longtext DEFAULT NULL,
+            settings longtext DEFAULT NULL,
+            created_by bigint(20) UNSIGNED NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY account_id (account_id),
+            KEY status (status),
+            KEY created_by (created_by),
+            UNIQUE KEY account_slug (account_id, slug)
+        ) $charset;";
+        dbDelta($sql);
+
+        // Client contacts junction table
+        $sql = "CREATE TABLE " . self::client_contacts_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            client_id bigint(20) UNSIGNED NOT NULL,
+            contact_id bigint(20) UNSIGNED NOT NULL,
+            role varchar(50) DEFAULT 'primary',
+            is_primary tinyint(1) DEFAULT 0,
+            title varchar(100) DEFAULT NULL,
+            department varchar(100) DEFAULT NULL,
+            notes text DEFAULT NULL,
+            assigned_by bigint(20) UNSIGNED NOT NULL,
+            assigned_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY client_contact (client_id, contact_id),
+            KEY client_id (client_id),
+            KEY contact_id (contact_id),
+            KEY role (role)
+        ) $charset;";
+        dbDelta($sql);
+
         // ===== Plesk Server Monitoring Tables =====
 
         // Monitor servers table (Plesk servers)
@@ -492,6 +554,9 @@ class Peanut_Database {
             // Projects tables
             self::project_members_table(),
             self::projects_table(),
+            // Clients tables
+            self::client_contacts_table(),
+            self::clients_table(),
             // Plesk monitoring tables
             self::monitor_server_health_table(),
             self::monitor_servers_table(),
@@ -523,6 +588,11 @@ class Peanut_Database {
         // Migration to 2.3.0: Create default projects for existing accounts
         if (version_compare($current_version, '2.3.0', '<')) {
             self::migrate_to_2_3_0();
+        }
+
+        // Migration to 2.4.0: Add client_id columns and create default clients
+        if (version_compare($current_version, '2.4.0', '<')) {
+            self::migrate_to_2_4_0();
         }
     }
 
@@ -706,6 +776,138 @@ class Peanut_Database {
                 $project_id,
                 $account->owner_user_id
             ));
+        }
+    }
+
+    /**
+     * Migration to 2.4.0
+     * - Add client_id column to projects, contacts tables
+     * - Create default client for each account
+     * - Assign existing projects to the default client
+     * - Create clients from existing contact companies
+     */
+    private static function migrate_to_2_4_0(): void {
+        global $wpdb;
+
+        $clients_table = self::clients_table();
+        $client_contacts_table = self::client_contacts_table();
+        $projects_table = self::projects_table();
+        $contacts_table = self::contacts_table();
+        $accounts_table = self::accounts_table();
+
+        // Add client_id column to projects table if it doesn't exist
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$projects_table} LIKE 'client_id'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE {$projects_table} ADD COLUMN client_id bigint(20) UNSIGNED DEFAULT NULL AFTER account_id");
+            $wpdb->query("ALTER TABLE {$projects_table} ADD KEY client_id (client_id)");
+        }
+
+        // Add client_id column to contacts table if it doesn't exist
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$contacts_table} LIKE 'client_id'");
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE {$contacts_table} ADD COLUMN client_id bigint(20) UNSIGNED DEFAULT NULL AFTER project_id");
+            $wpdb->query("ALTER TABLE {$contacts_table} ADD KEY client_id (client_id)");
+        }
+
+        // Get all existing accounts
+        $accounts = $wpdb->get_results("SELECT id, owner_user_id FROM {$accounts_table}");
+
+        foreach ($accounts as $account) {
+            // Check if default client already exists for this account
+            $existing_client = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$clients_table} WHERE account_id = %d AND slug = 'general'",
+                $account->id
+            ));
+
+            if ($existing_client) {
+                continue; // Skip if already migrated
+            }
+
+            // Create default client
+            $wpdb->insert($clients_table, [
+                'account_id' => $account->id,
+                'name' => 'General',
+                'slug' => 'general',
+                'status' => 'active',
+                'settings' => json_encode(['is_default' => true]),
+                'created_by' => $account->owner_user_id,
+            ]);
+
+            $client_id = $wpdb->insert_id;
+
+            if (!$client_id) {
+                continue; // Skip if insert failed
+            }
+
+            // Assign all projects in this account to the default client
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$projects_table} SET client_id = %d WHERE account_id = %d AND client_id IS NULL",
+                $client_id,
+                $account->id
+            ));
+
+            // Create additional clients from unique company names in contacts
+            $companies = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT company FROM {$contacts_table}
+                 WHERE account_id = %d AND company IS NOT NULL AND company != '' AND company != 'General'",
+                $account->id
+            ));
+
+            foreach ($companies as $company) {
+                // Create slug from company name
+                $slug = sanitize_title($company);
+                $base_slug = $slug;
+                $counter = 1;
+
+                // Ensure unique slug within account
+                while ($wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$clients_table} WHERE account_id = %d AND slug = %s",
+                    $account->id,
+                    $slug
+                ))) {
+                    $slug = $base_slug . '-' . $counter;
+                    $counter++;
+                }
+
+                // Create client for this company
+                $wpdb->insert($clients_table, [
+                    'account_id' => $account->id,
+                    'name' => $company,
+                    'slug' => $slug,
+                    'status' => 'active',
+                    'created_by' => $account->owner_user_id,
+                ]);
+
+                $company_client_id = $wpdb->insert_id;
+
+                if ($company_client_id) {
+                    // Link contacts with this company to the new client
+                    $contact_ids = $wpdb->get_col($wpdb->prepare(
+                        "SELECT id FROM {$contacts_table}
+                         WHERE account_id = %d AND company = %s",
+                        $account->id,
+                        $company
+                    ));
+
+                    foreach ($contact_ids as $contact_id) {
+                        // Update contact with client_id
+                        $wpdb->update(
+                            $contacts_table,
+                            ['client_id' => $company_client_id],
+                            ['id' => $contact_id]
+                        );
+
+                        // Create junction table entry
+                        $wpdb->insert($client_contacts_table, [
+                            'client_id' => $company_client_id,
+                            'contact_id' => $contact_id,
+                            'role' => 'primary',
+                            'is_primary' => 1,
+                            'assigned_by' => $account->owner_user_id,
+                        ]);
+                    }
+                }
+            }
         }
     }
 

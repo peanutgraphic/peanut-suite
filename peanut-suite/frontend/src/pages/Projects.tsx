@@ -11,10 +11,11 @@ import {
   ChevronRight,
   Link2,
   AlertCircle,
+  Building2,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Input, Modal, Badge, Textarea, useToast } from '../components/common';
-import { projectsApi, accountsApi } from '../api/endpoints';
+import { Card, Button, Input, Modal, Badge, Textarea, useToast, ClientSelector } from '../components/common';
+import { projectsApi, accountsApi, clientsApi } from '../api/endpoints';
 import { useAccountStore, useProjectStore, flattenHierarchy } from '../store';
 import type { Project, ProjectFormData, ProjectMember, ProjectRole, ProjectHierarchy, AccountMember } from '../types';
 
@@ -50,12 +51,14 @@ export default function Projects() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [expandedProjects, setExpandedProjects] = useState<Set<number>>(new Set());
+  const [clientFilter, setClientFilter] = useState<number | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<ProjectFormData>({
     name: '',
     description: '',
     color: PROJECT_COLORS[0],
+    client_id: null,
     parent_id: null,
   });
 
@@ -96,6 +99,12 @@ export default function Projects() {
       setLimits(data);
       return data;
     },
+  });
+
+  // Fetch clients for filter and selector
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients', { status: 'active' }],
+    queryFn: () => clientsApi.getAll({ status: 'active' }),
   });
 
   // Fetch account members for the members modal
@@ -187,6 +196,7 @@ export default function Projects() {
       name: '',
       description: '',
       color: PROJECT_COLORS[0],
+      client_id: null,
       parent_id: null,
     });
   };
@@ -202,6 +212,7 @@ export default function Projects() {
       name: project.name,
       description: project.description || '',
       color: project.color,
+      client_id: project.client_id,
       parent_id: project.parent_id,
     });
     setShowEditModal(true);
@@ -234,8 +245,11 @@ export default function Projects() {
     });
   };
 
-  // Flatten hierarchy for display
-  const flatProjects = flattenHierarchy(hierarchy as ProjectHierarchy[]);
+  // Flatten hierarchy for display and filter by client
+  const allFlatProjects = flattenHierarchy(hierarchy as ProjectHierarchy[]);
+  const flatProjects = clientFilter
+    ? allFlatProjects.filter((p) => p.client_id === clientFilter)
+    : allFlatProjects;
 
   // Get members not already in project
   const availableMembers = accountMembers.filter(
@@ -262,6 +276,19 @@ export default function Projects() {
       {/* Header actions */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
+          {/* Client filter */}
+          <select
+            value={clientFilter ?? ''}
+            onChange={(e) => setClientFilter(e.target.value ? Number(e.target.value) : null)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+          >
+            <option value="">All Clients</option>
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name}
+              </option>
+            ))}
+          </select>
           {limits && (
             <Badge variant={limits.can_create ? 'info' : 'warning'}>
               {limits.current} / {limits.max === -1 ? 'Unlimited' : limits.max} Projects
@@ -344,6 +371,18 @@ export default function Projects() {
                     )}
                   </div>
 
+                  {/* Client */}
+                  <div className="flex items-center gap-2 min-w-[140px]">
+                    {project.client_name ? (
+                      <>
+                        <Building2 className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-600 truncate">{project.client_name}</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic">No client</span>
+                    )}
+                  </div>
+
                   {/* Stats */}
                   <div className="flex items-center gap-6 text-sm text-slate-500">
                     <div className="flex items-center gap-1.5" title="Links">
@@ -401,6 +440,14 @@ export default function Projects() {
         title="Create Project"
       >
         <div className="space-y-4">
+          <ClientSelector
+            value={formData.client_id ?? null}
+            onChange={(clientId) => setFormData({ ...formData, client_id: clientId })}
+            label="Client"
+            required={false}
+            placeholder="Select a client (optional)"
+          />
+
           <Input
             label="Project Name"
             value={formData.name}
@@ -486,6 +533,14 @@ export default function Projects() {
         title="Edit Project"
       >
         <div className="space-y-4">
+          <ClientSelector
+            value={formData.client_id ?? null}
+            onChange={(clientId) => setFormData({ ...formData, client_id: clientId })}
+            label="Client"
+            required={false}
+            placeholder="Select a client (optional)"
+          />
+
           <Input
             label="Project Name"
             value={formData.name}

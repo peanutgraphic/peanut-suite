@@ -137,19 +137,19 @@ class Links_Module {
             $device = preg_match('/ipad|tablet/i', $ua) ? 'tablet' : 'mobile';
         }
 
-        // Browser
-        if (preg_match('/chrome/i', $ua)) $browser = 'Chrome';
-        elseif (preg_match('/safari/i', $ua)) $browser = 'Safari';
+        // Browser (order matters - check more specific first)
+        if (preg_match('/edg/i', $ua)) $browser = 'Edge';
+        elseif (preg_match('/chrome/i', $ua)) $browser = 'Chrome';
         elseif (preg_match('/firefox/i', $ua)) $browser = 'Firefox';
-        elseif (preg_match('/edge/i', $ua)) $browser = 'Edge';
+        elseif (preg_match('/safari/i', $ua)) $browser = 'Safari';
         elseif (preg_match('/msie|trident/i', $ua)) $browser = 'IE';
 
-        // OS
-        if (preg_match('/windows/i', $ua)) $os = 'Windows';
+        // OS (order matters - check more specific first)
+        if (preg_match('/android/i', $ua)) $os = 'Android';
+        elseif (preg_match('/iphone|ipad/i', $ua)) $os = 'iOS';
+        elseif (preg_match('/windows/i', $ua)) $os = 'Windows';
         elseif (preg_match('/macintosh|mac os/i', $ua)) $os = 'macOS';
         elseif (preg_match('/linux/i', $ua)) $os = 'Linux';
-        elseif (preg_match('/android/i', $ua)) $os = 'Android';
-        elseif (preg_match('/iphone|ipad/i', $ua)) $os = 'iOS';
 
         return compact('device', 'browser', 'os');
     }

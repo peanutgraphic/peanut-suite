@@ -460,7 +460,7 @@ class Popups_Controller extends Peanut_REST_Controller {
     /**
      * Bulk action
      */
-    public function bulk_action(WP_REST_Request $request): WP_REST_Response {
+    public function bulk_action(WP_REST_Request $request): WP_REST_Response|WP_Error {
         global $wpdb;
         $table = Popups_Database::popups_table();
         $user_id = get_current_user_id();

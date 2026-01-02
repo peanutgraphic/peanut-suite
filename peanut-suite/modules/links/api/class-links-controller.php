@@ -147,7 +147,7 @@ class Links_Controller extends Peanut_REST_Controller {
 
         $destination = esc_url_raw($request->get_param('destination_url'));
         if (empty($destination)) {
-            return $this->error(__('Destination URL is required', 'peanut-suite'));
+            return $this->error('missing_destination', __('Destination URL is required', 'peanut-suite'));
         }
 
         // Custom slug or generate
@@ -160,7 +160,7 @@ class Links_Controller extends Peanut_REST_Controller {
                 $slug
             ));
             if ($exists) {
-                return $this->error(__('This slug is already taken', 'peanut-suite'));
+                return $this->error('duplicate_slug', __('This slug is already taken', 'peanut-suite'));
             }
         } else {
             $slug = Links_Module::generate_slug();

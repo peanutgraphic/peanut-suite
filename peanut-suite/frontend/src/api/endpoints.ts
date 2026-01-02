@@ -71,6 +71,13 @@ import type {
   ProjectStats,
   ProjectHierarchy,
   ProjectRole,
+  // Client types
+  Client,
+  ClientContact,
+  ClientFormData,
+  ClientLimits,
+  ClientStats,
+  ClientContactRole,
 } from '../types';
 
 // Pagination params
@@ -1838,6 +1845,479 @@ export const projectsApi = {
       added: Array<{ user_id: number; role: string }>;
       failed: Array<{ user_id: number; reason: string }>;
     }>(`/projects/${projectId}/members/bulk`, { members });
+    return data;
+  },
+};
+
+// ============================================
+// Clients Endpoints
+// ============================================
+export const clientsApi = {
+  // Get all clients for the current account
+  getAll: async (params?: PaginationParams & {
+    status?: string;
+  }) => {
+    const { data } = await api.get<Client[]>('/clients', { params });
+    return data;
+  },
+
+  // Get client limits based on tier
+  getLimits: async () => {
+    const { data } = await api.get<ClientLimits>('/clients/limits');
+    return data;
+  },
+
+  // Get single client by ID
+  getById: async (id: number) => {
+    const { data } = await api.get<Client>(`/clients/${id}`);
+    return data;
+  },
+
+  // Create a new client
+  create: async (clientData: ClientFormData) => {
+    const { data } = await api.post<Client>('/clients', clientData);
+    return data;
+  },
+
+  // Update a client
+  update: async (id: number, clientData: Partial<ClientFormData>) => {
+    const { data } = await api.put<Client>(`/clients/${id}`, clientData);
+    return data;
+  },
+
+  // Delete a client
+  delete: async (id: number) => {
+    const { data } = await api.delete<{ deleted: boolean }>(`/clients/${id}`);
+    return data;
+  },
+
+  // Get client statistics
+  getStats: async (id: number) => {
+    const { data } = await api.get<ClientStats>(`/clients/${id}/stats`);
+    return data;
+  },
+
+  // Get client billing info
+  getBilling: async (id: number) => {
+    const { data } = await api.get<{
+      client_id: number;
+      client_name: string;
+      client_email: string | null;
+      client_company: string;
+      client_address: string;
+      tax_id: string | null;
+      currency: string;
+      payment_terms: number;
+    }>(`/clients/${id}/billing`);
+    return data;
+  },
+
+  // Update billing info
+  updateBilling: async (id: number, billingData: {
+    billing_email?: string;
+    billing_address?: string;
+    billing_city?: string;
+    billing_state?: string;
+    billing_postal?: string;
+    billing_country?: string;
+    tax_id?: string;
+    currency?: string;
+    payment_terms?: number;
+  }) => {
+    const { data } = await api.put(`/clients/${id}/billing`, billingData);
+    return data;
+  },
+
+  // Get projects for a client
+  getProjects: async (id: number) => {
+    const { data } = await api.get<Project[]>(`/clients/${id}/projects`);
+    return data;
+  },
+
+  // Get contacts for a client
+  getContacts: async (clientId: number) => {
+    const { data } = await api.get<ClientContact[]>(`/clients/${clientId}/contacts`);
+    return data;
+  },
+
+  // Add contact to client
+  addContact: async (clientId: number, contactId: number, role: ClientContactRole = 'primary') => {
+    const { data } = await api.post<ClientContact[]>(
+      `/clients/${clientId}/contacts`,
+      { contact_id: contactId, role }
+    );
+    return data;
+  },
+
+  // Update contact role
+  updateContactRole: async (clientId: number, contactId: number, role: ClientContactRole) => {
+    const { data } = await api.put<ClientContact[]>(
+      `/clients/${clientId}/contacts/${contactId}`,
+      { role }
+    );
+    return data;
+  },
+
+  // Remove contact from client
+  removeContact: async (clientId: number, contactId: number) => {
+    const { data } = await api.delete<{ removed: boolean }>(
+      `/clients/${clientId}/contacts/${contactId}`
+    );
+    return data;
+  },
+
+  // Set primary contact
+  setPrimaryContact: async (clientId: number, contactId: number) => {
+    const { data } = await api.post<ClientContact[]>(
+      `/clients/${clientId}/contacts/${contactId}/primary`
+    );
+    return data;
+  },
+};
+
+// ============================================
+// Finance Endpoints
+// ============================================
+import type {
+  Invoice,
+  InvoiceFormData,
+  InvoiceStats,
+  Quote,
+  QuoteFormData,
+  Expense,
+  ExpenseFormData,
+  ExpenseStats,
+  ExpenseCategory,
+  RecurringInvoice,
+  RecurringInvoiceFormData,
+  RecurringFrequency,
+  Payment,
+  PaymentFormData,
+  PaymentMethod,
+  FinanceDashboard,
+  FinanceLimits,
+  RevenueData,
+  ProfitLossReport,
+} from '../types';
+
+export const financeApi = {
+  // Dashboard
+  getDashboard: async (projectId?: number) => {
+    const params = projectId ? { project_id: projectId } : undefined;
+    const { data } = await api.get<FinanceDashboard>('/finance/dashboard', { params });
+    return data;
+  },
+
+  getRevenue: async (params?: {
+    period?: 'day' | 'week' | 'month' | 'year';
+    date_from?: string;
+    date_to?: string;
+    project_id?: number;
+  }) => {
+    const { data } = await api.get<RevenueData>('/finance/revenue', { params });
+    return data;
+  },
+
+  getProfitLoss: async (params?: {
+    date_from?: string;
+    date_to?: string;
+    project_id?: number;
+  }) => {
+    const { data } = await api.get<ProfitLossReport>('/finance/profit-loss', { params });
+    return data;
+  },
+
+  getLimits: async () => {
+    const { data } = await api.get<FinanceLimits>('/finance/limits');
+    return data;
+  },
+};
+
+export const invoicesApi = {
+  getAll: async (params?: PaginationParams & {
+    project_id?: number;
+    status?: string;
+    date_from?: string;
+    date_to?: string;
+  }) => {
+    const { data } = await api.get<{ items: Invoice[]; total: number }>('/finance/invoices', { params });
+    return data;
+  },
+
+  getById: async (id: number) => {
+    const { data } = await api.get<Invoice>(`/finance/invoices/${id}`);
+    return data;
+  },
+
+  create: async (invoice: InvoiceFormData) => {
+    const { data } = await api.post<{ id: number; invoice: Invoice }>('/finance/invoices', invoice);
+    return data;
+  },
+
+  update: async (id: number, invoice: Partial<InvoiceFormData>) => {
+    const { data } = await api.put<{ success: boolean; invoice: Invoice }>(
+      `/finance/invoices/${id}`,
+      invoice
+    );
+    return data;
+  },
+
+  delete: async (id: number) => {
+    await api.delete(`/finance/invoices/${id}`);
+  },
+
+  send: async (id: number) => {
+    const { data } = await api.post<{ success: boolean }>(`/finance/invoices/${id}/send`);
+    return data;
+  },
+
+  cancel: async (id: number) => {
+    const { data } = await api.post<{ success: boolean }>(`/finance/invoices/${id}/cancel`);
+    return data;
+  },
+
+  getStats: async (projectId?: number) => {
+    const params = projectId ? { project_id: projectId } : undefined;
+    const { data } = await api.get<InvoiceStats>('/finance/invoices/stats', { params });
+    return data;
+  },
+
+  getNextNumber: async () => {
+    const { data } = await api.get<{ number: string }>('/finance/invoices/next-number');
+    return data;
+  },
+
+  getPayments: async (id: number) => {
+    const { data } = await api.get<Payment[]>(`/finance/invoices/${id}/payments`);
+    return data;
+  },
+};
+
+export const quotesApi = {
+  getAll: async (params?: PaginationParams & {
+    project_id?: number;
+    status?: string;
+  }) => {
+    const { data } = await api.get<{ items: Quote[]; total: number }>('/finance/quotes', { params });
+    return data;
+  },
+
+  getById: async (id: number) => {
+    const { data } = await api.get<Quote>(`/finance/quotes/${id}`);
+    return data;
+  },
+
+  create: async (quote: QuoteFormData) => {
+    const { data } = await api.post<{ id: number; quote: Quote }>('/finance/quotes', quote);
+    return data;
+  },
+
+  update: async (id: number, quote: Partial<QuoteFormData>) => {
+    const { data } = await api.put<{ success: boolean; quote: Quote }>(
+      `/finance/quotes/${id}`,
+      quote
+    );
+    return data;
+  },
+
+  delete: async (id: number) => {
+    await api.delete(`/finance/quotes/${id}`);
+  },
+
+  send: async (id: number) => {
+    const { data } = await api.post<{ success: boolean }>(`/finance/quotes/${id}/send`);
+    return data;
+  },
+
+  accept: async (id: number) => {
+    const { data } = await api.post<{ success: boolean }>(`/finance/quotes/${id}/accept`);
+    return data;
+  },
+
+  decline: async (id: number) => {
+    const { data } = await api.post<{ success: boolean }>(`/finance/quotes/${id}/decline`);
+    return data;
+  },
+
+  convert: async (id: number) => {
+    const { data } = await api.post<{ success: boolean; invoice_id: number; invoice: Invoice }>(
+      `/finance/quotes/${id}/convert`
+    );
+    return data;
+  },
+};
+
+export const expensesApi = {
+  getAll: async (params?: PaginationParams & {
+    project_id?: number;
+    category?: ExpenseCategory;
+    billable?: boolean;
+    invoiced?: boolean;
+    date_from?: string;
+    date_to?: string;
+  }) => {
+    const { data } = await api.get<{ items: Expense[]; total: number; stats: ExpenseStats }>(
+      '/finance/expenses',
+      { params }
+    );
+    return data;
+  },
+
+  getById: async (id: number) => {
+    const { data } = await api.get<Expense>(`/finance/expenses/${id}`);
+    return data;
+  },
+
+  create: async (expense: ExpenseFormData) => {
+    const { data } = await api.post<{ id: number; expense: Expense }>('/finance/expenses', expense);
+    return data;
+  },
+
+  update: async (id: number, expense: Partial<ExpenseFormData>) => {
+    const { data } = await api.put<{ success: boolean; expense: Expense }>(
+      `/finance/expenses/${id}`,
+      expense
+    );
+    return data;
+  },
+
+  delete: async (id: number) => {
+    await api.delete(`/finance/expenses/${id}`);
+  },
+
+  getCategories: async () => {
+    const { data } = await api.get<Record<ExpenseCategory, string>>('/finance/expenses/categories');
+    return data;
+  },
+
+  addToInvoice: async (invoiceId: number, expenseIds: number[]) => {
+    const { data } = await api.post<{ success: boolean; added: number }>(
+      '/finance/expenses/add-to-invoice',
+      { invoice_id: invoiceId, expense_ids: expenseIds }
+    );
+    return data;
+  },
+};
+
+export const recurringApi = {
+  getAll: async (params?: PaginationParams & {
+    project_id?: number;
+    status?: string;
+  }) => {
+    const { data } = await api.get<{ items: RecurringInvoice[]; total: number }>(
+      '/finance/recurring',
+      { params }
+    );
+    return data;
+  },
+
+  getById: async (id: number) => {
+    const { data } = await api.get<RecurringInvoice>(`/finance/recurring/${id}`);
+    return data;
+  },
+
+  create: async (recurring: RecurringInvoiceFormData) => {
+    const { data } = await api.post<{ id: number; recurring: RecurringInvoice }>(
+      '/finance/recurring',
+      recurring
+    );
+    return data;
+  },
+
+  update: async (id: number, recurring: Partial<RecurringInvoiceFormData>) => {
+    const { data } = await api.put<{ success: boolean; recurring: RecurringInvoice }>(
+      `/finance/recurring/${id}`,
+      recurring
+    );
+    return data;
+  },
+
+  delete: async (id: number) => {
+    await api.delete(`/finance/recurring/${id}`);
+  },
+
+  pause: async (id: number) => {
+    const { data } = await api.post<{ success: boolean }>(`/finance/recurring/${id}/pause`);
+    return data;
+  },
+
+  resume: async (id: number) => {
+    const { data } = await api.post<{ success: boolean }>(`/finance/recurring/${id}/resume`);
+    return data;
+  },
+
+  generate: async (id: number) => {
+    const { data } = await api.post<{ success: boolean; invoice_id: number }>(
+      `/finance/recurring/${id}/generate`
+    );
+    return data;
+  },
+
+  preview: async (id: number) => {
+    const { data } = await api.get<{
+      client_name: string;
+      client_email: string;
+      issue_date: string;
+      due_date: string;
+      items: RecurringInvoice['items'];
+      subtotal: number;
+      tax_amount: number;
+      total: number;
+      currency: string;
+    }>(`/finance/recurring/${id}/preview`);
+    return data;
+  },
+
+  getFrequencies: (): Record<RecurringFrequency, string> => ({
+    weekly: 'Weekly',
+    biweekly: 'Bi-weekly',
+    monthly: 'Monthly',
+    quarterly: 'Quarterly',
+    annually: 'Annually',
+  }),
+};
+
+export const paymentsApi = {
+  getAll: async (params?: PaginationParams & {
+    invoice_id?: number;
+    payment_method?: PaymentMethod;
+    date_from?: string;
+    date_to?: string;
+  }) => {
+    const { data } = await api.get<{ items: Payment[]; total: number }>('/finance/payments', { params });
+    return data;
+  },
+
+  getById: async (id: number) => {
+    const { data } = await api.get<Payment>(`/finance/payments/${id}`);
+    return data;
+  },
+
+  create: async (payment: PaymentFormData) => {
+    const { data } = await api.post<{ id: number; payment: Payment; invoice: Invoice }>(
+      '/finance/payments',
+      payment
+    );
+    return data;
+  },
+
+  update: async (id: number, payment: Partial<PaymentFormData>) => {
+    const { data } = await api.put<{ success: boolean; payment: Payment }>(
+      `/finance/payments/${id}`,
+      payment
+    );
+    return data;
+  },
+
+  delete: async (id: number) => {
+    const { data } = await api.delete<{ success: boolean; invoice: Invoice }>(
+      `/finance/payments/${id}`
+    );
+    return data;
+  },
+
+  getMethods: async () => {
+    const { data } = await api.get<Record<PaymentMethod, string>>('/finance/payments/methods');
     return data;
   },
 };

@@ -2,7 +2,8 @@
 /**
  * Invoicing Database
  *
- * Handles invoice data storage and retrieval.
+ * Handles invoice data storage and retrieval for invoices, quotes, expenses,
+ * recurring invoices, and payments.
  */
 
 if (!defined('ABSPATH')) {
@@ -12,23 +13,55 @@ if (!defined('ABSPATH')) {
 class Invoicing_Database {
 
     /**
-     * Get invoices table name
+     * Database version for migrations
+     */
+    private const DB_VERSION = '2.0.0';
+
+    /**
+     * Table name helpers
      */
     public static function invoices_table(): string {
         global $wpdb;
         return $wpdb->prefix . 'peanut_invoices';
     }
 
-    /**
-     * Get invoice items table name
-     */
     public static function invoice_items_table(): string {
         global $wpdb;
         return $wpdb->prefix . 'peanut_invoice_items';
     }
 
+    public static function quotes_table(): string {
+        global $wpdb;
+        return $wpdb->prefix . 'peanut_quotes';
+    }
+
+    public static function quote_items_table(): string {
+        global $wpdb;
+        return $wpdb->prefix . 'peanut_quote_items';
+    }
+
+    public static function expenses_table(): string {
+        global $wpdb;
+        return $wpdb->prefix . 'peanut_expenses';
+    }
+
+    public static function recurring_invoices_table(): string {
+        global $wpdb;
+        return $wpdb->prefix . 'peanut_recurring_invoices';
+    }
+
+    public static function recurring_invoice_items_table(): string {
+        global $wpdb;
+        return $wpdb->prefix . 'peanut_recurring_invoice_items';
+    }
+
+    public static function payments_table(): string {
+        global $wpdb;
+        return $wpdb->prefix . 'peanut_payments';
+    }
+
     /**
-     * Create database tables
+     * Create all database tables
      */
     public static function create_tables(): void {
         global $wpdb;
@@ -36,60 +69,322 @@ class Invoicing_Database {
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        // Invoices table
+        // ===== Invoices Table =====
         $sql = "CREATE TABLE " . self::invoices_table() . " (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             user_id bigint(20) UNSIGNED NOT NULL,
-            stripe_invoice_id varchar(255) DEFAULT NULL,
-            stripe_customer_id varchar(255) DEFAULT NULL,
-            invoice_number varchar(50) DEFAULT NULL,
+            account_id bigint(20) UNSIGNED DEFAULT NULL,
+            project_id bigint(20) UNSIGNED NOT NULL,
+            invoice_number varchar(50) NOT NULL,
             contact_id bigint(20) UNSIGNED DEFAULT NULL,
             client_name varchar(255) NOT NULL,
             client_email varchar(255) NOT NULL,
             client_company varchar(255) DEFAULT NULL,
             client_address text DEFAULT NULL,
-            subtotal decimal(10,2) DEFAULT 0,
-            tax_amount decimal(10,2) DEFAULT 0,
+            subtotal decimal(12,2) DEFAULT 0,
+            tax_amount decimal(12,2) DEFAULT 0,
             tax_percent decimal(5,2) DEFAULT 0,
-            discount_amount decimal(10,2) DEFAULT 0,
-            total decimal(10,2) DEFAULT 0,
+            discount_amount decimal(12,2) DEFAULT 0,
+            discount_type varchar(10) DEFAULT 'fixed',
+            total decimal(12,2) DEFAULT 0,
+            amount_paid decimal(12,2) DEFAULT 0,
+            balance_due decimal(12,2) DEFAULT 0,
             currency varchar(3) DEFAULT 'USD',
-            status varchar(50) DEFAULT 'draft',
+            status varchar(20) DEFAULT 'draft',
+            issue_date date DEFAULT NULL,
             due_date date DEFAULT NULL,
             sent_at datetime DEFAULT NULL,
             paid_at datetime DEFAULT NULL,
+            payment_terms varchar(100) DEFAULT NULL,
+            notes text DEFAULT NULL,
+            client_notes text DEFAULT NULL,
+            footer text DEFAULT NULL,
+            source varchar(20) DEFAULT 'manual',
+            source_id bigint(20) UNSIGNED DEFAULT NULL,
+            stripe_invoice_id varchar(255) DEFAULT NULL,
+            stripe_customer_id varchar(255) DEFAULT NULL,
             payment_url varchar(500) DEFAULT NULL,
             pdf_url varchar(500) DEFAULT NULL,
-            notes text DEFAULT NULL,
-            footer text DEFAULT NULL,
-            metadata text DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY user_id (user_id),
-            KEY stripe_invoice_id (stripe_invoice_id),
+            KEY account_id (account_id),
+            KEY project_id (project_id),
             KEY contact_id (contact_id),
             KEY status (status),
             KEY due_date (due_date),
+            KEY issue_date (issue_date),
             KEY created_at (created_at)
         ) $charset;";
         dbDelta($sql);
 
-        // Invoice items table
+        // ===== Invoice Items Table =====
         $sql = "CREATE TABLE " . self::invoice_items_table() . " (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             invoice_id bigint(20) UNSIGNED NOT NULL,
-            stripe_item_id varchar(255) DEFAULT NULL,
+            item_type varchar(20) DEFAULT 'service',
             description varchar(500) NOT NULL,
             quantity decimal(10,2) DEFAULT 1,
-            unit_price decimal(10,2) NOT NULL,
-            amount decimal(10,2) NOT NULL,
+            hours decimal(10,2) DEFAULT NULL,
+            rate decimal(12,2) DEFAULT NULL,
+            unit_price decimal(12,2) NOT NULL,
+            amount decimal(12,2) NOT NULL,
+            taxable tinyint(1) DEFAULT 1,
             sort_order int DEFAULT 0,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY invoice_id (invoice_id)
         ) $charset;";
         dbDelta($sql);
+
+        // ===== Quotes Table =====
+        $sql = "CREATE TABLE " . self::quotes_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            account_id bigint(20) UNSIGNED DEFAULT NULL,
+            project_id bigint(20) UNSIGNED NOT NULL,
+            quote_number varchar(50) NOT NULL,
+            contact_id bigint(20) UNSIGNED DEFAULT NULL,
+            client_name varchar(255) NOT NULL,
+            client_email varchar(255) NOT NULL,
+            client_company varchar(255) DEFAULT NULL,
+            client_address text DEFAULT NULL,
+            subtotal decimal(12,2) DEFAULT 0,
+            tax_amount decimal(12,2) DEFAULT 0,
+            tax_percent decimal(5,2) DEFAULT 0,
+            discount_amount decimal(12,2) DEFAULT 0,
+            discount_type varchar(10) DEFAULT 'fixed',
+            total decimal(12,2) DEFAULT 0,
+            currency varchar(3) DEFAULT 'USD',
+            status varchar(20) DEFAULT 'draft',
+            valid_until date DEFAULT NULL,
+            sent_at datetime DEFAULT NULL,
+            accepted_at datetime DEFAULT NULL,
+            declined_at datetime DEFAULT NULL,
+            converted_invoice_id bigint(20) UNSIGNED DEFAULT NULL,
+            notes text DEFAULT NULL,
+            client_notes text DEFAULT NULL,
+            terms text DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY user_id (user_id),
+            KEY account_id (account_id),
+            KEY project_id (project_id),
+            KEY contact_id (contact_id),
+            KEY status (status),
+            KEY valid_until (valid_until),
+            KEY created_at (created_at)
+        ) $charset;";
+        dbDelta($sql);
+
+        // ===== Quote Items Table =====
+        $sql = "CREATE TABLE " . self::quote_items_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            quote_id bigint(20) UNSIGNED NOT NULL,
+            item_type varchar(20) DEFAULT 'service',
+            description varchar(500) NOT NULL,
+            quantity decimal(10,2) DEFAULT 1,
+            hours decimal(10,2) DEFAULT NULL,
+            rate decimal(12,2) DEFAULT NULL,
+            unit_price decimal(12,2) NOT NULL,
+            amount decimal(12,2) NOT NULL,
+            taxable tinyint(1) DEFAULT 1,
+            optional tinyint(1) DEFAULT 0,
+            sort_order int DEFAULT 0,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY quote_id (quote_id)
+        ) $charset;";
+        dbDelta($sql);
+
+        // ===== Expenses Table =====
+        $sql = "CREATE TABLE " . self::expenses_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            account_id bigint(20) UNSIGNED DEFAULT NULL,
+            project_id bigint(20) UNSIGNED DEFAULT NULL,
+            vendor varchar(255) DEFAULT NULL,
+            category varchar(100) DEFAULT NULL,
+            description text DEFAULT NULL,
+            amount decimal(12,2) NOT NULL,
+            currency varchar(3) DEFAULT 'USD',
+            expense_date date NOT NULL,
+            receipt_url varchar(500) DEFAULT NULL,
+            billable tinyint(1) DEFAULT 0,
+            invoiced tinyint(1) DEFAULT 0,
+            invoice_id bigint(20) UNSIGNED DEFAULT NULL,
+            payment_method varchar(50) DEFAULT NULL,
+            reference varchar(100) DEFAULT NULL,
+            notes text DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY user_id (user_id),
+            KEY account_id (account_id),
+            KEY project_id (project_id),
+            KEY category (category),
+            KEY expense_date (expense_date),
+            KEY billable (billable),
+            KEY invoiced (invoiced)
+        ) $charset;";
+        dbDelta($sql);
+
+        // ===== Recurring Invoices Table =====
+        $sql = "CREATE TABLE " . self::recurring_invoices_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            account_id bigint(20) UNSIGNED DEFAULT NULL,
+            project_id bigint(20) UNSIGNED NOT NULL,
+            template_name varchar(255) NOT NULL,
+            contact_id bigint(20) UNSIGNED DEFAULT NULL,
+            client_name varchar(255) NOT NULL,
+            client_email varchar(255) NOT NULL,
+            client_company varchar(255) DEFAULT NULL,
+            client_address text DEFAULT NULL,
+            frequency varchar(20) DEFAULT 'monthly',
+            day_of_week tinyint DEFAULT NULL,
+            day_of_month tinyint DEFAULT NULL,
+            start_date date NOT NULL,
+            end_date date DEFAULT NULL,
+            next_invoice_date date NOT NULL,
+            last_invoice_date date DEFAULT NULL,
+            invoices_generated int DEFAULT 0,
+            subtotal decimal(12,2) DEFAULT 0,
+            tax_amount decimal(12,2) DEFAULT 0,
+            tax_percent decimal(5,2) DEFAULT 0,
+            discount_amount decimal(12,2) DEFAULT 0,
+            total decimal(12,2) DEFAULT 0,
+            currency varchar(3) DEFAULT 'USD',
+            due_days int DEFAULT 30,
+            status varchar(20) DEFAULT 'active',
+            auto_send tinyint(1) DEFAULT 0,
+            notes text DEFAULT NULL,
+            client_notes text DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY user_id (user_id),
+            KEY account_id (account_id),
+            KEY project_id (project_id),
+            KEY contact_id (contact_id),
+            KEY next_invoice_date (next_invoice_date),
+            KEY status (status)
+        ) $charset;";
+        dbDelta($sql);
+
+        // ===== Recurring Invoice Items Table =====
+        $sql = "CREATE TABLE " . self::recurring_invoice_items_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            recurring_invoice_id bigint(20) UNSIGNED NOT NULL,
+            item_type varchar(20) DEFAULT 'service',
+            description varchar(500) NOT NULL,
+            quantity decimal(10,2) DEFAULT 1,
+            hours decimal(10,2) DEFAULT NULL,
+            rate decimal(12,2) DEFAULT NULL,
+            unit_price decimal(12,2) NOT NULL,
+            amount decimal(12,2) NOT NULL,
+            taxable tinyint(1) DEFAULT 1,
+            sort_order int DEFAULT 0,
+            PRIMARY KEY (id),
+            KEY recurring_invoice_id (recurring_invoice_id)
+        ) $charset;";
+        dbDelta($sql);
+
+        // ===== Payments Table =====
+        $sql = "CREATE TABLE " . self::payments_table() . " (
+            id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) UNSIGNED NOT NULL,
+            account_id bigint(20) UNSIGNED DEFAULT NULL,
+            invoice_id bigint(20) UNSIGNED NOT NULL,
+            amount decimal(12,2) NOT NULL,
+            currency varchar(3) DEFAULT 'USD',
+            payment_method varchar(30) DEFAULT 'bank_transfer',
+            payment_date date NOT NULL,
+            reference varchar(255) DEFAULT NULL,
+            notes text DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY user_id (user_id),
+            KEY account_id (account_id),
+            KEY invoice_id (invoice_id),
+            KEY payment_date (payment_date)
+        ) $charset;";
+        dbDelta($sql);
+
+        // Run migrations
+        self::run_migrations();
+
+        update_option('peanut_invoicing_db_version', self::DB_VERSION);
+    }
+
+    /**
+     * Run migrations for existing data
+     */
+    private static function run_migrations(): void {
+        global $wpdb;
+
+        $current_version = get_option('peanut_invoicing_db_version', '0');
+
+        // Migration to 2.0.0: Add new columns to existing invoices table
+        if (version_compare($current_version, '2.0.0', '<')) {
+            self::migrate_to_2_0_0();
+        }
+    }
+
+    /**
+     * Migration to 2.0.0
+     * Add new columns to existing invoices and invoice_items tables
+     */
+    private static function migrate_to_2_0_0(): void {
+        global $wpdb;
+
+        $invoices_table = self::invoices_table();
+        $items_table = self::invoice_items_table();
+
+        // Add new columns to invoices table if they don't exist
+        $columns_to_add = [
+            'account_id' => "ALTER TABLE $invoices_table ADD COLUMN account_id bigint(20) UNSIGNED DEFAULT NULL AFTER user_id",
+            'project_id' => "ALTER TABLE $invoices_table ADD COLUMN project_id bigint(20) UNSIGNED DEFAULT NULL AFTER account_id",
+            'discount_type' => "ALTER TABLE $invoices_table ADD COLUMN discount_type varchar(10) DEFAULT 'fixed' AFTER discount_amount",
+            'amount_paid' => "ALTER TABLE $invoices_table ADD COLUMN amount_paid decimal(12,2) DEFAULT 0 AFTER total",
+            'balance_due' => "ALTER TABLE $invoices_table ADD COLUMN balance_due decimal(12,2) DEFAULT 0 AFTER amount_paid",
+            'issue_date' => "ALTER TABLE $invoices_table ADD COLUMN issue_date date DEFAULT NULL AFTER status",
+            'payment_terms' => "ALTER TABLE $invoices_table ADD COLUMN payment_terms varchar(100) DEFAULT NULL AFTER paid_at",
+            'client_notes' => "ALTER TABLE $invoices_table ADD COLUMN client_notes text DEFAULT NULL AFTER notes",
+            'source' => "ALTER TABLE $invoices_table ADD COLUMN source varchar(20) DEFAULT 'manual' AFTER footer",
+            'source_id' => "ALTER TABLE $invoices_table ADD COLUMN source_id bigint(20) UNSIGNED DEFAULT NULL AFTER source",
+        ];
+
+        foreach ($columns_to_add as $column => $sql) {
+            $exists = $wpdb->get_results("SHOW COLUMNS FROM $invoices_table LIKE '$column'");
+            if (empty($exists)) {
+                $wpdb->query($sql);
+            }
+        }
+
+        // Add new columns to invoice_items table
+        $item_columns = [
+            'item_type' => "ALTER TABLE $items_table ADD COLUMN item_type varchar(20) DEFAULT 'service' AFTER invoice_id",
+            'hours' => "ALTER TABLE $items_table ADD COLUMN hours decimal(10,2) DEFAULT NULL AFTER quantity",
+            'rate' => "ALTER TABLE $items_table ADD COLUMN rate decimal(12,2) DEFAULT NULL AFTER hours",
+            'taxable' => "ALTER TABLE $items_table ADD COLUMN taxable tinyint(1) DEFAULT 1 AFTER amount",
+        ];
+
+        foreach ($item_columns as $column => $sql) {
+            $exists = $wpdb->get_results("SHOW COLUMNS FROM $items_table LIKE '$column'");
+            if (empty($exists)) {
+                $wpdb->query($sql);
+            }
+        }
+
+        // Set balance_due = total for existing unpaid invoices
+        $wpdb->query("UPDATE $invoices_table SET balance_due = total WHERE status NOT IN ('paid', 'cancelled') AND balance_due = 0");
+
+        // Add indexes if they don't exist
+        $wpdb->query("ALTER TABLE $invoices_table ADD KEY account_id (account_id)");
+        $wpdb->query("ALTER TABLE $invoices_table ADD KEY project_id (project_id)");
     }
 
     /**
