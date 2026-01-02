@@ -105,18 +105,27 @@ class Peanut_Project_Service {
     public static function get_projects_for_account(int $account_id, ?int $parent_id = null): array {
         global $wpdb;
         $table = Peanut_Database::projects_table();
+        $clients_table = Peanut_Database::clients_table();
 
         if ($parent_id === null) {
-            // Get all projects for account
+            // Get all projects for account with client name
             return $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM $table WHERE account_id = %d ORDER BY parent_id ASC, name ASC",
+                "SELECT p.*, c.name AS client_name
+                 FROM $table p
+                 LEFT JOIN $clients_table c ON p.client_id = c.id
+                 WHERE p.account_id = %d
+                 ORDER BY p.parent_id ASC, p.name ASC",
                 $account_id
             ), ARRAY_A) ?: [];
         }
 
         // Get children of a specific parent
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table WHERE account_id = %d AND parent_id = %d ORDER BY name ASC",
+            "SELECT p.*, c.name AS client_name
+             FROM $table p
+             LEFT JOIN $clients_table c ON p.client_id = c.id
+             WHERE p.account_id = %d AND p.parent_id = %d
+             ORDER BY p.name ASC",
             $account_id,
             $parent_id
         ), ARRAY_A) ?: [];
@@ -137,10 +146,13 @@ class Peanut_Project_Service {
         // For members/viewers, only return projects they're explicitly assigned to
         $projects_table = Peanut_Database::projects_table();
         $members_table = Peanut_Database::project_members_table();
+        $clients_table = Peanut_Database::clients_table();
 
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT p.* FROM $projects_table p
+            "SELECT p.*, c.name AS client_name
+             FROM $projects_table p
              INNER JOIN $members_table pm ON p.id = pm.project_id
+             LEFT JOIN $clients_table c ON p.client_id = c.id
              WHERE p.account_id = %d AND pm.user_id = %d AND p.status = %s
              ORDER BY p.name ASC",
             $account_id,
@@ -306,6 +318,19 @@ class Peanut_Project_Service {
                 return false;
             }
             $update_data['parent_id'] = $data['parent_id'];
+        }
+
+        if (array_key_exists('client_id', $data)) {
+            if ($data['client_id'] !== null) {
+                // Validate client belongs to the same account
+                $client = Peanut_Client_Service::get_by_id((int) $data['client_id']);
+                if (!$client || $client['account_id'] !== $project['account_id']) {
+                    return false;
+                }
+                $update_data['client_id'] = (int) $data['client_id'];
+            } else {
+                $update_data['client_id'] = null;
+            }
         }
 
         if (isset($data['status'])) {

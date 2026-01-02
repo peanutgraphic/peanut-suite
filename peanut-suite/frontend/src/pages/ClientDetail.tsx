@@ -143,11 +143,12 @@ export default function ClientDetail() {
   });
 
   // Fetch all contacts for adding
-  const { data: allContacts = [] } = useQuery({
+  const { data: allContactsData } = useQuery({
     queryKey: ['contacts', { search: contactSearch }],
     queryFn: () => contactsApi.getAll({ search: contactSearch || undefined }),
     enabled: showAddContactModal,
   });
+  const allContacts: Contact[] = allContactsData?.data ?? [];
 
   // Update mutation
   const updateMutation = useMutation({
@@ -245,7 +246,7 @@ export default function ClientDetail() {
   };
 
   // Get contacts not already linked
-  const availableContacts = (allContacts as Contact[]).filter(
+  const availableContacts = allContacts.filter(
     (c) => !clientContacts.some((cc) => cc.contact_id === c.id)
   );
 

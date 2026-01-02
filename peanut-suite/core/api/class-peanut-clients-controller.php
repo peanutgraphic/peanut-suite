@@ -201,7 +201,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -291,7 +291,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -347,7 +347,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -393,7 +393,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -417,7 +417,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -441,7 +441,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -488,7 +488,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -516,7 +516,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -542,7 +542,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -585,7 +585,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -620,7 +620,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 
@@ -655,7 +655,7 @@ class Peanut_Clients_Controller extends Peanut_REST_Controller {
 
         // Check access
         $account = Peanut_Account_Service::get_or_create_for_user($user_id);
-        if (!$account || $client['account_id'] !== $account['id']) {
+        if (!$account || (int) $client['account_id'] !== (int) $account['id']) {
             return $this->error('forbidden', 'You do not have access to this client', 403);
         }
 

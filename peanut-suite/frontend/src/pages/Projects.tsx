@@ -248,7 +248,7 @@ export default function Projects() {
   // Flatten hierarchy for display and filter by client
   const allFlatProjects = flattenHierarchy(hierarchy as ProjectHierarchy[]);
   const flatProjects = clientFilter
-    ? allFlatProjects.filter((p) => p.client_id === clientFilter)
+    ? allFlatProjects.filter((p) => Number(p.client_id) === clientFilter)
     : allFlatProjects;
 
   // Get members not already in project
@@ -444,8 +444,8 @@ export default function Projects() {
             value={formData.client_id ?? null}
             onChange={(clientId) => setFormData({ ...formData, client_id: clientId })}
             label="Client"
-            required={false}
-            placeholder="Select a client (optional)"
+            required={true}
+            placeholder="Select a client"
           />
 
           <Input
@@ -515,7 +515,11 @@ export default function Projects() {
             >
               Cancel
             </Button>
-            <Button onClick={handleCreate} loading={createMutation.isPending}>
+            <Button
+              onClick={handleCreate}
+              loading={createMutation.isPending}
+              disabled={!formData.name.trim() || !formData.client_id}
+            >
               Create Project
             </Button>
           </div>
@@ -537,8 +541,8 @@ export default function Projects() {
             value={formData.client_id ?? null}
             onChange={(clientId) => setFormData({ ...formData, client_id: clientId })}
             label="Client"
-            required={false}
-            placeholder="Select a client (optional)"
+            required={true}
+            placeholder="Select a client"
           />
 
           <Input

@@ -349,6 +349,10 @@ class Peanut_Projects_Controller extends Peanut_REST_Controller {
         if ($request->has_param('settings')) {
             $data['settings'] = $request->get_param('settings');
         }
+        if ($request->has_param('client_id')) {
+            $client_id = $request->get_param('client_id');
+            $data['client_id'] = $client_id ? (int) $client_id : null;
+        }
 
         $result = Peanut_Project_Service::update($project_id, $data);
 
