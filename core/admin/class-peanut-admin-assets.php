@@ -47,6 +47,13 @@ class Peanut_Admin_Assets {
     }
 
     /**
+     * Check if current page is the API Checker page
+     */
+    private function is_api_checker_page(): bool {
+        return isset($_GET['page']) && $_GET['page'] === 'peanut-api-checker';
+    }
+
+    /**
      * Enqueue stylesheets
      */
     private function enqueue_styles(): void {
@@ -79,6 +86,16 @@ class Peanut_Admin_Assets {
             [],
             PEANUT_VERSION
         );
+
+        // API Checker styles (only on api-checker page)
+        if ($this->is_api_checker_page()) {
+            wp_enqueue_style(
+                'peanut-api-checker',
+                PEANUT_PLUGIN_URL . 'assets/css/api-checker.css',
+                ['peanut-admin'],
+                PEANUT_VERSION
+            );
+        }
 
         // WordPress core styles we need
         wp_enqueue_style('wp-components');
@@ -187,6 +204,47 @@ class Peanut_Admin_Assets {
             'nonce' => wp_create_nonce('peanut_feature_tour'),
             'version' => PEANUT_VERSION,
         ]);
+
+        // API Checker script (only on api-checker page)
+        if ($this->is_api_checker_page()) {
+            wp_enqueue_script(
+                'peanut-api-checker',
+                PEANUT_PLUGIN_URL . 'assets/js/api-checker.js',
+                ['jquery', 'peanut-admin'],
+                PEANUT_VERSION,
+                true
+            );
+
+            // Get saved APIs for localization
+            $saved_apis = [];
+            if (class_exists('\\PeanutSuite\\APIChecker\\API_Checker_Module')) {
+                $saved_apis = \PeanutSuite\APIChecker\API_Checker_Module::get_custom_apis_for_admin();
+            }
+
+            wp_localize_script('peanut-api-checker', 'peanutApiChecker', [
+                'nonce' => wp_create_nonce('peanut_api_checker'),
+                'restNonce' => wp_create_nonce('wp_rest'),
+                'restUrl' => rest_url(),
+                'savedApis' => array_values($saved_apis),
+                'i18n' => [
+                    'testing' => __('Testing...', 'peanut-suite'),
+                    'testConnection' => __('Test Connection', 'peanut-suite'),
+                    'test' => __('Test', 'peanut-suite'),
+                    'testApi' => __('Test API', 'peanut-suite'),
+                    'saving' => __('Saving...', 'peanut-suite'),
+                    'confirmSave' => __('Confirm Save', 'peanut-suite'),
+                    'enterUrlFirst' => __('Please enter an API URL first', 'peanut-suite'),
+                    'enterName' => __('Please enter a name for this API', 'peanut-suite'),
+                    'enterUrl' => __('Please enter an API URL', 'peanut-suite'),
+                    'errorSaving' => __('Error saving API:', 'peanut-suite'),
+                    'failedToSave' => __('Failed to save API', 'peanut-suite'),
+                    'confirmDelete' => __('Are you sure you want to delete this API?', 'peanut-suite'),
+                    'errorDeleting' => __('Error deleting API:', 'peanut-suite'),
+                    'failedToDelete' => __('Failed to delete API', 'peanut-suite'),
+                    'noSavedApis' => __('No saved APIs yet. Use the form above to test and save an API configuration.', 'peanut-suite'),
+                ],
+            ]);
+        }
     }
 
     /**

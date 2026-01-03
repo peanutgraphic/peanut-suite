@@ -358,6 +358,17 @@ class Peanut_Core {
             'pro' => true,
         ]);
 
+        // GEOPETS Module (External App Integration)
+        $this->module_manager->register('geopets', [
+            'name' => __('GEOPETS', 'peanut-suite'),
+            'description' => __('Monitor GEOPETS waitlist signups and app analytics.', 'peanut-suite'),
+            'icon' => 'heart',
+            'file' => PEANUT_PLUGIN_DIR . 'modules/geopets/class-geopets-module.php',
+            'class' => 'Geopets_Module',
+            'default' => true,
+            'pro' => false,
+        ]);
+
         // Allow add-ons to register modules
         do_action('peanut_register_modules', $this->module_manager);
     }

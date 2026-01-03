@@ -328,11 +328,12 @@ class Peanut_Visitors_List_Table extends WP_List_Table {
         if ($which !== 'top') return;
         ?>
         <div class="alignleft actions">
+            <?php $current_status = sanitize_text_field($_REQUEST['status'] ?? ''); ?>
             <select name="status">
                 <option value=""><?php esc_html_e('All Visitors', 'peanut-suite'); ?></option>
-                <option value="identified" <?php selected($_REQUEST['status'] ?? '', 'identified'); ?>><?php esc_html_e('Identified', 'peanut-suite'); ?></option>
-                <option value="known" <?php selected($_REQUEST['status'] ?? '', 'known'); ?>><?php esc_html_e('Known (Email)', 'peanut-suite'); ?></option>
-                <option value="anonymous" <?php selected($_REQUEST['status'] ?? '', 'anonymous'); ?>><?php esc_html_e('Anonymous', 'peanut-suite'); ?></option>
+                <option value="identified" <?php selected($current_status, 'identified'); ?>><?php esc_html_e('Identified', 'peanut-suite'); ?></option>
+                <option value="known" <?php selected($current_status, 'known'); ?>><?php esc_html_e('Known (Email)', 'peanut-suite'); ?></option>
+                <option value="anonymous" <?php selected($current_status, 'anonymous'); ?>><?php esc_html_e('Anonymous', 'peanut-suite'); ?></option>
             </select>
             <?php submit_button(__('Filter', 'peanut-suite'), '', 'filter_action', false); ?>
         </div>

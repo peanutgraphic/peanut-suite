@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+>
+	<testsuites>
+		<testsuite name="Peanut Suite Test Suite">
+			<directory prefix="test-" suffix=".php">./tests/</directory>
+		</testsuite>
+	</testsuites>
+	<filter>
+		<whitelist processUncoveredFilesFromWhitelist="true">
+			<directory suffix=".php">./core/</directory>
+			<directory suffix=".php">./modules/</directory>
+			<exclude>
+				<directory suffix=".php">./vendor/</directory>
+				<directory suffix=".php">./node_modules/</directory>
+			</exclude>
+		</whitelist>
+	</filter>
+	<php>
+		<const name="PEANUT_TEST_MODE" value="true"/>
+	</php>
+</phpunit>

@@ -3,7 +3,7 @@
  * Plugin Name: Peanut Suite
  * Plugin URI: https://peanutgraphic.com/peanut-suite
  * Description: Complete marketing toolkit - UTM campaigns, link management, lead tracking, and analytics in one unified dashboard.
- * Version: 2.4.0
+ * Version: 4.1.3
  * Author: Peanut Graphic
  * Author URI: https://peanutgraphic.com
  * License: GPL-2.0+
@@ -26,8 +26,8 @@ if (defined('PEANUT_VERSION')) {
 /**
  * Plugin constants
  */
-define('PEANUT_VERSION', '2.4.0');
-define('PEANUT_SUITE_VERSION', '2.4.0'); // Alias for updater
+define('PEANUT_VERSION', '4.1.3');
+define('PEANUT_SUITE_VERSION', '4.1.3'); // Alias for updater
 define('PEANUT_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('PEANUT_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PEANUT_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -71,7 +71,7 @@ spl_autoload_register(function ($class) {
     }
 
     // Check for module classes (Module_Name_Class format)
-    if (preg_match('/^(UTM|Links|Contacts|Popups|Dashboard|Invoicing|Security|Reports|Backlinks)_(.+)$/', $class, $matches)) {
+    if (preg_match('/^(UTM|Links|Contacts|Popups|Dashboard|Invoicing|Security|Reports|Backlinks|Geopets)_(.+)$/', $class, $matches)) {
         $module = strtolower($matches[1]);
         $class_name = strtolower(str_replace('_', '-', $matches[2]));
 

@@ -358,18 +358,22 @@ class Peanut_Webhooks_List_Table extends WP_List_Table {
         }
         ?>
         <div class="alignleft actions">
+            <?php
+            $current_status = sanitize_text_field($_REQUEST['status'] ?? '');
+            $current_source = sanitize_text_field($_REQUEST['source'] ?? '');
+            ?>
             <select name="status">
                 <option value=""><?php esc_html_e('All Statuses', 'peanut-suite'); ?></option>
-                <option value="processed" <?php selected($_REQUEST['status'] ?? '', 'processed'); ?>><?php esc_html_e('Processed', 'peanut-suite'); ?></option>
-                <option value="pending" <?php selected($_REQUEST['status'] ?? '', 'pending'); ?>><?php esc_html_e('Pending', 'peanut-suite'); ?></option>
-                <option value="failed" <?php selected($_REQUEST['status'] ?? '', 'failed'); ?>><?php esc_html_e('Failed', 'peanut-suite'); ?></option>
-                <option value="ignored" <?php selected($_REQUEST['status'] ?? '', 'ignored'); ?>><?php esc_html_e('Ignored', 'peanut-suite'); ?></option>
+                <option value="processed" <?php selected($current_status, 'processed'); ?>><?php esc_html_e('Processed', 'peanut-suite'); ?></option>
+                <option value="pending" <?php selected($current_status, 'pending'); ?>><?php esc_html_e('Pending', 'peanut-suite'); ?></option>
+                <option value="failed" <?php selected($current_status, 'failed'); ?>><?php esc_html_e('Failed', 'peanut-suite'); ?></option>
+                <option value="ignored" <?php selected($current_status, 'ignored'); ?>><?php esc_html_e('Ignored', 'peanut-suite'); ?></option>
             </select>
             <?php if (!empty($sources)): ?>
             <select name="source">
                 <option value=""><?php esc_html_e('All Sources', 'peanut-suite'); ?></option>
                 <?php foreach ($sources as $source): ?>
-                    <option value="<?php echo esc_attr($source); ?>" <?php selected($_REQUEST['source'] ?? '', $source); ?>>
+                    <option value="<?php echo esc_attr($source); ?>" <?php selected($current_source, $source); ?>>
                         <?php echo esc_html(ucwords(str_replace('_', ' ', $source))); ?>
                     </option>
                 <?php endforeach; ?>

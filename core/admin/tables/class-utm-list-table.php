@@ -333,11 +333,15 @@ class Peanut_UTM_List_Table extends WP_List_Table {
         }
         ?>
         <div class="alignleft actions">
+            <?php
+            $current_utm_source = sanitize_text_field($_REQUEST['utm_source'] ?? '');
+            $current_utm_medium = sanitize_text_field($_REQUEST['utm_medium'] ?? '');
+            ?>
             <?php if (!empty($sources)): ?>
             <select name="utm_source">
                 <option value=""><?php esc_html_e('All Sources', 'peanut-suite'); ?></option>
                 <?php foreach ($sources as $source): ?>
-                    <option value="<?php echo esc_attr($source); ?>" <?php selected($_REQUEST['utm_source'] ?? '', $source); ?>>
+                    <option value="<?php echo esc_attr($source); ?>" <?php selected($current_utm_source, $source); ?>>
                         <?php echo esc_html(ucfirst($source)); ?>
                     </option>
                 <?php endforeach; ?>
@@ -347,7 +351,7 @@ class Peanut_UTM_List_Table extends WP_List_Table {
             <select name="utm_medium">
                 <option value=""><?php esc_html_e('All Mediums', 'peanut-suite'); ?></option>
                 <?php foreach ($mediums as $medium): ?>
-                    <option value="<?php echo esc_attr($medium); ?>" <?php selected($_REQUEST['utm_medium'] ?? '', $medium); ?>>
+                    <option value="<?php echo esc_attr($medium); ?>" <?php selected($current_utm_medium, $medium); ?>>
                         <?php echo esc_html($medium); ?>
                     </option>
                 <?php endforeach; ?>

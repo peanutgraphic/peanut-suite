@@ -344,19 +344,23 @@ class Peanut_Contacts_List_Table extends WP_List_Table {
         if ($which !== 'top') return;
         ?>
         <div class="alignleft actions">
+            <?php
+            $current_status = sanitize_text_field($_REQUEST['status'] ?? '');
+            $current_source = sanitize_text_field($_REQUEST['source'] ?? '');
+            ?>
             <select name="status">
                 <option value=""><?php esc_html_e('All Statuses', 'peanut-suite'); ?></option>
-                <option value="lead" <?php selected($_REQUEST['status'] ?? '', 'lead'); ?>><?php esc_html_e('Lead', 'peanut-suite'); ?></option>
-                <option value="prospect" <?php selected($_REQUEST['status'] ?? '', 'prospect'); ?>><?php esc_html_e('Prospect', 'peanut-suite'); ?></option>
-                <option value="customer" <?php selected($_REQUEST['status'] ?? '', 'customer'); ?>><?php esc_html_e('Customer', 'peanut-suite'); ?></option>
-                <option value="churned" <?php selected($_REQUEST['status'] ?? '', 'churned'); ?>><?php esc_html_e('Churned', 'peanut-suite'); ?></option>
+                <option value="lead" <?php selected($current_status, 'lead'); ?>><?php esc_html_e('Lead', 'peanut-suite'); ?></option>
+                <option value="prospect" <?php selected($current_status, 'prospect'); ?>><?php esc_html_e('Prospect', 'peanut-suite'); ?></option>
+                <option value="customer" <?php selected($current_status, 'customer'); ?>><?php esc_html_e('Customer', 'peanut-suite'); ?></option>
+                <option value="churned" <?php selected($current_status, 'churned'); ?>><?php esc_html_e('Churned', 'peanut-suite'); ?></option>
             </select>
             <select name="source">
                 <option value=""><?php esc_html_e('All Sources', 'peanut-suite'); ?></option>
-                <option value="form" <?php selected($_REQUEST['source'] ?? '', 'form'); ?>><?php esc_html_e('Form', 'peanut-suite'); ?></option>
-                <option value="webhook" <?php selected($_REQUEST['source'] ?? '', 'webhook'); ?>><?php esc_html_e('Webhook', 'peanut-suite'); ?></option>
-                <option value="import" <?php selected($_REQUEST['source'] ?? '', 'import'); ?>><?php esc_html_e('Import', 'peanut-suite'); ?></option>
-                <option value="manual" <?php selected($_REQUEST['source'] ?? '', 'manual'); ?>><?php esc_html_e('Manual', 'peanut-suite'); ?></option>
+                <option value="form" <?php selected($current_source, 'form'); ?>><?php esc_html_e('Form', 'peanut-suite'); ?></option>
+                <option value="webhook" <?php selected($current_source, 'webhook'); ?>><?php esc_html_e('Webhook', 'peanut-suite'); ?></option>
+                <option value="import" <?php selected($current_source, 'import'); ?>><?php esc_html_e('Import', 'peanut-suite'); ?></option>
+                <option value="manual" <?php selected($current_source, 'manual'); ?>><?php esc_html_e('Manual', 'peanut-suite'); ?></option>
             </select>
             <?php submit_button(__('Filter', 'peanut-suite'), '', 'filter_action', false); ?>
         </div>

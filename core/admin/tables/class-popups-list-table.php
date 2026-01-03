@@ -327,19 +327,23 @@ class Peanut_Popups_List_Table extends WP_List_Table {
         if ($which !== 'top') return;
         ?>
         <div class="alignleft actions">
+            <?php
+            $current_status = sanitize_text_field($_REQUEST['status'] ?? '');
+            $current_type = sanitize_text_field($_REQUEST['type'] ?? '');
+            ?>
             <select name="status">
                 <option value=""><?php esc_html_e('All Statuses', 'peanut-suite'); ?></option>
-                <option value="active" <?php selected($_REQUEST['status'] ?? '', 'active'); ?>><?php esc_html_e('Active', 'peanut-suite'); ?></option>
-                <option value="paused" <?php selected($_REQUEST['status'] ?? '', 'paused'); ?>><?php esc_html_e('Paused', 'peanut-suite'); ?></option>
-                <option value="draft" <?php selected($_REQUEST['status'] ?? '', 'draft'); ?>><?php esc_html_e('Draft', 'peanut-suite'); ?></option>
-                <option value="archived" <?php selected($_REQUEST['status'] ?? '', 'archived'); ?>><?php esc_html_e('Archived', 'peanut-suite'); ?></option>
+                <option value="active" <?php selected($current_status, 'active'); ?>><?php esc_html_e('Active', 'peanut-suite'); ?></option>
+                <option value="paused" <?php selected($current_status, 'paused'); ?>><?php esc_html_e('Paused', 'peanut-suite'); ?></option>
+                <option value="draft" <?php selected($current_status, 'draft'); ?>><?php esc_html_e('Draft', 'peanut-suite'); ?></option>
+                <option value="archived" <?php selected($current_status, 'archived'); ?>><?php esc_html_e('Archived', 'peanut-suite'); ?></option>
             </select>
             <select name="type">
                 <option value=""><?php esc_html_e('All Types', 'peanut-suite'); ?></option>
-                <option value="modal" <?php selected($_REQUEST['type'] ?? '', 'modal'); ?>><?php esc_html_e('Modal', 'peanut-suite'); ?></option>
-                <option value="slide-in" <?php selected($_REQUEST['type'] ?? '', 'slide-in'); ?>><?php esc_html_e('Slide-in', 'peanut-suite'); ?></option>
-                <option value="bar" <?php selected($_REQUEST['type'] ?? '', 'bar'); ?>><?php esc_html_e('Bar', 'peanut-suite'); ?></option>
-                <option value="fullscreen" <?php selected($_REQUEST['type'] ?? '', 'fullscreen'); ?>><?php esc_html_e('Fullscreen', 'peanut-suite'); ?></option>
+                <option value="modal" <?php selected($current_type, 'modal'); ?>><?php esc_html_e('Modal', 'peanut-suite'); ?></option>
+                <option value="slide-in" <?php selected($current_type, 'slide-in'); ?>><?php esc_html_e('Slide-in', 'peanut-suite'); ?></option>
+                <option value="bar" <?php selected($current_type, 'bar'); ?>><?php esc_html_e('Bar', 'peanut-suite'); ?></option>
+                <option value="fullscreen" <?php selected($current_type, 'fullscreen'); ?>><?php esc_html_e('Fullscreen', 'peanut-suite'); ?></option>
             </select>
             <?php submit_button(__('Filter', 'peanut-suite'), '', 'filter_action', false); ?>
         </div>

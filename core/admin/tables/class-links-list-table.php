@@ -283,11 +283,12 @@ class Peanut_Links_List_Table extends WP_List_Table {
         if ($which !== 'top') return;
         ?>
         <div class="alignleft actions">
+            <?php $current_status = sanitize_text_field($_REQUEST['status'] ?? ''); ?>
             <select name="status">
                 <option value=""><?php esc_html_e('All Statuses', 'peanut-suite'); ?></option>
-                <option value="active" <?php selected($_REQUEST['status'] ?? '', 'active'); ?>><?php esc_html_e('Active', 'peanut-suite'); ?></option>
-                <option value="inactive" <?php selected($_REQUEST['status'] ?? '', 'inactive'); ?>><?php esc_html_e('Inactive', 'peanut-suite'); ?></option>
-                <option value="expired" <?php selected($_REQUEST['status'] ?? '', 'expired'); ?>><?php esc_html_e('Expired', 'peanut-suite'); ?></option>
+                <option value="active" <?php selected($current_status, 'active'); ?>><?php esc_html_e('Active', 'peanut-suite'); ?></option>
+                <option value="inactive" <?php selected($current_status, 'inactive'); ?>><?php esc_html_e('Inactive', 'peanut-suite'); ?></option>
+                <option value="expired" <?php selected($current_status, 'expired'); ?>><?php esc_html_e('Expired', 'peanut-suite'); ?></option>
             </select>
             <?php submit_button(__('Filter', 'peanut-suite'), '', 'filter_action', false); ?>
         </div>

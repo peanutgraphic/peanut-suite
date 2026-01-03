@@ -247,7 +247,7 @@ class Popups_Renderer {
             <?php endif; ?>
 
             <?php if ($popup->content): ?>
-            <span class="peanut-popup-description"><?php echo wp_strip_all_tags($popup->content); ?></span>
+            <span class="peanut-popup-description"><?php echo esc_html( wp_strip_all_tags( $popup->content ) ); ?></span>
             <?php endif; ?>
         </div>
 

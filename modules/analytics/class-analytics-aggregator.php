@@ -24,7 +24,7 @@ class Analytics_Aggregator {
      * @param string|null $date Date to aggregate (defaults to yesterday).
      * @return array
      */
-    public static function aggregate(string $date = null): array {
+    public static function aggregate(?string $date = null): array {
         if (!$date) {
             $date = gmdate('Y-m-d', strtotime('-1 day'));
         }
