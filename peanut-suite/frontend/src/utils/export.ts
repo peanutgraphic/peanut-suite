@@ -1,6 +1,3 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-
 // CSV Export Utility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function exportToCSV(
@@ -45,7 +42,7 @@ export function exportToJSON<T>(data: T[], filename: string): void {
   downloadBlob(blob, `${filename}.json`);
 }
 
-// PDF Export Utility
+// PDF Export Utility (lazy-loaded to reduce bundle size)
 export async function exportToPDF(
   elementId: string,
   filename: string,
@@ -60,6 +57,12 @@ export async function exportToPDF(
   }
 
   try {
+    // Dynamically import heavy PDF libraries only when needed
+    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+      import('jspdf'),
+      import('html2canvas'),
+    ]);
+
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,

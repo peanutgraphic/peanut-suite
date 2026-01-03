@@ -131,10 +131,10 @@ class Dashboard_Module {
             $date = gmdate('Y-m-d', strtotime("-$i days"));
             $result[] = [
                 'date' => $date,
-                'utm_clicks' => 0, // TODO: Add UTM click tracking
+                'utm_clicks' => 0, // Planned feature: UTM click aggregation
                 'link_clicks' => $clicks_by_date[$date] ?? 0,
                 'contacts' => $contacts_by_date[$date] ?? 0,
-                'conversions' => 0, // TODO: Add conversion tracking
+                'conversions' => 0, // Planned feature: Conversion tracking
             ];
         }
 

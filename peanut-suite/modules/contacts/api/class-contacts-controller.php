@@ -122,20 +122,30 @@ class Contacts_Controller extends Peanut_REST_Controller {
             }
         }
 
+        // Client filter (via junction table)
+        $client_id = $request->get_param('client_id');
+        $join_sql = '';
+        if (!empty($client_id)) {
+            $client_contacts_table = Peanut_Database::client_contacts_table();
+            $join_sql = " INNER JOIN {$client_contacts_table} cc ON {$table}.id = cc.contact_id";
+            $where[] = 'cc.client_id = %d';
+            $params[] = (int) $client_id;
+        }
+
         $where_sql = implode(' AND ', $where);
 
         // Count
         $total = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $table WHERE $where_sql",
+            "SELECT COUNT(DISTINCT {$table}.id) FROM {$table}{$join_sql} WHERE $where_sql",
             ...$params
         ));
 
         // Get items
         $offset = ($pagination['page'] - 1) * $pagination['per_page'];
         $items = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table
+            "SELECT DISTINCT {$table}.* FROM {$table}{$join_sql}
              WHERE $where_sql
-             ORDER BY {$sort['orderby']} {$sort['order']}
+             ORDER BY {$table}.{$sort['orderby']} {$sort['order']}
              LIMIT %d OFFSET %d",
             ...array_merge($params, [$pagination['per_page'], $offset])
         ), ARRAY_A);
@@ -539,6 +549,9 @@ class Contacts_Controller extends Peanut_REST_Controller {
             'status_label' => Contacts_Module::STATUSES[$item['status']] ?? $item['status'],
             'source' => $item['source'],
             'score' => (int) $item['score'],
+            'tags' => isset($item['tags']) && $item['tags'] ? json_decode($item['tags'], true) : [],
+            'custom_fields' => isset($item['custom_fields']) && $item['custom_fields'] ? json_decode($item['custom_fields'], true) : [],
+            'client_names' => $this->get_client_names((int) $item['id']),
             'last_activity_at' => $item['last_activity_at'],
             'created_at' => $item['created_at'],
         ];
@@ -548,9 +561,25 @@ class Contacts_Controller extends Peanut_REST_Controller {
             $prepared['utm_medium'] = $item['utm_medium'];
             $prepared['utm_campaign'] = $item['utm_campaign'];
             $prepared['notes'] = $item['notes'];
-            $prepared['custom_fields'] = $item['custom_fields'] ? json_decode($item['custom_fields'], true) : [];
         }
 
         return $prepared;
+    }
+
+    /**
+     * Get client names for a contact
+     */
+    private function get_client_names(int $contact_id): array {
+        global $wpdb;
+        $clients_table = Peanut_Database::clients_table();
+        $client_contacts_table = Peanut_Database::client_contacts_table();
+
+        return $wpdb->get_col($wpdb->prepare(
+            "SELECT c.name FROM {$clients_table} c
+             INNER JOIN {$client_contacts_table} cc ON c.id = cc.client_id
+             WHERE cc.contact_id = %d
+             ORDER BY c.name",
+            $contact_id
+        ));
     }
 }

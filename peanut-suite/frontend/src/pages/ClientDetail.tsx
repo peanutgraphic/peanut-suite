@@ -925,7 +925,11 @@ export default function ClientDetail() {
           <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg">
             {availableContacts.length === 0 ? (
               <div className="p-4 text-center text-slate-500">
-                {contactSearch ? 'No contacts found' : 'All contacts are already linked'}
+                {contactSearch
+                  ? 'No contacts found'
+                  : allContacts.length === 0
+                    ? 'No contacts yet. Create contacts first from the Contacts page.'
+                    : 'All contacts are already linked'}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">

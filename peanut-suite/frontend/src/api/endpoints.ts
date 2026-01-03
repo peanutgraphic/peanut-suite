@@ -199,6 +199,7 @@ export const contactsApi = {
     status?: string;
     source?: string;
     tag?: string;
+    client_id?: number;
   }) => {
     const { data } = await api.get<PaginatedResponse<Contact>>('/contacts', { params });
     return data;
@@ -2089,6 +2090,11 @@ export const invoicesApi = {
 
   getPayments: async (id: number) => {
     const { data } = await api.get<Payment[]>(`/finance/invoices/${id}/payments`);
+    return data;
+  },
+
+  duplicate: async (id: number) => {
+    const { data } = await api.post<{ id: number; invoice: Invoice }>(`/finance/invoices/${id}/duplicate`);
     return data;
   },
 };

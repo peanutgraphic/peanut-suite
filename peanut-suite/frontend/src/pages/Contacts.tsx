@@ -96,7 +96,7 @@ export default function Contacts() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['contacts', page, contactFilters],
+    queryKey: ['contacts', page, contactFilters, clientFilter],
     queryFn: () =>
       contactsApi.getAll({
         page,
@@ -104,6 +104,7 @@ export default function Contacts() {
         search: contactFilters.search || undefined,
         status: contactFilters.status || undefined,
         source: contactFilters.source || undefined,
+        client_id: clientFilter || undefined,
       }),
   });
 
@@ -169,6 +170,7 @@ export default function Contacts() {
       company: newContact.company || undefined,
       status: newContact.status,
       project_id: projectId,
+      client_id: newContact.client_id || undefined,
     });
   };
 

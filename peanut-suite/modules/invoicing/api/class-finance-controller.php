@@ -104,6 +104,12 @@ class Finance_Controller extends WP_REST_Controller {
             'permission_callback' => [$this, 'check_permission'],
         ]);
 
+        register_rest_route($this->namespace, '/finance/invoices/(?P<id>[\d]+)/duplicate', [
+            'methods' => WP_REST_Server::CREATABLE,
+            'callback' => [$this, 'duplicate_invoice'],
+            'permission_callback' => [$this, 'check_permission'],
+        ]);
+
         register_rest_route($this->namespace, '/finance/invoices/stats', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'get_invoice_stats'],
@@ -493,6 +499,50 @@ class Finance_Controller extends WP_REST_Controller {
         }
 
         return new WP_REST_Response(['success' => true], 200);
+    }
+
+    /**
+     * Duplicate an invoice
+     */
+    public function duplicate_invoice($request): WP_REST_Response {
+        $id = (int) $request->get_param('id');
+        $user_id = get_current_user_id();
+
+        // Get original invoice
+        $original = Invoice_Service::get_by_id($id);
+        if (!$original) {
+            return new WP_REST_Response(['error' => 'Invoice not found'], 404);
+        }
+
+        // Create new invoice with same data
+        $new_id = Invoice_Service::create([
+            'project_id' => $original['project_id'],
+            'contact_id' => $original['contact_id'],
+            'client_name' => $original['client_name'],
+            'client_email' => $original['client_email'],
+            'client_company' => $original['client_company'],
+            'client_address' => $original['client_address'],
+            'tax_percent' => $original['tax_percent'],
+            'discount_amount' => $original['discount_amount'],
+            'discount_type' => $original['discount_type'],
+            'currency' => $original['currency'],
+            'payment_terms' => $original['payment_terms'],
+            'notes' => $original['notes'],
+            'client_notes' => $original['client_notes'],
+            'footer' => $original['footer'],
+            'items' => $original['items'] ?? [],
+        ], $user_id);
+
+        if (!$new_id) {
+            return new WP_REST_Response(['error' => 'Failed to duplicate invoice'], 500);
+        }
+
+        $invoice = Invoice_Service::get_by_id($new_id);
+
+        return new WP_REST_Response([
+            'id' => $new_id,
+            'invoice' => $invoice,
+        ], 201);
     }
 
     public function get_invoice_stats($request): WP_REST_Response {

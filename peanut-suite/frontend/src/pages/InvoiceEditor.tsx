@@ -119,11 +119,11 @@ export default function InvoiceEditor() {
       setItems(invoice.items.map(item => ({
         item_type: item.item_type,
         description: item.description,
-        quantity: item.quantity,
-        hours: item.hours,
-        rate: item.rate,
-        unit_price: item.unit_price,
-        amount: item.amount,
+        quantity: Number(item.quantity) || 1,
+        hours: Number(item.hours) || 0,
+        rate: Number(item.rate) || 0,
+        unit_price: Number(item.unit_price) || 0,
+        amount: Number(item.amount) || 0,
         taxable: item.taxable,
         sort_order: item.sort_order,
       })));
@@ -535,7 +535,7 @@ export default function InvoiceEditor() {
                       <div className="col-span-6 md:col-span-1">
                         <label className="block text-xs font-medium text-slate-500 mb-1">Amount</label>
                         <p className="py-1.5 text-sm font-medium text-slate-900">
-                          ${item.amount.toFixed(2)}
+                          ${Number(item.amount || 0).toFixed(2)}
                         </p>
                       </div>
                       <div className="col-span-6 md:col-span-1 flex items-end justify-end">

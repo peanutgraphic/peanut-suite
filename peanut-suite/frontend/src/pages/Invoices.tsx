@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { Layout } from '../components/layout';
-import { Card, Button, Skeleton, EmptyState, ConfirmModal, useToast } from '../components/common';
+import { Card, Button, Input, Skeleton, EmptyState, ConfirmModal, useToast } from '../components/common';
 import { invoicesApi, projectsApi } from '../api/endpoints';
 import { useAccountStore } from '../store';
 import type { Invoice, InvoiceStatus } from '../types';
@@ -98,6 +98,18 @@ export default function Invoices() {
     onError: () => toast.error('Failed to delete invoice'),
   });
 
+  // Duplicate invoice mutation
+  const duplicateMutation = useMutation({
+    mutationFn: (id: number) => invoicesApi.duplicate(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice-stats'] });
+      toast.success('Invoice duplicated');
+      navigate(`/finance/invoices/${data.id}`);
+    },
+    onError: () => toast.error('Failed to duplicate invoice'),
+  });
+
   // Format currency
   const formatCurrency = (amount: number, currency = 'USD') => {
     return new Intl.NumberFormat('en-US', {
@@ -158,17 +170,16 @@ export default function Invoices() {
       <Card className="mb-6">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
+          <div className="flex-1">
+            <Input
               type="text"
               placeholder="Search invoices..."
+              leftIcon={<Search className="w-4 h-4" />}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
 
@@ -368,18 +379,19 @@ export default function Invoices() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // TODO: Implement duplicate
+                                  duplicateMutation.mutate(invoice.id);
                                   setOpenMenuId(null);
                                 }}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                                disabled={duplicateMutation.isPending}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                               >
                                 <Copy className="w-4 h-4" />
-                                Duplicate
+                                {duplicateMutation.isPending ? 'Duplicating...' : 'Duplicate'}
                               </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // TODO: Implement download
+                                  navigate(`/finance/invoices/${invoice.id}?print=true`);
                                   setOpenMenuId(null);
                                 }}
                                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"

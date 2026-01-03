@@ -133,6 +133,7 @@ export interface ContactFormData {
   tags?: string[];
   custom_fields?: Record<string, unknown>;
   project_id: number;
+  client_id?: number;
 }
 
 // Client Types
