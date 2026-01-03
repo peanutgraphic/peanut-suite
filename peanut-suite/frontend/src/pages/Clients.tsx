@@ -266,11 +266,11 @@ export default function Clients() {
           {clients.map((client) => (
             <Card key={client.id} className="p-4">
               <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center flex-shrink-0">
                     <Building2 className="w-5 h-5 text-primary-600" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="font-medium text-slate-900">{client.name}</h3>
                     {client.industry && (
                       <p className="text-sm text-slate-500">{client.industry}</p>
