@@ -194,13 +194,12 @@ export default function Clients() {
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1 flex gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="flex-1 max-w-md">
             <Input
               placeholder="Search clients..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              leftIcon={<Search className="w-4 h-4" />}
             />
           </div>
           <select

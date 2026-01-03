@@ -352,8 +352,7 @@ export default function Servers() {
       {/* Search and Actions */}
       <Card>
         <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="flex-1 max-w-md">
             <Input
               type="text"
               placeholder="Search servers..."
@@ -362,7 +361,7 @@ export default function Servers() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="pl-10"
+              leftIcon={<Search className="w-4 h-4" />}
             />
           </div>
           <Button
